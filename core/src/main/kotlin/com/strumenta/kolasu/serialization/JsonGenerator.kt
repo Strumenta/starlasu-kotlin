@@ -10,6 +10,7 @@ import com.google.gson.stream.JsonWriter
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.Point
 import com.strumenta.kolasu.model.Position
+import com.strumenta.kolasu.model.PropertyType
 import com.strumenta.kolasu.model.ReferenceByName
 import com.strumenta.kolasu.model.processOriginalProperties
 import com.strumenta.kolasu.parsing.ParsingResult
@@ -312,7 +313,7 @@ private fun Node.toJsonStreaming(writer: JsonWriter, shortClassNames: Boolean = 
             }
             writer.endArray()
         } else {
-            if (it.provideNodes) {
+            if (it.propertyType == PropertyType.CONTAINMENT) {
                 (it.value as Node).toJsonStreaming(writer, shortClassNames)
             } else {
                 it.value.toJsonStreaming(writer)

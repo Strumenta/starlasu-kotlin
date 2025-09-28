@@ -1,6 +1,7 @@
 package com.strumenta.kolasu.javalib;
 
 import com.strumenta.kolasu.model.*;
+import kotlin.jvm.functions.Function0;
 import kotlin.reflect.KCallable;
 import kotlin.reflect.KType;
 import kotlin.reflect.KTypeProjection;
@@ -89,12 +90,6 @@ public class JavaNode extends Node {
         } else if (p.getReadMethod().isAnnotationPresent(Mandatory.class) || p.getPropertyType().isPrimitive()) {
             multiplicity = Multiplicity.SINGULAR;
         }
-        Object value;
-        try {
-            value = p.getReadMethod().invoke(this);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
         PropertyType propertyType = provideNodes ? PropertyType.CONTAINMENT : PropertyType.ATTRIBUTE;
         Class<?> actualType = type;
         if (ReferenceByName.class.isAssignableFrom(type)) {
@@ -110,7 +105,17 @@ public class JavaNode extends Node {
         boolean derived = hasAnnotation(p, Derived.class);
         boolean nullable = multiplicity == Multiplicity.OPTIONAL;
         return new PropertyDescription(
-                name, provideNodes, multiplicity, value, propertyType, derived, kotlinType(actualType, nullable));
+                name, provideNodes, multiplicity,
+                () -> {
+                    try {
+                        return p.getReadMethod().invoke(this);
+                    } catch (RuntimeException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                },
+                propertyType, derived, kotlinType(actualType, nullable));
     }
 
     @NotNull

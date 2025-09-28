@@ -93,8 +93,10 @@ project.afterEvaluate {
         dependsOn(tasks.named("javadocJar"))
         dependsOn(tasks.named("sourcesJar"))
     }
-    tasks.named("signMavenPublication") {
-        dependsOn(tasks.named("javadocJar"))
-        dependsOn(tasks.named("sourcesJar"))
+    if (tasks.findByName("signMavenPublication") != null) {
+        tasks.named("signMavenPublication") {
+            dependsOn(tasks.named("javadocJar"))
+            dependsOn(tasks.named("sourcesJar"))
+        }
     }
 }

@@ -358,36 +358,32 @@ class JsonGenerationTest {
             listOf(
                 PropertyDescription(
                     "someAttr",
-                    false,
                     Multiplicity.SINGULAR,
-                    123,
+                    { 123 },
                     PropertyType.ATTRIBUTE,
                     derived = false,
                     type = String::class.createType()
                 ),
                 PropertyDescription(
                     "someListAttr",
-                    false,
                     Multiplicity.MANY,
-                    listOf("a", "b"),
+                    { listOf("a", "b") },
                     PropertyType.ATTRIBUTE,
                     derived = false,
                     type = String::class.createType()
                 ),
                 PropertyDescription(
                     "someChild",
-                    true,
                     Multiplicity.SINGULAR,
-                    BaseNode(456),
+                    { BaseNode(456) },
                     PropertyType.CONTAINMENT,
                     derived = false,
                     type = String::class.createType()
                 ),
                 PropertyDescription(
                     "someChildren",
-                    true,
                     Multiplicity.MANY,
-                    listOf(BaseNode(78), BaseNode(90)),
+                    { listOf(BaseNode(78), BaseNode(90)) },
                     PropertyType.CONTAINMENT,
                     derived = false,
                     type = String::class.createType()

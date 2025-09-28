@@ -63,16 +63,21 @@ data class PropertyDescription(
     @Deprecated("Redundant", replaceWith = ReplaceWith("propertyType == PropertyType.CONTAINMENT"))
     val provideNodes: Boolean,
     val multiplicity: Multiplicity,
-    val value: Any?,
     val propertyType: PropertyType,
     val derived: Boolean,
     val type: KType
 ) {
 
+    private var valueProvider: () -> Any? = { null }
+    val value: Any? by lazy { valueProvider() }
+
+    constructor(name: String, multiplicity: Multiplicity, value: () -> Any?, propertyType: PropertyType, derived: Boolean, type: KType) :
+            this(name, propertyType == PropertyType.CONTAINMENT, multiplicity, propertyType, derived, type) {
+        this.valueProvider = value
+    }
+
     fun valueToString(): String {
-        if (value == null) {
-            return "null"
-        }
+        val value = this.value ?: return "null"
         return if (propertyType == PropertyType.CONTAINMENT) {
             if (multiplicity == Multiplicity.MANY) {
                 when (value) {
@@ -125,9 +130,8 @@ data class PropertyDescription(
             }
             return PropertyDescription(
                 name = property.name,
-                provideNodes = provideNodes,
                 multiplicity = multiplicity,
-                value = property.get(node as N),
+                value = { property.get(node as N) },
                 when {
                     property.isReference() -> PropertyType.REFERENCE
                     provideNodes -> PropertyType.CONTAINMENT
