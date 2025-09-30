@@ -5,6 +5,7 @@ import com.strumenta.kolasu.ids.NodeIdProvider
 import com.strumenta.kolasu.language.Feature
 import com.strumenta.kolasu.language.KolasuLanguage
 import com.strumenta.kolasu.model.CompositeDestination
+import com.strumenta.kolasu.model.DroppedDestination
 import com.strumenta.kolasu.model.Multiplicity
 import com.strumenta.kolasu.model.Position
 import com.strumenta.kolasu.model.PossiblyNamed
@@ -16,6 +17,7 @@ import com.strumenta.kolasu.model.isAttribute
 import com.strumenta.kolasu.model.isContainment
 import com.strumenta.kolasu.model.isReference
 import com.strumenta.kolasu.model.nodeOriginalProperties
+import com.strumenta.kolasu.model.withDestination
 import com.strumenta.kolasu.parsing.KolasuToken
 import com.strumenta.kolasu.parsing.ParsingResult
 import com.strumenta.kolasu.transformation.FailingASTTransformation
@@ -25,6 +27,7 @@ import com.strumenta.kolasu.traversing.walk
 import com.strumenta.kolasu.validation.Issue
 import com.strumenta.kolasu.validation.IssueSeverity
 import com.strumenta.kolasu.validation.IssueType
+import com.strumenta.starlasu.base.v1.MigrationLanguage
 import io.lionweb.kotlin.DefaultMetamodelRegistry
 import io.lionweb.kotlin.MetamodelRegistry
 import io.lionweb.kotlin.getChildrenByContainmentName
@@ -281,13 +284,25 @@ class LionWebModelConverter(
                             } else if (feature == ASTNodeTranspiledNodes) {
                                 val destinationNodes = mutableListOf<KNode>()
                                 if (kNode.destination != null) {
-                                    if (kNode.destination is KNode) {
-                                        destinationNodes.add(kNode.destination as KNode)
-                                    } else if (kNode.destination is CompositeDestination) {
-                                        destinationNodes.addAll(
-                                            (kNode.destination as CompositeDestination).elements
-                                                .filterIsInstance<KNode>()
-                                        )
+                                    when (kNode.destination) {
+                                        is KNode -> {
+                                            destinationNodes.add(kNode.destination as KNode)
+                                        }
+
+                                        is CompositeDestination -> {
+                                            destinationNodes.addAll(
+                                                (kNode.destination as CompositeDestination).elements
+                                                    .filterIsInstance<KNode>()
+                                            )
+                                        }
+
+                                        DroppedDestination -> {
+                                            val annotation = DynamicAnnotationInstance(
+                                                myIDManager.nodeId(kNode) + "-dropped",
+                                                MigrationLanguage.getDroppedElement()
+                                            )
+                                            lwNode.addAnnotation(annotation)
+                                        }
                                     }
                                 }
                                 val referenceValues = destinationNodes.map { destinationNode ->
@@ -446,6 +461,12 @@ class LionWebModelConverter(
                 }
                 val placeholderNodeAnnotation = lwNode.annotations.find {
                     it.classifier == PlaceholderNode
+                }
+                val droppedAnnotation = lwNode.annotations.find {
+                    it.classifier == MigrationLanguage.getDroppedElement()
+                }
+                if (droppedAnnotation != null) {
+                    kNode.withDestination(DroppedDestination)
                 }
                 if (placeholderNodeAnnotation != null) {
                     val placeholderType = (
