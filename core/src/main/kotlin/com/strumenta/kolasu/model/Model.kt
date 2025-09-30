@@ -250,6 +250,19 @@ fun <N : Node> N.withOrigin(origin: Origin?): N {
     return this
 }
 
+fun <N : Node> N.withDestination(destionation: Destination): N {
+    this.destination = if (destination == this) {
+        null
+    } else {
+        destination
+    }
+    return this
+}
+
+fun <N : Node> N.withDroppedDestination(): N {
+    return withDestination(DroppedDestination)
+}
+
 /**
  * Use this to mark properties that are internal, i.e., they are used for bookkeeping and are not part of the model,
  * so that they will not be considered branches of the AST.
