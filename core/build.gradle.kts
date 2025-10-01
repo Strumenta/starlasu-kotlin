@@ -25,7 +25,7 @@ dependencies {
     implementation(libs.starlasu.specs)
     implementation(kotlin("stdlib", libs.versions.kotlin.get()))
     implementation(kotlin("reflect", libs.versions.kotlin.get()))
-    implementation(kotlin("test-junit", libs.versions.kotlin.get()))
+    implementation(kotlin("test", libs.versions.kotlin.get()))
     implementation(libs.gson)
 
     testImplementation(kotlin("test-junit", libs.versions.kotlin.get()))

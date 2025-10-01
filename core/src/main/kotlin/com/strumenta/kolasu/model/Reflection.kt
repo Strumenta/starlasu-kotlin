@@ -61,12 +61,14 @@ enum class PropertyType {
 data class PropertyDescription(
     val name: String,
     val multiplicity: Multiplicity,
-    private val valueProvider: () -> Any? = { null },
     val propertyType: PropertyType,
     val derived: Boolean,
     val type: KType
 ) {
 
+    // Note: it can't be declared in the constructor, otherwise it's used for equality, and two different closures
+    // computing the same function still aren't equal
+    private var valueProvider: () -> Any? = { null }
     val value: Any? by lazy { valueProvider() }
 
     val provideNodes: Boolean get() = propertyType == PropertyType.CONTAINMENT
@@ -89,11 +91,24 @@ data class PropertyDescription(
     constructor(
         name: String,
         multiplicity: Multiplicity,
+        valueProvider: () -> Any?,
+        propertyType: PropertyType,
+        derived: Boolean,
+        type: KType
+    ) : this(name, multiplicity, propertyType, derived, type) {
+        this.valueProvider = valueProvider
+    }
+
+    constructor(
+        name: String,
+        multiplicity: Multiplicity,
         value: Any?,
         propertyType: PropertyType,
         derived: Boolean,
         type: KType
-    ) : this(name, multiplicity, { value }, propertyType, derived, type)
+    ) : this(name, multiplicity, propertyType, derived, type) {
+        valueProvider = { value }
+    }
 
     fun valueToString(): String {
         val value = this.value ?: return "null"
@@ -150,7 +165,7 @@ data class PropertyDescription(
             return PropertyDescription(
                 name = property.name,
                 multiplicity = multiplicity,
-                value = { property.get(node as N) },
+                value = property.get(node as N),
                 when {
                     property.isReference() -> PropertyType.REFERENCE
                     provideNodes -> PropertyType.CONTAINMENT
