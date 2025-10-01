@@ -60,21 +60,40 @@ enum class PropertyType {
 
 data class PropertyDescription(
     val name: String,
-    @Deprecated("Redundant", replaceWith = ReplaceWith("propertyType == PropertyType.CONTAINMENT"))
-    val provideNodes: Boolean,
     val multiplicity: Multiplicity,
+    private val valueProvider: () -> Any? = { null },
     val propertyType: PropertyType,
     val derived: Boolean,
     val type: KType
 ) {
 
-    private var valueProvider: () -> Any? = { null }
     val value: Any? by lazy { valueProvider() }
 
-    constructor(name: String, multiplicity: Multiplicity, value: () -> Any?, propertyType: PropertyType, derived: Boolean, type: KType) :
-            this(name, propertyType == PropertyType.CONTAINMENT, multiplicity, propertyType, derived, type) {
-        this.valueProvider = value
+    val provideNodes: Boolean get() = propertyType == PropertyType.CONTAINMENT
+
+    @Deprecated("Use the constructor without providesNodes")
+    constructor(
+        name: String,
+        provideNodes: Boolean,
+        multiplicity: Multiplicity,
+        value: Any?,
+        propertyType: PropertyType,
+        derived: Boolean,
+        type: KType
+    ) : this(name, multiplicity, value, propertyType, derived, type) {
+        if (provideNodes != this.provideNodes) {
+            throw IllegalArgumentException("providesNodes value is inconsistent with propertyType")
+        }
     }
+
+    constructor(
+        name: String,
+        multiplicity: Multiplicity,
+        value: Any?,
+        propertyType: PropertyType,
+        derived: Boolean,
+        type: KType
+    ) : this(name, multiplicity, { value }, propertyType, derived, type)
 
     fun valueToString(): String {
         val value = this.value ?: return "null"

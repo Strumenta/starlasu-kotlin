@@ -38,7 +38,7 @@ data class CodebaseFile<R : Node>(
     fun areAllReferencesResolved(): Boolean {
         return ast.walk().all {
             it.originalProperties.filter { it.propertyType == PropertyType.REFERENCE }.all { property ->
-                (property.value() as ReferenceByName<*>).resolved
+                (property.value as ReferenceByName<*>).resolved
             }
         }
     }

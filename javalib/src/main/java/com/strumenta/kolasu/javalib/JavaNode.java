@@ -105,7 +105,7 @@ public class JavaNode extends Node {
         boolean derived = hasAnnotation(p, Derived.class);
         boolean nullable = multiplicity == Multiplicity.OPTIONAL;
         return new PropertyDescription(
-                name, provideNodes, multiplicity,
+                name, multiplicity,
                 () -> {
                     try {
                         return p.getReadMethod().invoke(this);
