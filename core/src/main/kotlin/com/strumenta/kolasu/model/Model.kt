@@ -250,7 +250,7 @@ fun <N : Node> N.withOrigin(origin: Origin?): N {
     return this
 }
 
-fun <N : Node> N.withDestination(destionation: Destination): N {
+fun <N : Node> N.withDestination(destination: Destination): N {
     this.destination = if (destination == this) {
         null
     } else {
