@@ -168,17 +168,16 @@ class LionWebModelConverter(
 
             fun nodeId(kNode: KNode): String {
                 return cache.getOrPut(kNode) {
-                    // If a kNode has already an id, it should prevail and we should not attempt to generate
-                    // an ID for it
-                    require(kNode.id == null) {
-                        "We should not generate an ID for a kNode which already has one"
+                    val currentId = kNode.id
+                    if (currentId != null) {
+                        currentId
+                    } else {
+                        val id = nodeIdProvider.id(kNode)
+                        if (!CommonChecks.isValidID(id)) {
+                            throw RuntimeException("We got an invalid Node ID from $nodeIdProvider for $id")
+                        }
+                        id
                     }
-
-                    val id = nodeIdProvider.id(kNode)
-                    if (!CommonChecks.isValidID(id)) {
-                        throw RuntimeException("We got an invalid Node ID from $nodeIdProvider for $id")
-                    }
-                    id
                 }
             }
 

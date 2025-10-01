@@ -2,7 +2,7 @@
 lwjava = "1.1.2"
 lwkotlin = "0.6.2"
 kotest= "1.3.3"
-specs = "0.5.1-SNAPSHOT"
+specs = "0.6.0"
 gson = "2.13.0"
 jvm = "1.8"
 antlr = "4.9.3"
