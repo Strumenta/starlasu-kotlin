@@ -87,14 +87,12 @@ project.afterEvaluate {
     tasks.named("dokkaJavadocJar") {
         dependsOn(tasks.named("dokkaJavadoc"))
     }
-    tasks.named("publishMavenPublicationToMavenRepository") {
-        dependsOn(tasks.named("dokkaJavadocJar"))
-        dependsOn(tasks.named("javaSourcesJar"))
-        dependsOn(tasks.named("javadocJar"))
-        dependsOn(tasks.named("sourcesJar"))
-    }
-    tasks.named("signMavenPublication") {
-        dependsOn(tasks.named("javadocJar"))
-        dependsOn(tasks.named("sourcesJar"))
-    }
+    tasks.matching { it.name.startsWith("publish") && it.name.endsWith("ToMavenRepository") }
+        .configureEach {
+            dependsOn("dokkaJavadocJar", "javaSourcesJar", "javadocJar", "sourcesJar")
+        }
+    tasks.matching { it.name.startsWith("sign") && it.name.endsWith("Publication") }
+        .configureEach {
+            dependsOn("javadocJar", "sourcesJar")
+        }
 }
