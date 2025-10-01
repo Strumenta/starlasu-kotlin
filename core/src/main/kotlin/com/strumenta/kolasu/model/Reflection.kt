@@ -165,7 +165,7 @@ data class PropertyDescription(
             return PropertyDescription(
                 name = property.name,
                 multiplicity = multiplicity,
-                value = property.get(node as N),
+                valueProvider = { property.get(node as N) },
                 when {
                     property.isReference() -> PropertyType.REFERENCE
                     provideNodes -> PropertyType.CONTAINMENT
