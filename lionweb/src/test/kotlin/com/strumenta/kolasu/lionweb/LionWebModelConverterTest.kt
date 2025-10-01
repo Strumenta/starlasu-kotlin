@@ -3,6 +3,7 @@ package com.strumenta.kolasu.lionweb
 import com.strumenta.kolasu.language.KolasuLanguage
 import com.strumenta.kolasu.model.ASTRoot
 import com.strumenta.kolasu.model.CompositeDestination
+import com.strumenta.kolasu.model.DroppedDestination
 import com.strumenta.kolasu.model.FileSource
 import com.strumenta.kolasu.model.Named
 import com.strumenta.kolasu.model.Node
@@ -12,6 +13,7 @@ import com.strumenta.kolasu.model.ReferenceByName
 import com.strumenta.kolasu.model.SyntheticSource
 import com.strumenta.kolasu.model.assignParents
 import com.strumenta.kolasu.model.pos
+import com.strumenta.kolasu.model.withDroppedDestination
 import com.strumenta.kolasu.model.withPosition
 import com.strumenta.kolasu.parsing.KolasuToken
 import com.strumenta.kolasu.parsing.ParsingResult
@@ -998,6 +1000,27 @@ class LionWebModelConverterTest {
         val lwNode3 = converter3.exportModelToLionWeb(myKNode3)
         assertEquals(1, lwNode3.annotations.size)
         assertEquals(annInstance1, lwNode3.annotations.first())
+    }
+
+    @Test
+    fun `serialize and deserialize node with DroppedDestination`() {
+        val converter = LionWebModelConverter()
+        converter.exportLanguageToLionWeb(
+            KolasuLanguage("myLanguage").apply {
+                addClass(NodeWithEnum::class)
+            }
+        )
+
+        val myNode = NodeWithEnum("MyNode", AnEnum.ZUM)
+        myNode.id = "MyNode1"
+        myNode.withDroppedDestination()
+        assert(myNode.destination is DroppedDestination)
+
+        val lwNode = converter.exportModelToLionWeb(myNode)
+        assertEquals(1, lwNode.annotations.size)
+
+        val reimportedNode = converter.importModelFromLionWeb(lwNode) as NodeWithEnum
+        assert(reimportedNode.destination is DroppedDestination)
     }
 }
 
