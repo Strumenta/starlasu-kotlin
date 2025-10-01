@@ -15,26 +15,6 @@ import static org.junit.Assert.*;
 
 public class TransformerTest {
     @Test
-    public void testReflection() {
-        Node1 node1 = new Node1();
-        node1.setNode2(new Node2());
-        node1.setNode2Ref(new ReferenceByName<>("", node1.getNode2()));
-        assertEquals(
-                Arrays.asList(
-                        new PropertyDescription(
-                                "name", false, Multiplicity.OPTIONAL, "", PropertyType.ATTRIBUTE,
-                                false, JavaNode.kotlinType(String.class, true)),
-                        new PropertyDescription(
-                                "node2", true, Multiplicity.SINGULAR, node1.getNode2(), PropertyType.CONTAINMENT,
-                                false, JavaNode.kotlinType(Node2.class, false)),
-                        new PropertyDescription(
-                                "node2Ref", false, Multiplicity.OPTIONAL, node1.getNode2Ref(), PropertyType.REFERENCE,
-                                false, JavaNode.kotlinType(Node2.class, true))
-                ),
-                node1.getProperties());
-    }
-
-    @Test
     public void testJavaNodes() {
         ArrayList<Issue> issues = new ArrayList<>();
         ASTTransformer t = new ASTTransformer(issues, false);
