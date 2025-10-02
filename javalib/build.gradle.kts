@@ -93,8 +93,8 @@ project.afterEvaluate {
         }
     if (tasks.findByName("signMavenPublication") != null) {
         tasks.matching { it.name.startsWith("sign") && it.name.endsWith("Publication") }
-        .configureEach {
-            dependsOn("javadocJar", "sourcesJar")
-        }
+            .configureEach {
+                dependsOn("javadocJar", "sourcesJar")
+            }
     }
 }
