@@ -163,7 +163,7 @@ fun assertASTsAreEqual(
     considerPosition: Boolean = false,
     useLightweightAttributeEquality: Boolean = false
 ) {
-    assertEquals(expected.nodeType, actual.nodeType,"$context: node types are different")
+    assertEquals(expected.nodeType, actual.nodeType, "$context: node types are different")
     if (considerPosition) {
         assertEquals(expected.position, actual.position, "$context.position")
     }
