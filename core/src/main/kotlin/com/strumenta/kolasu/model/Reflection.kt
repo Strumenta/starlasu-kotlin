@@ -71,7 +71,9 @@ data class PropertyDescription(
     private var valueProvider: () -> Any? = { null }
     val value: Any? by lazy { valueProvider() }
 
-    val provideNodes: Boolean get() = propertyType == PropertyType.CONTAINMENT
+    @Deprecated("Typo", replaceWith = ReplaceWith("providesNodes"))
+    val provideNodes: Boolean get() = providesNodes
+    val providesNodes: Boolean get() = propertyType == PropertyType.CONTAINMENT
 
     @Deprecated("Use the constructor without providesNodes")
     constructor(
@@ -112,7 +114,7 @@ data class PropertyDescription(
 
     fun valueToString(): String {
         val value = this.value ?: return "null"
-        return if (propertyType == PropertyType.CONTAINMENT) {
+        return if (providesNodes) {
             if (multiplicity == Multiplicity.MANY) {
                 when (value) {
                     is IgnoreChildren<*> -> "<Ignore Children Placeholder>"

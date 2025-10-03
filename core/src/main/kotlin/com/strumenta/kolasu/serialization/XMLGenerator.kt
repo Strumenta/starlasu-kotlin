@@ -3,7 +3,6 @@ package com.strumenta.kolasu.serialization
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.Point
 import com.strumenta.kolasu.model.Position
-import com.strumenta.kolasu.model.PropertyType
 import com.strumenta.kolasu.model.processProperties
 import com.strumenta.kolasu.validation.Issue
 import com.strumenta.kolasu.validation.Result
@@ -118,13 +117,13 @@ private fun Node.toXML(role: String, document: Document): Element {
         if (value == null) {
             element.addNullChild(it.name, document)
         } else if (it.multiple) {
-            if (it.propertyType == PropertyType.CONTAINMENT) {
+            if (it.providesNodes) {
                 element.addListOfNodes(it.name, (value as Collection<*>).map { it as Node }, document)
             } else {
                 element.addAttributesList(it.name, value as Collection<*>, document)
             }
         } else {
-            if (it.propertyType == PropertyType.CONTAINMENT) {
+            if (it.providesNodes) {
                 element.addChild((value as Node).toXML(it.name, document))
             } else {
                 element.addAttribute(it.name, value)

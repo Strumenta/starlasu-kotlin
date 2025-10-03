@@ -173,7 +173,7 @@ fun assertASTsAreEqual(
                 ?: fail("No property ${expectedProperty.name} found at $context")
             val actualPropValue = actualProperty.value
             val expectedPropValue = expectedProperty.value
-            if (expectedProperty.provideNodes) {
+            if (expectedProperty.providesNodes) {
                 if (expectedProperty.multiple) {
                     if (expectedPropValue is IgnoreChildren<*>) {
                         // Nothing to do
