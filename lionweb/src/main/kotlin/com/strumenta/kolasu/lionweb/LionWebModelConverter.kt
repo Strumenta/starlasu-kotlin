@@ -5,6 +5,7 @@ import com.strumenta.kolasu.ids.NodeIdProvider
 import com.strumenta.kolasu.language.Feature
 import com.strumenta.kolasu.language.KolasuLanguage
 import com.strumenta.kolasu.model.CompositeDestination
+import com.strumenta.kolasu.model.DroppedDestination
 import com.strumenta.kolasu.model.Multiplicity
 import com.strumenta.kolasu.model.Position
 import com.strumenta.kolasu.model.PossiblyNamed
@@ -16,6 +17,7 @@ import com.strumenta.kolasu.model.isAttribute
 import com.strumenta.kolasu.model.isContainment
 import com.strumenta.kolasu.model.isReference
 import com.strumenta.kolasu.model.nodeOriginalProperties
+import com.strumenta.kolasu.model.withDestination
 import com.strumenta.kolasu.parsing.KolasuToken
 import com.strumenta.kolasu.parsing.ParsingResult
 import com.strumenta.kolasu.transformation.FailingASTTransformation
@@ -25,6 +27,7 @@ import com.strumenta.kolasu.traversing.walk
 import com.strumenta.kolasu.validation.Issue
 import com.strumenta.kolasu.validation.IssueSeverity
 import com.strumenta.kolasu.validation.IssueType
+import com.strumenta.starlasu.base.v1.MigrationLanguage
 import io.lionweb.kotlin.DefaultMetamodelRegistry
 import io.lionweb.kotlin.MetamodelRegistry
 import io.lionweb.kotlin.getChildrenByContainmentName
@@ -98,6 +101,7 @@ class LionWebModelConverter(
     var nodeIdProvider: NodeIdProvider = StructuralLionWebNodeIdProvider(),
     initialLanguageConverter: LionWebLanguageConverter = LionWebLanguageConverter(),
     val metamodelRegistry: MetamodelRegistry = DefaultMetamodelRegistry,
+    var ignoreMissingReferences: Boolean = false,
 ) {
     companion object {
         private val kFeaturesCache = mutableMapOf<Class<*>, Map<String, Feature>>()
@@ -170,17 +174,16 @@ class LionWebModelConverter(
 
                 fun nodeId(kNode: KNode): String =
                     cache.getOrPut(kNode) {
-                        // If a kNode has already an id, it should prevail and we should not attempt to generate
-                        // an ID for it
-                        require(kNode.id == null) {
-                            "We should not generate an ID for a kNode which already has one"
+                        val currentId = kNode.id
+                        if (currentId != null) {
+                            currentId
+                        } else {
+                            val id = nodeIdProvider.id(kNode)
+                            if (!CommonChecks.isValidID(id)) {
+                                throw RuntimeException("We got an invalid Node ID from $nodeIdProvider for $id")
+                            }
+                            id
                         }
-
-                        val id = nodeIdProvider.id(kNode)
-                        if (!CommonChecks.isValidID(id)) {
-                            throw RuntimeException("We got an invalid Node ID from $nodeIdProvider for $id")
-                        }
-                        id
                     }
 
                 override fun toString(): String = "Caching ID Manager in front of $nodeIdProvider"
@@ -295,14 +298,27 @@ class LionWebModelConverter(
                             } else if (feature == ASTNodeTranspiledNodes) {
                                 val destinationNodes = mutableListOf<KNode>()
                                 if (kNode.destination != null) {
-                                    if (kNode.destination is KNode) {
-                                        destinationNodes.add(kNode.destination as KNode)
-                                    } else if (kNode.destination is CompositeDestination) {
-                                        destinationNodes.addAll(
-                                            (kNode.destination as CompositeDestination)
-                                                .elements
-                                                .filterIsInstance<KNode>(),
-                                        )
+                                    when (kNode.destination) {
+                                        is KNode -> {
+                                            destinationNodes.add(kNode.destination as KNode)
+                                        }
+
+                                        is CompositeDestination -> {
+                                            destinationNodes.addAll(
+                                                (kNode.destination as CompositeDestination)
+                                                    .elements
+                                                    .filterIsInstance<KNode>(),
+                                            )
+                                        }
+
+                                        DroppedDestination -> {
+                                            val annotation =
+                                                DynamicAnnotationInstance(
+                                                    myIDManager.nodeId(kNode) + "-dropped",
+                                                    MigrationLanguage.getDroppedElement(),
+                                                )
+                                            lwNode.addAnnotation(annotation)
+                                        }
                                     }
                                 }
                                 val referenceValues =
@@ -440,7 +456,7 @@ class LionWebModelConverter(
     }
 
     fun importModelFromLionWeb(lwTree: LWNode): Any {
-        val referencesPostponer = ReferencesPostponer()
+        val referencesPostponer = ReferencesPostponer(ignoreMissingReferences = this.ignoreMissingReferences)
         lwTree.thisAndAllDescendants().toList().myReversed().forEach { lwNode ->
             val kClass =
                 synchronized(languageConverter) {
@@ -487,6 +503,13 @@ class LionWebModelConverter(
                     lwNode.annotations.find {
                         it.classifier == PlaceholderNode
                     }
+                val droppedAnnotation =
+                    lwNode.annotations.find {
+                        it.classifier == MigrationLanguage.getDroppedElement()
+                    }
+                if (droppedAnnotation != null) {
+                    kNode.withDestination(DroppedDestination)
+                }
                 if (placeholderNodeAnnotation != null) {
                     val placeholderType =
                         (
@@ -542,7 +565,7 @@ class LionWebModelConverter(
             SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU),
     ): AbstractSerialization {
         registerSerializersAndDeserializersInMetamodelRegistry(metamodelRegistry)
-        metamodelRegistry.prepareJsonSerialization(serialization)
+        metamodelRegistry.prepareSerialization(serialization)
         synchronized(languageConverter) {
             languageConverter.knownLWLanguages().forEach {
                 serialization.primitiveValuesSerialization.registerLanguage(it)
@@ -616,7 +639,9 @@ class LionWebModelConverter(
     /**
      * Track reference values, so that we can populate them once the nodes are instantiated.
      */
-    private class ReferencesPostponer {
+    private class ReferencesPostponer(
+        val ignoreMissingReferences: Boolean,
+    ) {
         private val values = IdentityHashMap<ReferenceByName<PossiblyNamed>, LWNode?>()
         private val originValues = IdentityHashMap<KNode, String>()
         private val destinationValues = IdentityHashMap<KNode, List<String>>()
@@ -668,14 +693,19 @@ class LionWebModelConverter(
             }
             destinationValues.forEach { entry ->
                 val values =
-                    entry.value.map { targetID ->
+                    entry.value.mapNotNull { targetID ->
                         val lwNode = nodesMapping.bs.find { it.id == targetID }
                         if (lwNode != null) {
                             nodesMapping.byB(lwNode) as KNode
                         } else {
-                            externalNodeResolver.resolve(targetID) ?: throw IllegalStateException(
-                                "Unable to resolve node with ID $targetID",
-                            )
+                            val resolved = externalNodeResolver.resolve(targetID)
+                            when {
+                                resolved != null -> resolved
+                                ignoreMissingReferences -> null
+                                else -> throw IllegalStateException(
+                                    "Unable to resolve node with ID $targetID",
+                                )
+                            }
                         }
                     }
                 if (values.size == 1) {

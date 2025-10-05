@@ -15,3 +15,5 @@ data class TextFileDestination(
     val position: Position?,
 ) : Destination,
     Serializable
+
+object DroppedDestination : Destination

@@ -80,7 +80,7 @@ public class JavaNode extends BaseASTNode {
     }
 
     @NotNull
-    private PropertyDescription getPropertyDescription(PropertyDescriptor p) {
+    protected PropertyDescription getPropertyDescription(PropertyDescriptor p) {
         String name = p.getName();
         Class<?> type = p.getPropertyType();
         boolean provideNodes = isANode(type);
@@ -122,13 +122,17 @@ public class JavaNode extends BaseASTNode {
     @NotNull
     public static KType kotlinType(Class<?> type, boolean nullable) {
         List<KTypeProjection> arguments = new LinkedList<>();
-        for (TypeVariable<? extends Class<?>> p : type.getTypeParameters()) {
-            if (p.getBounds().length == 1 && p.getBounds()[0] instanceof Class<?>) {
-                arguments.add(KTypeProjection.covariant(kotlinType((Class<?>) p.getBounds()[0], false)));
-            } else if (p.getBounds().length == 1 && p.getBounds()[0] instanceof ParameterizedType) {
-                arguments.add(KTypeProjection.covariant(kotlinType((ParameterizedType) p.getBounds()[0], false)));
-            } else {
-                arguments.add(KTypeProjection.star);
+        if (type.isArray() && !type.getComponentType().isPrimitive()) {
+            arguments.add(KTypeProjection.covariant(kotlinType(type.getComponentType(), false)));
+        } else {
+            for (TypeVariable<? extends Class<?>> p : type.getTypeParameters()) {
+                if (p.getBounds().length == 1 && p.getBounds()[0] instanceof Class<?>) {
+                    arguments.add(KTypeProjection.covariant(kotlinType((Class<?>) p.getBounds()[0], false)));
+                } else if (p.getBounds().length == 1 && p.getBounds()[0] instanceof ParameterizedType) {
+                    arguments.add(KTypeProjection.covariant(kotlinType((ParameterizedType) p.getBounds()[0], false)));
+                } else {
+                    arguments.add(KTypeProjection.star);
+                }
             }
         }
         return createType(

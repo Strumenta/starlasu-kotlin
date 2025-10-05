@@ -35,7 +35,7 @@ class TodoFunctionalTest : AbstractClientFunctionalTest(LIONWEB_VERSION_USED_BY_
         kolasuClient.registerLanguage(todoLanguage)
         kolasuClient.registerLanguage(todoAccountLanguage)
         registerSerializersAndDeserializersInMetamodelRegistry()
-        DefaultMetamodelRegistry.prepareJsonSerialization(kolasuClient.jsonSerialization)
+        DefaultMetamodelRegistry.prepareSerialization(kolasuClient.jsonSerialization)
 
         assertEquals(emptyList(), kolasuClient.getPartitionIDs())
 
@@ -141,7 +141,7 @@ class TodoFunctionalTest : AbstractClientFunctionalTest(LIONWEB_VERSION_USED_BY_
         kolasuClient.registerLanguage(todoLanguage)
         kolasuClient.registerLanguage(todoAccountLanguage)
         registerSerializersAndDeserializersInMetamodelRegistry()
-        DefaultMetamodelRegistry.prepareJsonSerialization(kolasuClient.jsonSerialization)
+        DefaultMetamodelRegistry.prepareSerialization(kolasuClient.jsonSerialization)
 
         // We create an empty partition
         val todoAccount = TodoAccount("my-wonderful-partition")
