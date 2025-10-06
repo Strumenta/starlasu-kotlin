@@ -1,12 +1,10 @@
 package com.strumenta.kolasu.javalib;
 
-import com.strumenta.kolasu.model.Multiplicity;
-import com.strumenta.kolasu.model.PropertyDescription;
-import com.strumenta.kolasu.model.PropertyType;
-import com.strumenta.kolasu.model.ReferenceByName;
+import com.strumenta.kolasu.model.*;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
@@ -19,31 +17,49 @@ public class ReflectionTest {
         assertEquals(
                 Arrays.asList(
                         new PropertyDescription(
-                                "name", false, Multiplicity.OPTIONAL, "", PropertyType.ATTRIBUTE,
+                                "name", Multiplicity.OPTIONAL, "", PropertyType.ATTRIBUTE,
                                 false, JavaNode.kotlinType(String.class, true)),
                         new PropertyDescription(
-                                "node2", true, Multiplicity.SINGULAR, node1.getNode2(), PropertyType.CONTAINMENT,
+                                "node2", Multiplicity.SINGULAR, node1.getNode2(), PropertyType.CONTAINMENT,
                                 false, JavaNode.kotlinType(Node2.class, false)),
                         new PropertyDescription(
-                                "node2Ref", false, Multiplicity.OPTIONAL, node1.getNode2Ref(), PropertyType.REFERENCE,
+                                "node2Ref", Multiplicity.OPTIONAL, node1.getNode2Ref(), PropertyType.REFERENCE,
                                 false, JavaNode.kotlinType(Node2.class, true))
                 ),
                 node1.getProperties());
         assertEquals(
                 Arrays.asList(
                         new PropertyDescription(
-                                "name", false, Multiplicity.OPTIONAL, "", PropertyType.ATTRIBUTE,
+                                "name", Multiplicity.OPTIONAL, "", PropertyType.ATTRIBUTE,
                                 false, JavaNode.kotlinType(String.class, true)),
                         new PropertyDescription(
-                                "nodeArray", false, Multiplicity.OPTIONAL, null, PropertyType.ATTRIBUTE,
+                                "nodeArray", Multiplicity.OPTIONAL, (Object) null, PropertyType.ATTRIBUTE,
                                 false, JavaNode.kotlinType(Node2[].class, true)),
                         new PropertyDescription(
-                                "objArray", false, Multiplicity.OPTIONAL, null, PropertyType.ATTRIBUTE,
+                                "objArray",  Multiplicity.OPTIONAL, (Object) null, PropertyType.ATTRIBUTE,
                                 false, JavaNode.kotlinType(Object[].class, true)),
                         new PropertyDescription(
-                                "primArray", false, Multiplicity.OPTIONAL, null, PropertyType.ATTRIBUTE,
+                                "primArray",Multiplicity.OPTIONAL, (Object) null, PropertyType.ATTRIBUTE,
                                 false, JavaNode.kotlinType(int[].class, true))
                 ),
                 node1.getNode2().getProperties());
+    }
+
+    @Test
+    public void testLazyValue() {
+        class MyNode extends JavaNode {
+            private int count = 0;
+            public int getAttribute() {
+                return count++;
+            }
+        }
+
+        MyNode node = new MyNode();
+        assertEquals(0, node.getAttribute());
+        List<PropertyDescription> properties = node.getProperties();
+        assertEquals(1, properties.size());
+        properties.forEach(p -> assertEquals(1, p.getValue()));
+        assertEquals(2, node.getAttribute());
+        properties.forEach(p -> assertEquals(1, p.getValue()));
     }
 }
