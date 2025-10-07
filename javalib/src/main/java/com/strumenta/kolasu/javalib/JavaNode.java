@@ -1,7 +1,9 @@
 package com.strumenta.kolasu.javalib;
 
 import com.strumenta.kolasu.model.*;
+import kotlin.Pair;
 import kotlin.reflect.KCallable;
+import kotlin.reflect.KClass;
 import kotlin.reflect.KType;
 import kotlin.reflect.KTypeProjection;
 import kotlin.reflect.full.KAnnotatedElements;
@@ -58,24 +60,28 @@ public class JavaNode extends Node {
         if (getRESERVED_FEATURE_NAMES().contains(p.getName())) {
             return false;
         }
-        Method getClassMethod;
-        try {
-             getClassMethod = Object.class.getDeclaredMethod("getClass");
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException("This is a bug", e);
-        }
-        if (p.getReadMethod() == null || p.getReadMethod().equals(getClassMethod)) {
+        if (p.getReadMethod() == null || p.getReadMethod().getDeclaringClass() == Object.class) {
             return false;
         }
         return !hasAnnotation(p, Internal.class) && !hasAnnotation(p, Link.class);
     }
 
     public static boolean hasAnnotation(PropertyDescriptor p, Class<? extends Annotation> annotation) {
-        KCallable<?> kCallable = getKotlinClass(Node.class).getMembers().stream()
-                .filter(m -> m.getName().equals(p.getName())).findFirst().orElse(null);
-        return p.getReadMethod().isAnnotationPresent(annotation) ||
-                (p.getWriteMethod() != null && p.getWriteMethod().isAnnotationPresent(annotation)) ||
-                (kCallable != null && !KAnnotatedElements.findAnnotations(kCallable, getKotlinClass(annotation)).isEmpty());
+        // Fast case: Java property
+        if (p.getReadMethod().isAnnotationPresent(annotation) ||
+                (p.getWriteMethod() != null && p.getWriteMethod().isAnnotationPresent(annotation))) {
+            return true;
+        } else if (p.getReadMethod().getDeclaringClass() == Node.class) {
+            // Slow case: Kotlin property
+            for (KCallable<?> member : getKotlinClass(Node.class).getMembers()) {
+                if (member.getName().equals(p.getName())) {
+                    return !KAnnotatedElements.findAnnotations(member, getKotlinClass(annotation)).isEmpty();
+                }
+            }
+            return false;
+        } else {
+            return false;
+        }
     }
 
     @NotNull
@@ -88,12 +94,6 @@ public class JavaNode extends Node {
             multiplicity = Multiplicity.MANY;
         } else if (p.getReadMethod().isAnnotationPresent(Mandatory.class) || p.getPropertyType().isPrimitive()) {
             multiplicity = Multiplicity.SINGULAR;
-        }
-        Object value;
-        try {
-            value = p.getReadMethod().invoke(this);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
         PropertyType propertyType = provideNodes ? PropertyType.CONTAINMENT : PropertyType.ATTRIBUTE;
         Class<?> actualType = type;
@@ -110,7 +110,17 @@ public class JavaNode extends Node {
         boolean derived = hasAnnotation(p, Derived.class);
         boolean nullable = multiplicity == Multiplicity.OPTIONAL;
         return new PropertyDescription(
-                name, provideNodes, multiplicity, value, propertyType, derived, kotlinType(actualType, nullable));
+                name, multiplicity,
+                () -> {
+                    try {
+                        return p.getReadMethod().invoke(this);
+                    } catch (RuntimeException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                },
+                propertyType, derived, kotlinType(actualType, nullable));
     }
 
     @NotNull
@@ -118,25 +128,33 @@ public class JavaNode extends Node {
         return kotlinType(type, false);
     }
 
+    private static final Map<Class, Pair<KType, KType>> simpleKotlinTypeCache =
+            Collections.synchronizedMap(new WeakHashMap<>());
+
     @NotNull
     public static KType kotlinType(Class<?> type, boolean nullable) {
-        List<KTypeProjection> arguments = new LinkedList<>();
-        if (type.isArray() && !type.getComponentType().isPrimitive()) {
-            arguments.add(KTypeProjection.covariant(kotlinType(type.getComponentType(), false)));
-        } else {
-            for (TypeVariable<? extends Class<?>> p : type.getTypeParameters()) {
-                if (p.getBounds().length == 1 && p.getBounds()[0] instanceof Class<?>) {
-                    arguments.add(KTypeProjection.covariant(kotlinType((Class<?>) p.getBounds()[0], false)));
-                } else if (p.getBounds().length == 1 && p.getBounds()[0] instanceof ParameterizedType) {
-                    arguments.add(KTypeProjection.covariant(kotlinType((ParameterizedType) p.getBounds()[0], false)));
-                } else {
-                    arguments.add(KTypeProjection.star);
+        Pair<KType, KType> kTypes = simpleKotlinTypeCache.computeIfAbsent(type, t -> {
+            List<KTypeProjection> arguments = new LinkedList<>();
+            if (t.isArray() && !t.getComponentType().isPrimitive()) {
+                arguments.add(KTypeProjection.covariant(kotlinType(t.getComponentType(), false)));
+            } else {
+                for (TypeVariable<? extends Class<?>> p : t.getTypeParameters()) {
+                    if (p.getBounds().length == 1 && p.getBounds()[0] instanceof Class<?>) {
+                        arguments.add(KTypeProjection.covariant(kotlinType((Class<?>) p.getBounds()[0], false)));
+                    } else if (p.getBounds().length == 1 && p.getBounds()[0] instanceof ParameterizedType) {
+                        arguments.add(KTypeProjection.covariant(kotlinType((ParameterizedType) p.getBounds()[0], false)));
+                    } else {
+                        arguments.add(KTypeProjection.star);
+                    }
                 }
             }
-        }
-        return createType(
-                getKotlinClass(type), arguments,
-                nullable, Collections.emptyList());
+            KClass<?> kotlinClass = getKotlinClass(t);
+            return new Pair<>(
+                    createType(kotlinClass, arguments, false, Collections.emptyList()),
+                    createType(kotlinClass, arguments, true, Collections.emptyList())
+            );
+        });
+        return nullable ? kTypes.getSecond() : kTypes.getFirst();
     }
 
     @NotNull
@@ -161,7 +179,9 @@ public class JavaNode extends Node {
                 nullable, Collections.emptyList());
     }
 
+    private static final Map<Class, Boolean> isANodeCache = Collections.synchronizedMap(new WeakHashMap<>());
+
     public static boolean isANode(Class<?> type) {
-        return Reflection.isANode(getKotlinClass(type));
+        return isANodeCache.computeIfAbsent(type, c -> Reflection.isANode(getKotlinClass(c)));
     }
 }

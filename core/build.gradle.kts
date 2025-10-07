@@ -159,8 +159,10 @@ project.afterEvaluate {
     tasks.named("javaSourcesJar") {
         dependsOn(tasks.named("generateGrammarSource"))
     }
-    tasks.matching { it.name.startsWith("sign") && it.name.endsWith("Publication") }
-        .configureEach {
-            dependsOn("javadocJar", "sourcesJar")
-        }
+    if (tasks.findByName("signMavenPublication") != null) {
+        tasks.matching { it.name.startsWith("sign") && it.name.endsWith("Publication") }
+            .configureEach {
+                dependsOn("javadocJar", "sourcesJar")
+            }
+    }
 }

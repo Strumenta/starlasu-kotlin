@@ -246,7 +246,7 @@ class JsonGenerator {
                 if (it.value == null) {
                     jsonObject.add(it.name, JsonNull.INSTANCE)
                 } else if (it.multiple) {
-                    if (it.provideNodes) {
+                    if (it.providesNodes) {
                         jsonObject.add(
                             it.name,
                             (it.value as Collection<*>).map { el ->
@@ -264,7 +264,7 @@ class JsonGenerator {
                         jsonObject.add(it.name, valueToJson(it.value, withIds))
                     }
                 } else {
-                    if (it.provideNodes) {
+                    if (it.providesNodes) {
                         jsonObject.add(
                             it.name,
                             nodeToJson(
@@ -301,7 +301,7 @@ private fun Node.toJsonStreaming(writer: JsonWriter, shortClassNames: Boolean = 
             writer.nullValue()
         } else if (it.multiple) {
             writer.beginArray()
-            if (it.provideNodes) {
+            if (it.providesNodes) {
                 (it.value as Collection<*>).forEach {
                     (it as Node).toJsonStreaming(writer, shortClassNames)
                 }
@@ -312,7 +312,7 @@ private fun Node.toJsonStreaming(writer: JsonWriter, shortClassNames: Boolean = 
             }
             writer.endArray()
         } else {
-            if (it.provideNodes) {
+            if (it.providesNodes) {
                 (it.value as Node).toJsonStreaming(writer, shortClassNames)
             } else {
                 it.value.toJsonStreaming(writer)

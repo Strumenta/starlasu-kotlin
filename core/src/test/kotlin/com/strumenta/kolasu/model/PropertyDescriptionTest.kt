@@ -25,9 +25,8 @@ class PropertyDescriptionTest {
         assertEquals(
             PropertyDescription(
                 "name",
-                false,
                 Multiplicity.SINGULAR,
-                "gino",
+                { "gino" },
                 PropertyType.ATTRIBUTE,
                 derived = false,
                 type = String::class.createType()
@@ -47,9 +46,8 @@ class PropertyDescriptionTest {
         assertEquals(
             PropertyDescription(
                 "names",
-                false,
                 Multiplicity.MANY,
-                listOf("gino", "pino"),
+                { listOf("gino", "pino") },
                 PropertyType.ATTRIBUTE,
                 derived = false,
                 type = List::class.createType(
@@ -71,9 +69,8 @@ class PropertyDescriptionTest {
         assertEquals(
             PropertyDescription(
                 "foo",
-                true,
                 Multiplicity.SINGULAR,
-                Foo1("gino"),
+                { Foo1("gino") },
                 PropertyType.CONTAINMENT,
                 derived = false,
                 type = Foo1::class.createType()
@@ -93,9 +90,8 @@ class PropertyDescriptionTest {
         assertEquals(
             PropertyDescription(
                 "foos",
-                true,
                 Multiplicity.MANY,
-                listOf(Foo1("gino")),
+                { listOf(Foo1("gino")) },
                 PropertyType.CONTAINMENT,
                 derived = false,
                 type = List::class.createType(
@@ -118,9 +114,8 @@ class PropertyDescriptionTest {
         assertEquals(
             PropertyDescription(
                 "foos",
-                true,
                 Multiplicity.MANY,
-                emptyList<Foo1>(),
+                { emptyList<Foo1>() },
                 PropertyType.CONTAINMENT,
                 derived = false,
                 type = List::class.createType(
@@ -143,9 +138,8 @@ class PropertyDescriptionTest {
         assertEquals(
             PropertyDescription(
                 "foos",
-                true,
                 Multiplicity.MANY,
-                null,
+                { null },
                 PropertyType.CONTAINMENT,
                 derived = false,
                 type = List::class.createType(
@@ -165,9 +159,8 @@ class PropertyDescriptionTest {
         assertEquals(
             PropertyDescription(
                 "fooRef",
-                false,
                 Multiplicity.SINGULAR,
-                ReferenceByName<Foo1>(""),
+                { ReferenceByName<Foo1>("") },
                 PropertyType.REFERENCE,
                 derived = false,
                 type = Foo1::class.createType()
