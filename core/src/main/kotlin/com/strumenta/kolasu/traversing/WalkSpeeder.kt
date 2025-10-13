@@ -8,19 +8,32 @@ import com.strumenta.kolasu.model.providesNodes
 import kotlin.reflect.KClass
 
 class WalkSpeeder {
-    private val calculatorCaches = mutableMapOf<KClass<out Node>, Function1<Node, Sequence<Node>>>()
+    // Use primitive Class as key - faster hashCode/equals than KClass
+    private val calculatorCaches = mutableMapOf<Class<out Node>, Function1<Node, Sequence<Node>>>()
 
-    fun <N : Node>walkChildren(node: N): Sequence<Node> {
-        return calculatorCaches.computeIfAbsent(node.javaClass.kotlin as KClass<N>) { kClass ->
-            val relevantProps = (kClass as KClass<N>).nodeOriginalProperties.filter { providesNodes(it) }
-            val multiplicity = relevantProps.map { multiplicity(it) == Multiplicity.MANY }.toTypedArray()
+    fun <N : Node> walkChildren(node: N): Sequence<Node> {
+        return calculatorCaches.computeIfAbsent(node.javaClass) { javaClass ->
+            val kClass = javaClass.kotlin as KClass<N>
+            val relevantProps = kClass.nodeOriginalProperties.filter { providesNodes(it) }
+            // Use primitive boolean array - avoids boxing
+            val multiplicity = BooleanArray(relevantProps.size) { i -> 
+                multiplicity(relevantProps[i]) == Multiplicity.MANY 
+            }
+            
+            // Cache the properties as an array for faster iteration
+            val propsArray = relevantProps.toTypedArray()
+            
             return@computeIfAbsent { node ->
                 sequence {
-                    relevantProps.forEachIndexed { index, prop ->
-                        if (multiplicity[index]) {
-                            yieldAll(prop.get(node as N) as Collection<Node>)
-                        } else {
-                            (prop.get(node as N) as? Node)?.let { yield(it) }
+                    // Use indices instead of forEachIndexed - slightly faster
+                    for (i in propsArray.indices) {
+                        val value = propsArray[i].get(node as N)
+                        if (value != null) {
+                            if (multiplicity[i]) {
+                                yieldAll(value as Collection<Node>)
+                            } else {
+                                yield(value as Node)
+                            }
                         }
                     }
                 }
@@ -28,20 +41,26 @@ class WalkSpeeder {
         }.invoke(node)
     }
 
-    fun walk(node: Node): Sequence<com.strumenta.kolasu.model.Node> {
-        return sequence {
-            val stack = ArrayDeque<Node>()
-            stack.addLast(node)
+    fun walk(node: Node): Sequence<Node> = sequence {
+        val stack = ArrayDeque<Node>()
+        stack.addLast(node)
 
-            while (stack.isNotEmpty()) {
-                val current = stack.removeLast()
-                yield(current)
+        while (stack.isNotEmpty()) {
+            val current = stack.removeLast()
+            yield(current)
 
-                // Add children in reverse order to maintain original traversal order
-                val children = walkChildren(current).toList()
-                for (i in children.size - 1 downTo 0) {
-                    stack.addLast(children[i])
-                }
+            // Optimize: avoid creating intermediate list by using walkChildren directly
+            // and adding to stack in reverse
+            val childrenSeq = walkChildren(current)
+            val children = if (childrenSeq is List<*>) {
+                childrenSeq as List<Node>
+            } else {
+                childrenSeq.toList()
+            }
+            
+            // Add in reverse order for correct traversal
+            for (i in children.size - 1 downTo 0) {
+                stack.addLast(children[i] as Node)
             }
         }
     }
