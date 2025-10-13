@@ -23,6 +23,7 @@ import com.strumenta.kolasu.parsing.ParsingResult
 import com.strumenta.kolasu.transformation.FailingASTTransformation
 import com.strumenta.kolasu.transformation.MissingASTTransformation
 import com.strumenta.kolasu.transformation.PlaceholderASTTransformation
+import com.strumenta.kolasu.traversing.WalkSpeeder
 import com.strumenta.kolasu.traversing.walk
 import com.strumenta.kolasu.validation.Issue
 import com.strumenta.kolasu.validation.IssueSeverity
@@ -124,6 +125,7 @@ class LionWebModelConverter(
      */
     private val nodesMapping = BiMap<Any, LWNode>(usingIdentity = true)
     private val primitiveValueSerializations = ConcurrentHashMap<KClass<*>, PrimitiveValueSerialization<*>>()
+    private val walker = WalkSpeeder()
 
     var externalNodeResolver: NodeResolver = DummyNodeResolver()
 
@@ -185,7 +187,7 @@ class LionWebModelConverter(
         }
 
         if (!nodesMapping.containsA(kolasuTree)) {
-            kolasuTree.walk().forEach { kNode ->
+            walker.walk(kolasuTree).forEach { kNode ->
                 if (!nodesMapping.containsA(kNode)) {
                     val nodeID = kNode.id ?: myIDManager.nodeId(kNode)
                     if (!CommonChecks.isValidID(nodeID)) {
@@ -197,7 +199,7 @@ class LionWebModelConverter(
                     associateNodes(kNode, lwNode)
                 }
             }
-            kolasuTree.walk().forEach { kNode ->
+            walker.walk(kolasuTree).forEach { kNode ->
                 val lwNode = nodesMapping.byA(kNode)!!
                 kNode.annotations.forEach { annotationInstance ->
                     lwNode.addAnnotation(annotationInstance)
