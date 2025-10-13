@@ -3,6 +3,7 @@ package com.strumenta.kolasu.traversing
 import com.strumenta.kolasu.model.Multiplicity
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.PropertyDescription.Companion.multiplicity
+import com.strumenta.kolasu.model.assignParents
 import com.strumenta.kolasu.model.nodeOriginalProperties
 import com.strumenta.kolasu.model.providesNodes
 import kotlin.reflect.KClass
@@ -62,6 +63,16 @@ class WalkSpeeder {
             for (i in children.size - 1 downTo 0) {
                 stack.addLast(children[i] as Node)
             }
+        }
+    }
+
+    fun <N:Node>assignParents(node: N) {
+        walkChildren(node).forEach {
+            if (it == node) {
+                throw java.lang.IllegalStateException("A node cannot be parent of itself: $node")
+            }
+            it.parent = node
+            it.assignParents()
         }
     }
 }
