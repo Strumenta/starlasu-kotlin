@@ -163,7 +163,7 @@ class LionWebModelConverter(
         nodeIdProvider: NodeIdProvider = this.nodeIdProvider,
         considerParent: Boolean = true
     ): LWNode {
-        kolasuTree.assignParents()
+        walker.assignParents(kolasuTree)
         val myIDManager = object {
 
             private val cache = IdentityHashMap<KNode, String>()
@@ -432,7 +432,7 @@ class LionWebModelConverter(
             try {
                 val instantiated = instantiate(kClass, lwNode, referencesPostponer)
                 if (instantiated is KNode) {
-                    instantiated.assignParents()
+                    walker.assignParents(instantiated)
                     // This mapping will eventually become superfluous because we will store the ID directly in the
                     // instantiated kNode
                     nodeIdProvider.registerMapping(instantiated, lwNode.id!!)
