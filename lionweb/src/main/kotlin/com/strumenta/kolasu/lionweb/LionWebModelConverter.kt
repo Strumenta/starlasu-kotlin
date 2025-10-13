@@ -952,7 +952,8 @@ class LionWebModelConverter(
         return issueNode.id!! to issue
     }
 
-    fun exportParsingResultToLionweb(pr: ParsingResult<*>, tokens: List<KolasuToken> = listOf()): ParsingResultNode {
+    fun exportParsingResultToLionweb(pr: ParsingResult<*>, tokens: List<KolasuToken> = listOf(),
+                                     nodeIdProvider: NodeIdProvider = this.nodeIdProvider,): ParsingResultNode {
         val resultNode = ParsingResultNode(pr.source)
         if (resultNode.id == null) {
             throw IllegalStateException("Parsing result has null ID")
@@ -961,7 +962,7 @@ class LionWebModelConverter(
             ASTLanguage.getParsingResult().getPropertyByName(ParsingResult<*>::code.name)!!,
             pr.code
         )
-        val root = if (pr.root != null) exportModelToLionWeb(pr.root!!, considerParent = false) else null
+        val root = if (pr.root != null) exportModelToLionWeb(pr.root!!, considerParent = false, nodeIdProvider=nodeIdProvider) else null
         root?.let {
             resultNode.addChild(
                 ASTLanguage.getParsingResult().getContainmentByName(ParsingResult<*>::root.name)!!,
