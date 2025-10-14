@@ -126,6 +126,7 @@ class LionWebModelConverter(
     private val nodesMapping = BiMap<Any, LWNode>(usingIdentity = true)
     private val primitiveValueSerializations = ConcurrentHashMap<KClass<*>, PrimitiveValueSerialization<*>>()
     private val walker = WalkSpeeder()
+    private val lwWalker = LWWalkSpeeder()
 
     var externalNodeResolver: NodeResolver = DummyNodeResolver()
 
@@ -424,7 +425,7 @@ class LionWebModelConverter(
 
     fun importModelFromLionWeb(lwTree: LWNode): Any {
         val referencesPostponer = ReferencesPostponer(ignoreMissingReferences = this.ignoreMissingReferences)
-        lwTree.thisAndAllDescendants().toList().myReversed().forEach { lwNode ->
+        lwWalker.thisAndAllDescendants(lwTree).toList().myReversed().forEach { lwNode ->
             val kClass = synchronized(languageConverter) {
                 languageConverter.correspondingKolasuClass(lwNode.classifier)
             }
@@ -445,7 +446,7 @@ class LionWebModelConverter(
             }
         }
         val placeholderNodes = mutableMapOf<KNode, (KNode) -> Unit>()
-        lwTree.thisAndAllDescendants().forEach { lwNode ->
+        lwWalker.thisAndAllDescendants(lwTree).forEach { lwNode ->
             val kNode = nodesMapping.byB(lwNode)!!
             if (kNode is KNode) {
                 val lwPosition = lwNode.getPropertyValue(ASTNodePosition)
@@ -952,8 +953,12 @@ class LionWebModelConverter(
         return issueNode.id!! to issue
     }
 
-    fun exportParsingResultToLionweb(pr: ParsingResult<*>, tokens: List<KolasuToken> = listOf(),
-                                     nodeIdProvider: NodeIdProvider = this.nodeIdProvider,): ParsingResultNode {
+    fun exportParsingResultToLionweb(
+        pr: ParsingResult<*>,
+        tokens: List<KolasuToken> = listOf(),
+        nodeIdProvider: NodeIdProvider = this.nodeIdProvider,
+        idCheck: Boolean = false
+    ): ParsingResultNode {
         val resultNode = ParsingResultNode(pr.source)
         if (resultNode.id == null) {
             throw IllegalStateException("Parsing result has null ID")
@@ -962,7 +967,15 @@ class LionWebModelConverter(
             ASTLanguage.getParsingResult().getPropertyByName(ParsingResult<*>::code.name)!!,
             pr.code
         )
-        val root = if (pr.root != null) exportModelToLionWeb(pr.root!!, considerParent = false, nodeIdProvider=nodeIdProvider) else null
+        val root = if (pr.root != null) {
+            exportModelToLionWeb(
+                pr.root!!,
+                considerParent = false,
+                nodeIdProvider = nodeIdProvider
+            )
+        } else {
+            null
+        }
         root?.let {
             resultNode.addChild(
                 ASTLanguage.getParsingResult().getContainmentByName(ParsingResult<*>::root.name)!!,
@@ -978,8 +991,10 @@ class LionWebModelConverter(
             ASTLanguage.getParsingResult().getPropertyByName(ParsingResultWithTokens<*>::tokens.name)!!,
             TokensList(tokens)
         )
-        resultNode.thisAndAllDescendants().forEach { lwNode ->
-            require(lwNode.id != null) { "Node $lwNode should get a valid ID" }
+        if (idCheck) {
+            resultNode.thisAndAllDescendants().forEach { lwNode ->
+                require(lwNode.id != null) { "Node $lwNode should get a valid ID" }
+            }
         }
         return resultNode
     }
