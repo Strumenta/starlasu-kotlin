@@ -8,11 +8,17 @@ import com.strumenta.kolasu.model.providesNodes
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 
-class StarlasuTreeWalker {
+interface StarlasuTreeWalker {
+    fun <N : Node> walkChildren(node: N): Sequence<Node>
+    fun walk(node: Node): Sequence<Node>
+    fun <N : Node>assignParents(node: N)
+}
+
+class CommonStarlasuTreeWalker : StarlasuTreeWalker {
     // We use java Class as key because they have faster hashCode/equals than KClass
     private val calculatorCaches = ConcurrentHashMap<Class<out Node>, Function1<Node, Sequence<Node>>>()
 
-    fun <N : Node> walkChildren(node: N): Sequence<Node> {
+    override fun <N : Node> walkChildren(node: N): Sequence<Node> {
         return calculatorCaches.computeIfAbsent(node.javaClass) { javaClass ->
             val kClass = javaClass.kotlin as KClass<N>
             val relevantProps = kClass.nodeOriginalProperties.filter { providesNodes(it) }
@@ -38,7 +44,7 @@ class StarlasuTreeWalker {
         }.invoke(node)
     }
 
-    fun walk(node: Node): Sequence<Node> = sequence {
+    override fun walk(node: Node): Sequence<Node> = sequence {
         val stack = ArrayDeque<Node>()
         stack.addLast(node)
 
@@ -60,7 +66,7 @@ class StarlasuTreeWalker {
         }
     }
 
-    fun <N : Node>assignParents(node: N) {
+    override fun <N : Node>assignParents(node: N) {
         walkChildren(node).forEach {
             if (it == node) {
                 throw java.lang.IllegalStateException("A node cannot be parent of itself: $node")
