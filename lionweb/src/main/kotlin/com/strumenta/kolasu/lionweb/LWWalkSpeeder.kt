@@ -3,7 +3,7 @@ package com.strumenta.kolasu.lionweb
 import io.lionweb.language.Concept
 import io.lionweb.language.Containment
 import io.lionweb.model.impl.ProxyNode
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentHashMap
 
 class LWWalkSpeeder {
 
@@ -23,7 +23,7 @@ class LWWalkSpeeder {
         if (node is ProxyNode) {
             return
         }
-        
+
         var i = 0
         val size = containments.size
         while (i < size) {
