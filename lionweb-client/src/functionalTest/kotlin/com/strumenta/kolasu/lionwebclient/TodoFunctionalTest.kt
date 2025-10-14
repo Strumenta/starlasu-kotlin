@@ -61,6 +61,7 @@ class TodoFunctionalTest : AbstractClientFunctionalTest(LIONWEB_VERSION_USED_BY_
             )
 
         todoProject.source = SyntheticSource("TODO Project A")
+        todoProject.assignParents()
         val todoProjectID = kolasuClient.attachAST(
             todoProject,
             containerID = expectedPartitionId,

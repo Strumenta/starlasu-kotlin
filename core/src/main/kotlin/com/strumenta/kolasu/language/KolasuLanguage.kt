@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.language
 
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.CommonElement
 import com.strumenta.kolasu.model.Named
 import com.strumenta.kolasu.model.Node
@@ -123,7 +124,7 @@ class KolasuLanguage(
         }
     }
 
-    fun <N : Node> tentativeAddClass(
+    fun <N : ASTNode> tentativeAddClass(
         kClass: KClass<N>,
         exceptions: MutableList<Exception> = mutableListOf(),
     ): Attempt<Boolean, Exception> {

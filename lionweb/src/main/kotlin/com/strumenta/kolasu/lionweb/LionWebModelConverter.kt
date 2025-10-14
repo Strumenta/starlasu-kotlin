@@ -13,7 +13,6 @@ import com.strumenta.kolasu.model.PossiblyNamed
 import com.strumenta.kolasu.model.ReferenceByName
 import com.strumenta.kolasu.model.allFeatures
 import com.strumenta.kolasu.model.asContainment
-import com.strumenta.kolasu.model.assignParents
 import com.strumenta.kolasu.model.isAttribute
 import com.strumenta.kolasu.model.isContainment
 import com.strumenta.kolasu.model.isReference
@@ -24,7 +23,7 @@ import com.strumenta.kolasu.parsing.ParsingResult
 import com.strumenta.kolasu.transformation.FailingASTTransformation
 import com.strumenta.kolasu.transformation.MissingASTTransformation
 import com.strumenta.kolasu.transformation.PlaceholderASTTransformation
-import com.strumenta.kolasu.traversing.walk
+import com.strumenta.kolasu.traversing.CommonStarlasuTreeWalker
 import com.strumenta.kolasu.validation.Issue
 import com.strumenta.kolasu.validation.IssueSeverity
 import com.strumenta.kolasu.validation.IssueType
@@ -128,6 +127,8 @@ class LionWebModelConverter(
      */
     private val nodesMapping = BiMap<Any, LWNode>(usingIdentity = true)
     private val primitiveValueSerializations = ConcurrentHashMap<KClass<*>, PrimitiveValueSerialization<*>>()
+    private val starlasuTreeWalker = CommonStarlasuTreeWalker()
+    var lionWebTreeWalker = LionWebTreeWalker()
 
     var externalNodeResolver: NodeResolver = DummyNodeResolver()
 
@@ -168,7 +169,6 @@ class LionWebModelConverter(
         nodeIdProvider: NodeIdProvider = this.nodeIdProvider,
         considerParent: Boolean = true,
     ): LWNode {
-        kolasuTree.assignParents()
         val myIDManager =
             object {
                 private val cache = IdentityHashMap<ASTNode, String>()
@@ -191,7 +191,7 @@ class LionWebModelConverter(
             }
 
         if (!nodesMapping.containsA(kolasuTree)) {
-            kolasuTree.walk().forEach { kNode ->
+            starlasuTreeWalker.walk(kolasuTree).forEach { kNode ->
                 if (!nodesMapping.containsA(kNode)) {
                     val nodeID = kNode.id ?: myIDManager.nodeId(kNode)
                     if (!CommonChecks.isValidID(nodeID)) {
@@ -203,7 +203,7 @@ class LionWebModelConverter(
                     associateNodes(kNode, lwNode)
                 }
             }
-            kolasuTree.walk().forEach { kNode ->
+            starlasuTreeWalker.walk(kolasuTree).forEach { kNode ->
                 val lwNode = nodesMapping.byA(kNode)!!
                 kNode.annotations.forEach { annotationInstance ->
                     lwNode.addAnnotation(annotationInstance!!)
@@ -458,7 +458,7 @@ class LionWebModelConverter(
 
     fun importModelFromLionWeb(lwTree: LWNode): Any {
         val referencesPostponer = ReferencesPostponer(ignoreMissingReferences = this.ignoreMissingReferences)
-        lwTree.thisAndAllDescendants().toList().myReversed().forEach { lwNode ->
+        lionWebTreeWalker.thisAndAllDescendants(lwTree).toList().myReversed().forEach { lwNode ->
             val kClass =
                 synchronized(languageConverter) {
                     languageConverter.correspondingKolasuClass(lwNode.classifier)
@@ -470,7 +470,7 @@ class LionWebModelConverter(
             try {
                 val instantiated = instantiate(kClass, lwNode, referencesPostponer)
                 if (instantiated is KNode) {
-                    instantiated.assignParents()
+                    starlasuTreeWalker.assignParents(instantiated)
                     // This mapping will eventually become superfluous because we will store the ID directly in the
                     // instantiated kNode
                     nodeIdProvider.registerMapping(instantiated, lwNode.id!!)
@@ -485,7 +485,7 @@ class LionWebModelConverter(
             }
         }
         val placeholderNodes = mutableMapOf<KNode, (KNode) -> Unit>()
-        lwTree.thisAndAllDescendants().forEach { lwNode ->
+        lionWebTreeWalker.thisAndAllDescendants(lwTree).forEach { lwNode ->
             val kNode = nodesMapping.byB(lwNode)!!
             if (kNode is KNode) {
                 val lwPosition = lwNode.getPropertyValue(ASTNodePosition)
@@ -1055,6 +1055,8 @@ class LionWebModelConverter(
     fun exportParsingResultToLionweb(
         pr: ParsingResult<*>,
         tokens: List<KolasuToken> = listOf(),
+        nodeIdProvider: NodeIdProvider = this.nodeIdProvider,
+        idCheck: Boolean = false,
     ): ParsingResultNode {
         val resultNode = ParsingResultNode(pr.source)
         if (resultNode.id == null) {
@@ -1064,7 +1066,16 @@ class LionWebModelConverter(
             ASTLanguage.getParsingResult().getPropertyByName(ParsingResult<*>::code.name)!!,
             pr.code,
         )
-        val root = if (pr.root != null) exportModelToLionWeb(pr.root!!, considerParent = false) else null
+        val root =
+            if (pr.root != null) {
+                exportModelToLionWeb(
+                    pr.root!!,
+                    considerParent = false,
+                    nodeIdProvider = nodeIdProvider,
+                )
+            } else {
+                null
+            }
         root?.let {
             resultNode.addChild(
                 ASTLanguage.getParsingResult().getContainmentByName(ParsingResult<*>::root.name)!!,
@@ -1080,8 +1091,10 @@ class LionWebModelConverter(
             ASTLanguage.getParsingResult().getPropertyByName(ParsingResultWithTokens<*>::tokens.name)!!,
             TokensList(tokens),
         )
-        resultNode.thisAndAllDescendants().forEach { lwNode ->
-            require(lwNode.id != null) { "Node $lwNode should get a valid ID" }
+        if (idCheck) {
+            lionWebTreeWalker.thisAndAllDescendants(resultNode).forEach { lwNode ->
+                require(lwNode.id != null) { "Node $lwNode should get a valid ID" }
+            }
         }
         return resultNode
     }

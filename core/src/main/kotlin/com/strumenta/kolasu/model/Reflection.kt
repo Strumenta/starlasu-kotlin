@@ -29,10 +29,10 @@ fun <T : ASTNode> T.relevantMemberProperties(
             this.nodeOriginalProperties.map { it as KProperty1<T, *> }.toMutableList()
         }
     if (withPosition) {
-        list.add(BaseASTNode::position as KProperty1<T, *>)
+        list.add(ASTNode::position as KProperty1<T, *>)
     }
     if (withNodeType) {
-        list.add(BaseASTNode::nodeType as KProperty1<T, *>)
+        list.add(ASTNode::nodeType as KProperty1<T, *>)
     }
     return list.toList()
 }
@@ -118,10 +118,10 @@ data class PropertyDescription(
             if (multiplicity == Multiplicity.MANY) {
                 when (value) {
                     is IgnoreChildren<*> -> "<Ignore Children Placeholder>"
-                    else -> "[${(value as Collection<BaseASTNode>).joinToString(",") { it.nodeType }}]"
+                    else -> "[${(value as Collection<ASTNode>).joinToString(",") { it.nodeType }}]"
                 }
             } else {
-                "${(value as BaseASTNode).nodeType}(...)"
+                "${(value as ASTNode).nodeType}(...)"
             }
         } else {
             if (multiplicity == Multiplicity.MANY) {
@@ -136,25 +136,25 @@ data class PropertyDescription(
         get() = multiplicity == Multiplicity.MANY
 
     companion object {
-        fun <N : BaseASTNode> multiple(property: KProperty1<N, *>): Boolean {
+        fun <N : ASTNode> multiple(property: KProperty1<N, *>): Boolean {
             val propertyType = property.returnType
             val classifier = propertyType.classifier as? KClass<*>
             return (classifier?.isSubclassOf(Collection::class) == true)
         }
 
-        fun <N : BaseASTNode> optional(property: KProperty1<N, *>): Boolean {
+        fun <N : ASTNode> optional(property: KProperty1<N, *>): Boolean {
             val propertyType = property.returnType
             return !multiple(property) && propertyType.isMarkedNullable
         }
 
-        fun <N : BaseASTNode> multiplicity(property: KProperty1<N, *>): Multiplicity =
+        fun <N : ASTNode> multiplicity(property: KProperty1<N, *>): Multiplicity =
             when {
                 multiple(property) -> Multiplicity.MANY
                 optional(property) -> Multiplicity.OPTIONAL
                 else -> Multiplicity.SINGULAR
             }
 
-        fun <N : BaseASTNode> providesNodes(property: KProperty1<N, *>): Boolean {
+        fun <N : ASTNode> providesNodes(property: KProperty1<N, *>): Boolean {
             val propertyType = property.returnType
             val classifier = propertyType.classifier as? KClass<*>
             return if (multiple(property)) {
@@ -164,9 +164,9 @@ data class PropertyDescription(
             }
         }
 
-        fun <N : BaseASTNode> buildFor(
+        fun <N : ASTNode> buildFor(
             property: KProperty1<N, *>,
-            node: BaseASTNode,
+            node: ASTNode,
         ): PropertyDescription {
             val multiplicity = multiplicity(property)
             val provideNodes = providesNodes(property)
@@ -192,7 +192,7 @@ data class PropertyDescription(
     }
 }
 
-fun <N : Node> providesNodes(property: KProperty1<N, *>): Boolean {
+fun <N : ASTNode> providesNodes(property: KProperty1<N, *>): Boolean {
     val propertyType = property.returnType
     val classifier = propertyType.classifier as? KClass<*>
     return if (PropertyDescription.multiple(property)) {
@@ -220,7 +220,7 @@ fun providesNodes(kclass: KClass<*>?): Boolean = kclass?.isANode() ?: false
 /**
  * @return can [this] class be considered an AST node?
  */
-fun KClass<*>.isANode(): Boolean = this.isSubclassOf(BaseASTNode::class) || this.isMarkedAsNodeType()
+fun KClass<*>.isANode(): Boolean = this.isSubclassOf(ASTNode::class) || this.isMarkedAsNodeType()
 
 val KClass<*>.isConcept: Boolean
     get() = isANode() && !this.java.isInterface
@@ -287,32 +287,32 @@ fun <N : Any> KProperty1<N, *>.isContainment(): Boolean =
         providesNodes(
             this.returnType.arguments[0]
                 .type!!
-                .classifier as KClass<out BaseASTNode>,
+                .classifier as KClass<out ASTNode>,
         )
     } else {
-        providesNodes(this.returnType.classifier as KClass<out BaseASTNode>)
+        providesNodes(this.returnType.classifier as KClass<out ASTNode>)
     }
 
 fun <N : Any> KProperty1<N, *>.isReference(): Boolean = this.returnType.classifier == ReferenceByName::class
 
 fun <N : Any> KProperty1<N, *>.isAttribute(): Boolean = !isContainment() && !isReference()
 
-fun <N : BaseASTNode> KProperty1<N, *>.containedType(): KClass<out BaseASTNode> {
+fun <N : ASTNode> KProperty1<N, *>.containedType(): KClass<out ASTNode> {
     require(isContainment())
     return if ((this.returnType.classifier as? KClass<*>)?.isSubclassOf(Collection::class) == true) {
         this.returnType.arguments[0]
             .type!!
-            .classifier as KClass<out BaseASTNode>
+            .classifier as KClass<out ASTNode>
     } else {
-        this.returnType.classifier as KClass<out BaseASTNode>
+        this.returnType.classifier as KClass<out ASTNode>
     }
 }
 
-fun <N : BaseASTNode> KProperty1<N, *>.referredType(): KClass<out BaseASTNode> {
+fun <N : ASTNode> KProperty1<N, *>.referredType(): KClass<out ASTNode> {
     require(isReference())
     return this.returnType.arguments[0]
         .type!!
-        .classifier as KClass<out BaseASTNode>
+        .classifier as KClass<out ASTNode>
 }
 
 fun <N : Any> KProperty1<N, *>.asContainment(): Containment {
