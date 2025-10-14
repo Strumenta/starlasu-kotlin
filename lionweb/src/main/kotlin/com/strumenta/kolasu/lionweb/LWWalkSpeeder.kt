@@ -22,8 +22,19 @@ class LWWalkSpeeder {
         if (node is ProxyNode) {
             return
         }
-        containments.forEach { containment ->
-            node.getChildren(containment).forEach { yieldThisAndAllDescendants(it) }
+        
+        var i = 0
+        val size = containments.size
+        while (i < size) {
+            val containment = containments[i]
+            val children = node.getChildren(containment)
+            var j = 0
+            val childrenSize = children.size
+            while (j < childrenSize) {
+                yieldThisAndAllDescendants(children[j])
+                j++
+            }
+            i++
         }
     }
 }
