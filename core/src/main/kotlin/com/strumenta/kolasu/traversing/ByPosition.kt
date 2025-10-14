@@ -3,7 +3,6 @@
 package com.strumenta.kolasu.traversing
 
 import com.strumenta.kolasu.model.ASTNode
-import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.Position
 
 /**

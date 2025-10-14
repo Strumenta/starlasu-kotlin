@@ -1,6 +1,7 @@
 package com.strumenta.kolasu.semantics
 
 import com.strumenta.kolasu.ids.StructuralNodeIdProvider
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.ASTRoot
 import com.strumenta.kolasu.model.Named
 import com.strumenta.kolasu.model.Node
@@ -112,7 +113,7 @@ class SymbolResolutionWithSRITest {
         val nodeIdProvider = StructuralNodeIdProvider()
         val symbolProvider =
             object : SymbolProvider {
-                override fun symbolFor(node: Node): SymbolDescription? {
+                override fun symbolFor(node: ASTNode): SymbolDescription? {
                     if (node is Todo) {
                         val id = nodeIdProvider.id(node)
                         return SymbolDescription(

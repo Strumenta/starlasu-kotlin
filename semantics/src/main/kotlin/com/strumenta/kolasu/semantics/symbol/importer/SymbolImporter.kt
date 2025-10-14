@@ -1,6 +1,6 @@
 package com.strumenta.kolasu.semantics.symbol.importer
 
-import com.strumenta.kolasu.model.Node
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.children
 import com.strumenta.kolasu.semantics.symbol.provider.SymbolProvider
 import com.strumenta.kolasu.semantics.symbol.repository.SymbolRepository
@@ -26,7 +26,7 @@ open class SymbolImporter(
      * same process over its children, if `entireTree` is true.
      **/
     fun import(
-        node: Node,
+        node: ASTNode,
         entireTree: Boolean = false,
     ) {
         this.symbolProvider.symbolFor(node)?.let { this.symbolRepository.store(it) }

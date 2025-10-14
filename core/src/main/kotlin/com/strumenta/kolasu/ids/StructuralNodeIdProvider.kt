@@ -2,7 +2,6 @@ package com.strumenta.kolasu.ids
 
 import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.ASTRoot
-import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.Source
 import com.strumenta.kolasu.model.containingProperty
 import com.strumenta.kolasu.model.indexInContainingProperty

@@ -3,8 +3,6 @@
 package com.strumenta.kolasu.traversing
 
 import com.strumenta.kolasu.model.ASTNode
-import com.strumenta.kolasu.model.BaseASTNode
-import com.strumenta.kolasu.model.Node
 import java.util.ArrayDeque
 import java.util.WeakHashMap
 import kotlin.reflect.KClass
@@ -156,7 +154,7 @@ fun <N : Any> ASTNode.walkDescendants(
  *
  * @return the nearest ancestor of this node that is an instance of klass.
  */
-fun <T> BaseASTNode.findAncestorOfType(klass: Class<T>): T? = walkAncestors().filterIsInstance(klass).firstOrNull()
+fun <T> ASTNode.findAncestorOfType(klass: Class<T>): T? = walkAncestors().filterIsInstance(klass).firstOrNull()
 
 /**
  * @return all direct children of this node.

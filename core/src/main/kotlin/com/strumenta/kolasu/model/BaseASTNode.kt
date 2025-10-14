@@ -2,7 +2,6 @@ package com.strumenta.kolasu.model
 
 import com.strumenta.kolasu.language.Attribute
 import com.strumenta.kolasu.language.Containment
-import com.strumenta.kolasu.language.Reference
 import com.strumenta.kolasu.traversing.walk
 import io.lionweb.model.AnnotationInstance
 import java.io.Serializable
@@ -145,8 +144,6 @@ open class BaseASTNode() :
         }
     }
 
-
-
     /**
      * The source text for this node
      */
@@ -167,7 +164,7 @@ open class BaseASTNode() :
 
     override fun getChildren(
         containment: Containment,
-        includeDerived: Boolean
+        includeDerived: Boolean,
     ): List<ASTNode> = getChildren(containment.name, includeDerived)
 
     fun getChildren(
@@ -199,9 +196,7 @@ open class BaseASTNode() :
         }
     }
 
-    fun getReference(reference: Reference): ReferenceByName<*>? = getReference(reference.name)
-
-    fun getReference(name: String): ReferenceByName<*>? {
+    override fun getReference(name: String): ReferenceByName<*>? {
         val rawValue = properties.find { it.name == name }!!.value
         if (rawValue == null) {
             return null

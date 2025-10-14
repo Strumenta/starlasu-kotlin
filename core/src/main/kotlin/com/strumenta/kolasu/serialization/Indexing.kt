@@ -1,7 +1,6 @@
 package com.strumenta.kolasu.serialization
 
 import com.strumenta.kolasu.model.ASTNode
-import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.PossiblyNamed
 import com.strumenta.kolasu.model.ReferenceByName
 import com.strumenta.kolasu.traversing.walk

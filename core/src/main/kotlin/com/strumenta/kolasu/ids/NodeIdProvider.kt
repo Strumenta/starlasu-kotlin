@@ -1,8 +1,6 @@
 package com.strumenta.kolasu.ids
 
 import com.strumenta.kolasu.model.ASTNode
-import com.strumenta.kolasu.model.Node
-import com.strumenta.kolasu.model.Node as KNode
 
 /**
  * This defines a policy to associate IDs to Kolasu Nodes.
@@ -55,7 +53,8 @@ class CommonNodeIdProvider(
             positionalID(kNode)
         }
 
-    private fun positionalID(kNode: ASTNode): String = StructuralNodeIdProvider().apply { parentProvider = this }.id(kNode)
+    private fun positionalID(kNode: ASTNode): String =
+        StructuralNodeIdProvider().apply { parentProvider = this }.id(kNode)
 }
 
 interface SemanticNodeIDProvider {

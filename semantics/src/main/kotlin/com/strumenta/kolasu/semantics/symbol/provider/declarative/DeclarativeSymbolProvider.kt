@@ -1,6 +1,7 @@
 package com.strumenta.kolasu.semantics.symbol.provider.declarative
 
 import com.strumenta.kolasu.ids.NodeIdProvider
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.ReferenceByName
 import com.strumenta.kolasu.semantics.symbol.description.BooleanValueDescription
@@ -27,26 +28,26 @@ inline fun <reified NodeTy : Node> symbolFor(
 
 open class DeclarativeSymbolProvider(
     private val nodeIdProvider: NodeIdProvider,
-    vararg rules: DeclarativeSymbolProviderRule<out Node>,
+    vararg rules: DeclarativeSymbolProviderRule<out ASTNode>,
 ) : SymbolProvider {
-    private val rules: List<DeclarativeSymbolProviderRule<out Node>> = rules.sorted()
+    private val rules: List<DeclarativeSymbolProviderRule<out ASTNode>> = rules.sorted()
 
-    override fun symbolFor(node: Node): SymbolDescription? =
+    override fun symbolFor(node: ASTNode): SymbolDescription? =
         this.rules
             .firstOrNull { it.isCompatibleWith(node::class) }
             ?.invoke(nodeIdProvider, this, node)
 }
 
-class DeclarativeSymbolProviderRule<NodeTy : Node>(
+class DeclarativeSymbolProviderRule<NodeTy : ASTNode>(
     private val nodeType: KClass<NodeTy>,
     private val specification: DeclarativeSymbolProvideRuleApi<NodeTy>.(
         DeclarativeSymbolProviderRuleContext<NodeTy>,
     ) -> Unit,
 ) : DeclarativeSymbolProvideRuleApi<NodeTy>,
-    (NodeIdProvider, SymbolProvider, Node) -> SymbolDescription,
-    Comparable<DeclarativeSymbolProviderRule<out Node>> {
-    private var name: (Node) -> String? = { null }
-    private val properties: MutableMap<String, (NodeIdProvider, Node) -> ValueDescription> = mutableMapOf()
+    (NodeIdProvider, SymbolProvider, ASTNode) -> SymbolDescription,
+    Comparable<DeclarativeSymbolProviderRule<out ASTNode>> {
+    private var name: (ASTNode) -> String? = { null }
+    private val properties: MutableMap<String, (NodeIdProvider, ASTNode) -> ValueDescription> = mutableMapOf()
 
     override fun name(name: String) {
         this.name = { name }
@@ -68,7 +69,7 @@ class DeclarativeSymbolProviderRule<NodeTy : Node>(
     override fun invoke(
         nodeIdProvider: NodeIdProvider,
         symbolProvider: SymbolProvider,
-        node: Node,
+        node: ASTNode,
     ): SymbolDescription {
         @Suppress("UNCHECKED_CAST")
         return (node as NodeTy).let {
@@ -84,7 +85,7 @@ class DeclarativeSymbolProviderRule<NodeTy : Node>(
 
     fun isCompatibleWith(nodeType: KClass<*>): Boolean = this.nodeType.isSuperclassOf(nodeType)
 
-    override fun compareTo(other: DeclarativeSymbolProviderRule<out Node>): Int =
+    override fun compareTo(other: DeclarativeSymbolProviderRule<out ASTNode>): Int =
         when {
             this.nodeType.isSuperclassOf(other.nodeType) -> 1
             other.nodeType.isSuperclassOf(this.nodeType) -> -1
@@ -116,7 +117,7 @@ class DeclarativeSymbolProviderRule<NodeTy : Node>(
             is Boolean -> BooleanValueDescription(source)
             is Int -> IntegerValueDescription(source)
             is String -> StringValueDescription(source)
-            is Node -> toContainmentValueDescription(nodeIdProvider, source)
+            is ASTNode -> toContainmentValueDescription(nodeIdProvider, source)
             is ReferenceByName<*> -> toReferenceValueDescription(nodeIdProvider, source)
             is List<*> -> toListValueDescription(nodeIdProvider, source)
             null -> NullValueDescription
@@ -128,12 +129,12 @@ class DeclarativeSymbolProviderRule<NodeTy : Node>(
         source: ReferenceByName<*>,
     ): ReferenceValueDescription =
         ReferenceValueDescription(
-            source.referred?.let { it as? Node }?.let { nodeIdProvider.id(it) },
+            source.referred?.let { it as? ASTNode }?.let { nodeIdProvider.id(it) },
         )
 
     private fun toContainmentValueDescription(
         nodeIdProvider: NodeIdProvider,
-        source: Node,
+        source: ASTNode,
     ): ContainmentValueDescription = ContainmentValueDescription(nodeIdProvider.id(source))
 
     private fun toListValueDescription(
@@ -142,13 +143,13 @@ class DeclarativeSymbolProviderRule<NodeTy : Node>(
     ): ListValueDescription = ListValueDescription(source.map { this.toValueDescription(nodeIdProvider, it) }.toList())
 }
 
-interface DeclarativeSymbolProvideRuleApi<NodeTy : Node> {
+interface DeclarativeSymbolProvideRuleApi<NodeTy : ASTNode> {
     fun name(name: String)
 
     fun include(property: KProperty1<in NodeTy, Any?>)
 }
 
-data class DeclarativeSymbolProviderRuleContext<NodeTy : Node>(
+data class DeclarativeSymbolProviderRuleContext<NodeTy : ASTNode>(
     val node: NodeTy,
     val symbolProvider: SymbolProvider,
 )

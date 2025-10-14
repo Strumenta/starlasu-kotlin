@@ -1,6 +1,6 @@
 package com.strumenta.kolasu.semantics.symbol.resolver
 
-import com.strumenta.kolasu.model.Node
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.PossiblyNamed
 import com.strumenta.kolasu.model.ReferenceByName
 import com.strumenta.kolasu.model.children
@@ -33,8 +33,8 @@ open class SymbolResolver(
      * Attempts to resolve the given reference property of the given node.
      **/
     fun resolve(
-        node: Node,
-        reference: KProperty1<Node, ReferenceByName<PossiblyNamed>?>,
+        node: ASTNode,
+        reference: KProperty1<ASTNode, ReferenceByName<PossiblyNamed>?>,
     ) {
         node.properties
             .find { it.name == reference.name }
@@ -49,7 +49,7 @@ open class SymbolResolver(
      * given node and its children (if `entireTree` is `true`).
      **/
     fun resolve(
-        node: Node,
+        node: ASTNode,
         entireTree: Boolean = false,
     ) {
         if (node.isDirectlyPlaceholderASTTransformation) {
@@ -66,11 +66,11 @@ open class SymbolResolver(
     /**
      * Retrieve all reference properties of a given node.
      **/
-    private fun Node.references(): List<KProperty1<Node, ReferenceByName<PossiblyNamed>?>> =
+    private fun ASTNode.references(): List<KProperty1<ASTNode, ReferenceByName<PossiblyNamed>?>> =
         this.nodeProperties
             .filter { it.returnType.isSubtypeOf(kReferenceByNameType()) }
             .mapNotNull {
                 @Suppress("UNCHECKED_CAST")
-                it as? KProperty1<Node, ReferenceByName<PossiblyNamed>?>
+                it as? KProperty1<ASTNode, ReferenceByName<PossiblyNamed>?>
             }
 }

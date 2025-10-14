@@ -1,7 +1,6 @@
 package com.strumenta.kolasu.ids
 
 import com.strumenta.kolasu.model.ASTNode
-import com.strumenta.kolasu.model.Node
 import java.util.IdentityHashMap
 
 /**

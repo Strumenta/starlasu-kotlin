@@ -2,15 +2,15 @@ package com.strumenta.kolasu.model
 
 import com.strumenta.kolasu.language.Attribute
 import com.strumenta.kolasu.language.Containment
+import com.strumenta.kolasu.language.Reference
 import io.lionweb.model.AnnotationInstance
 
 interface ASTNode {
-
     @Internal
     var id: String?
 
     @Internal
-    val annotations : MutableList<AnnotationInstance>
+    val annotations: MutableList<AnnotationInstance>
 
     /**
      * The parent node, if any.
@@ -57,4 +57,8 @@ interface ASTNode {
         containment: Containment,
         includeDerived: Boolean = false,
     ): List<ASTNode>
+
+    fun getReference(name: String): ReferenceByName<*>?
+
+    fun getReference(reference: Reference): ReferenceByName<*>? = getReference(reference.name)
 }

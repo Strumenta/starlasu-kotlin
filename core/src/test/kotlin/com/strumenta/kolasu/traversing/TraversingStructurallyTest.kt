@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.traversing
 
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.Position
 import com.strumenta.kolasu.model.assignParents
@@ -14,8 +15,8 @@ import kotlin.test.fail
 internal class TraversingStructurallyTest {
     class Box(
         val name: String,
-        val contents: List<Node> = listOf(),
-        val set: Set<Node> = setOf(),
+        val contents: List<ASTNode> = listOf(),
+        val set: Set<ASTNode> = setOf(),
         specifiedPosition: Position? = null,
     ) : Node(specifiedPosition)
 
@@ -24,7 +25,7 @@ internal class TraversingStructurallyTest {
         specifiedPosition: Position? = null,
     ) : Node(specifiedPosition)
 
-    private fun printSequence(sequence: Sequence<Node>): String =
+    private fun printSequence(sequence: Sequence<ASTNode>): String =
         sequence
             .map {
                 when (it) {
@@ -108,9 +109,9 @@ internal class TraversingStructurallyTest {
         val numberOfGrandChildren = 10
         for (i in 0..numberOfChildren) {
             val nChildren = (0..numberOfGrandChildren).random()
-            val children = mutableListOf<Node>()
+            val children = mutableListOf<ASTNode>()
             for (b in 0..nChildren) {
-                val grandChildren = mutableListOf<Node>()
+                val grandChildren = mutableListOf<ASTNode>()
                 for (c in 0..(0..numberOfGrandChildren).random()) {
                     grandChildren.add(Item(getRandomString(8)))
                     nodes += 1

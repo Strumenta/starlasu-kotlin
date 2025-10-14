@@ -1,6 +1,6 @@
 package com.strumenta.kolasu.semantics.scope.provider.declarative
 
-import com.strumenta.kolasu.model.Node
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.PossiblyNamed
 import com.strumenta.kolasu.model.ReferenceByName
 import com.strumenta.kolasu.semantics.scope.description.ScopeDescription
@@ -14,7 +14,7 @@ import kotlin.reflect.full.isSuperclassOf
  * Utility function for defining scoping rules.
  **/
 inline fun <
-    reified NodeTy : Node,
+    reified NodeTy : ASTNode,
     PropertyTy : KProperty1<in NodeTy, ReferenceByName<out PossiblyNamed>?>,
 > scopeFor(
     property: PropertyTy,
@@ -46,16 +46,16 @@ inline fun <
  * ```
  **/
 open class DeclarativeScopeProvider(
-    vararg rules: DeclarativeScopeProviderRule<out Node>,
+    vararg rules: DeclarativeScopeProviderRule<out ASTNode>,
 ) : ScopeProvider {
-    private val rules: MutableList<DeclarativeScopeProviderRule<out Node>> = rules.sorted().toMutableList()
+    private val rules: MutableList<DeclarativeScopeProviderRule<out ASTNode>> = rules.sorted().toMutableList()
 
-    fun addRule(rule: DeclarativeScopeProviderRule<out Node>) {
+    fun addRule(rule: DeclarativeScopeProviderRule<out ASTNode>) {
         rules.add(rule)
         rules.sort()
     }
 
-    override fun <NodeType : Node> scopeFor(
+    override fun <NodeType : ASTNode> scopeFor(
         node: NodeType,
         reference: KProperty1<in NodeType, ReferenceByName<out PossiblyNamed>?>,
     ): ScopeDescription =
@@ -70,16 +70,16 @@ open class DeclarativeScopeProvider(
 /**
  * Represents a scoping rule, i.e. the body of `scopeFor(...)` definitions.
  **/
-class DeclarativeScopeProviderRule<NodeTy : Node>(
+class DeclarativeScopeProviderRule<NodeTy : ASTNode>(
     private val nodeType: KClass<NodeTy>,
     private val propertyName: String,
     private val ignoreCase: Boolean,
     private val specification: ScopeDescription.(DeclarativeScopeProviderRuleContext<NodeTy>) -> Unit,
-) : (ScopeProvider, Node) -> ScopeDescription,
-    Comparable<DeclarativeScopeProviderRule<out Node>> {
+) : (ScopeProvider, ASTNode) -> ScopeDescription,
+    Comparable<DeclarativeScopeProviderRule<out ASTNode>> {
     override fun invoke(
         scopeProvider: ScopeProvider,
-        node: Node,
+        node: ASTNode,
     ): ScopeDescription =
         ScopeDescription(this.ignoreCase).apply {
             @Suppress("UNCHECKED_CAST")
@@ -92,7 +92,7 @@ class DeclarativeScopeProviderRule<NodeTy : Node>(
         property: KProperty1<*, ReferenceByName<out PossiblyNamed>?>,
     ): Boolean = this.nodeType.isSuperclassOf(nodeType) && this.propertyName == property.name
 
-    override fun compareTo(other: DeclarativeScopeProviderRule<out Node>): Int =
+    override fun compareTo(other: DeclarativeScopeProviderRule<out ASTNode>): Int =
         when {
             this.nodeType.isSuperclassOf(other.nodeType) -> 1
             other.nodeType.isSuperclassOf(this.nodeType) -> -1
@@ -106,7 +106,7 @@ class DeclarativeScopeProviderRule<NodeTy : Node>(
  * Represents the available context when defining scoping rules,
  * i.e. the `it` variable in `scopeFor(...)` bodies.
  **/
-data class DeclarativeScopeProviderRuleContext<NodeTy : Node>(
+data class DeclarativeScopeProviderRuleContext<NodeTy : ASTNode>(
     val node: NodeTy,
     val scopeProvider: ScopeProvider,
 )
