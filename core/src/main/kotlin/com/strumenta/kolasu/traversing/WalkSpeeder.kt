@@ -17,13 +17,13 @@ class WalkSpeeder {
             val kClass = javaClass.kotlin as KClass<N>
             val relevantProps = kClass.nodeOriginalProperties.filter { providesNodes(it) }
             // Use primitive boolean array - avoids boxing
-            val multiplicity = BooleanArray(relevantProps.size) { i -> 
-                multiplicity(relevantProps[i]) == Multiplicity.MANY 
+            val multiplicity = BooleanArray(relevantProps.size) { i ->
+                multiplicity(relevantProps[i]) == Multiplicity.MANY
             }
-            
+
             // Cache the properties as an array for faster iteration
             val propsArray = relevantProps.toTypedArray()
-            
+
             return@computeIfAbsent { node ->
                 sequence {
                     // Use indices instead of forEachIndexed - slightly faster
@@ -58,7 +58,7 @@ class WalkSpeeder {
             } else {
                 childrenSeq.toList()
             }
-            
+
             // Add in reverse order for correct traversal
             for (i in children.size - 1 downTo 0) {
                 stack.addLast(children[i] as Node)
@@ -66,13 +66,13 @@ class WalkSpeeder {
         }
     }
 
-    fun <N:Node>assignParents(node: N) {
+    fun <N : Node>assignParents(node: N) {
         walkChildren(node).forEach {
             if (it == node) {
                 throw java.lang.IllegalStateException("A node cannot be parent of itself: $node")
             }
             it.parent = node
-            it.assignParents()
+            assignParents(it)
         }
     }
 }
