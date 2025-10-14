@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.parsing
 
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.Point
 import com.strumenta.kolasu.model.Position
@@ -166,11 +167,11 @@ class FirstStageParsingResult<C : ParserRuleContext>(
  * @param firstStage the result of the first parsing stage (from source code to parse tree).
  * @param time the time spent in the entire parsing process.
  */
-open class ParsingResult<RootNode : Node>(
+open class ParsingResult<RootNode : ASTNode>(
     issues: List<Issue>,
     val root: RootNode?,
     code: String? = null,
-    val incompleteNode: Node? = null,
+    val incompleteNode: ASTNode? = null,
     val firstStage: FirstStageParsingResult<*>? = null,
     val time: Long? = null,
     source: Source? = null,

@@ -43,7 +43,7 @@ open class BaseASTNode() :
     }
 
     @Internal
-    open val nodeType: String
+    override val nodeType: String
         get() = this::class.qualifiedName!!
 
     @Internal
@@ -54,7 +54,7 @@ open class BaseASTNode() :
      * The properties of this AST nodes, including attributes, children, and references.
      */
     @property:Internal
-    open val properties: List<PropertyDescription>
+    override val properties: List<PropertyDescription>
         get() =
             try {
                 nodeProperties.map { PropertyDescription.buildFor(it, this) }
@@ -67,7 +67,7 @@ open class BaseASTNode() :
      * properties.
      */
     @property:Internal
-    open val originalProperties: List<PropertyDescription>
+    override val originalProperties: List<PropertyDescription>
         get() =
             try {
                 properties.filter { !it.derived }
@@ -79,13 +79,13 @@ open class BaseASTNode() :
      * The node from which this AST Node has been generated, if any.
      */
     @property:Internal
-    var origin: Origin? = null
+    override var origin: Origin? = null
 
     /**
      * The parent node, if any.
      */
     @property:Internal
-    var parent: BaseASTNode? = null
+    override var parent: ASTNode? = null
 
     /**
      * The position of this node in the source text.
@@ -145,17 +145,7 @@ open class BaseASTNode() :
         }
     }
 
-    /**
-     * Tests whether the given position is contained in the interval represented by this object.
-     * @param position the position
-     */
-    fun contains(position: Position?): Boolean = this.position?.contains(position) ?: false
 
-    /**
-     * Tests whether the given position overlaps the interval represented by this object.
-     * @param position the position
-     */
-    fun overlaps(position: Position?): Boolean = this.position?.overlaps(position) ?: false
 
     /**
      * The source text for this node

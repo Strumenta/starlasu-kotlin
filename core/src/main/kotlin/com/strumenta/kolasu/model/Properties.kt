@@ -39,17 +39,17 @@ val <T : Any> KClass<T>.nodeDerivedProperties: Collection<KProperty1<T, *>>
 /**
  * @return all properties of this node that are considered AST properties.
  */
-val <T : Node> T.nodeProperties: Collection<KProperty1<T, *>>
+val <T : ASTNode> T.nodeProperties: Collection<KProperty1<T, *>>
     get() = (this::class as KClass<T>).nodeProperties
 
 /**
  * @return all non-derived properties of this node that are considered AST properties.
  */
-val <T : Node> T.nodeOriginalProperties: Collection<KProperty1<T, *>>
+val <T : ASTNode> T.nodeOriginalProperties: Collection<KProperty1<T, *>>
     get() = (this::class as KClass<T>).nodeOriginalProperties
 
 /**
  * @return all derived properties of this node that are considered AST properties.
  */
-val <T : Node> T.nodeDerivedProperties: Collection<KProperty1<T, *>>
+val <T : ASTNode> T.nodeDerivedProperties: Collection<KProperty1<T, *>>
     get() = (this::class as KClass<T>).nodeDerivedProperties

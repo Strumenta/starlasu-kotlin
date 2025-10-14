@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.ids
 
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.ASTRoot
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.Source
@@ -19,7 +20,7 @@ open class StructuralNodeIdProvider(
         ConstantSourceIdProvider(customSourceId),
     )
 
-    override fun id(kNode: Node): String {
+    override fun id(kNode: ASTNode): String {
         val canBeRoot = kNode::class.annotations.any { it is ASTRoot }
         val mustBeRoot = kNode::class.annotations.any { it is ASTRoot && !it.canBeNotRoot }
         val coordinates: Coordinates =

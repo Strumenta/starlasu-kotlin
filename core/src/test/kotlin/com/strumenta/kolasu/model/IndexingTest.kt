@@ -30,7 +30,7 @@ class IndexingTest {
         val a2 = A(s = "a2")
         val a3 = A(s = "a3")
         val b1 = B(a = a1, manyAs = listOf(a2, a3))
-        val ids = b1.computeIds(walker = Node::walkLeavesFirst)
+        val ids = b1.computeIds(walker = ASTNode::walkLeavesFirst)
         assertEquals(4, ids.size)
         assertContains(ids, a1)
         assertContains(ids, a2)
@@ -50,7 +50,7 @@ class IndexingTest {
                     object : IdProvider {
                         private var counter: Int = 0
 
-                        override fun getId(node: Node): String? = "custom_${this.counter++}"
+                        override fun getId(node: ASTNode): String? = "custom_${this.counter++}"
                     },
             )
         assertEquals(4, ids.size)
@@ -68,12 +68,12 @@ class IndexingTest {
         val b1 = B(a = a1, manyAs = listOf(a2, a3))
         val ids =
             b1.computeIds(
-                walker = Node::walkLeavesFirst,
+                walker = ASTNode::walkLeavesFirst,
                 idProvider =
                     object : IdProvider {
                         private var counter: Int = 0
 
-                        override fun getId(node: Node): String? = "custom_${this.counter++}"
+                        override fun getId(node: ASTNode): String? = "custom_${this.counter++}"
                     },
             )
         assertEquals(4, ids.size)
@@ -109,7 +109,7 @@ class IndexingTest {
         val secondChild = NodeWithReference(name = "child", reference = ReferenceByName(name = "previous"))
         secondChild.reference!!.referred = firstChild
         parent.children.add(secondChild)
-        val ids = parent.computeIdsForReferencedNodes(walker = Node::walkLeavesFirst)
+        val ids = parent.computeIdsForReferencedNodes(walker = ASTNode::walkLeavesFirst)
         assertEquals(2, ids.size)
         assertEquals(ids[parent], "1")
         assertEquals(ids[firstChild], "0")
@@ -131,7 +131,7 @@ class IndexingTest {
         val a2 = A(s = "a2")
         val a3 = A(s = "a3")
         val b1 = B(a = a1, manyAs = listOf(a2, a3))
-        val ids = b1.computeIdsForReferencedNodes(walker = Node::walkLeavesFirst)
+        val ids = b1.computeIdsForReferencedNodes(walker = ASTNode::walkLeavesFirst)
         assertEquals(0, ids.size)
     }
 }

@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.ids
 
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.Node as KNode
 
@@ -9,7 +10,7 @@ import com.strumenta.kolasu.model.Node as KNode
  * It is important that the logic is implemented so that given the same Node, the same ID is returned.
  */
 interface NodeIdProvider {
-    fun id(kNode: KNode): String
+    fun id(kNode: ASTNode): String
 
     /**
      * This should be replaced in the future by setting kNode.id directly, instead of relying
@@ -17,7 +18,7 @@ interface NodeIdProvider {
      */
     @Deprecated("No nodes have an ID")
     fun registerMapping(
-        kNode: KNode,
+        kNode: ASTNode,
         nodeId: String,
     ) {
         // do nothing
@@ -47,18 +48,18 @@ abstract class BaseNodeIdProvider : NodeIdProvider {
 class CommonNodeIdProvider(
     val semanticIDProvider: SemanticNodeIDProvider = DeclarativeNodeIdProvider(),
 ) : BaseNodeIdProvider() {
-    override fun id(kNode: Node): String =
+    override fun id(kNode: ASTNode): String =
         if (semanticIDProvider.hasSemanticIdentity(kNode)) {
             semanticIDProvider.semanticID(kNode)
         } else {
             positionalID(kNode)
         }
 
-    private fun positionalID(kNode: Node): String = StructuralNodeIdProvider().apply { parentProvider = this }.id(kNode)
+    private fun positionalID(kNode: ASTNode): String = StructuralNodeIdProvider().apply { parentProvider = this }.id(kNode)
 }
 
 interface SemanticNodeIDProvider {
-    fun hasSemanticIdentity(kNode: Node): Boolean
+    fun hasSemanticIdentity(kNode: ASTNode): Boolean
 
-    fun semanticID(kNode: Node): String
+    fun semanticID(kNode: ASTNode): String
 }

@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.ids
 
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.Node
 import kotlin.reflect.KClass
 import kotlin.reflect.full.isSubclassOf
@@ -20,17 +21,17 @@ import kotlin.reflect.full.isSuperclassOf
  * ```
  **/
 open class DeclarativeNodeIdProvider(
-    vararg rules: DeclarativeNodeIdProviderRule<out Node>,
+    vararg rules: DeclarativeNodeIdProviderRule<out ASTNode>,
 ) : SemanticNodeIDProvider {
-    private val rules: List<DeclarativeNodeIdProviderRule<out Node>> = rules.sorted()
+    private val rules: List<DeclarativeNodeIdProviderRule<out ASTNode>> = rules.sorted()
 
-    override fun hasSemanticIdentity(kNode: Node): Boolean = tryToGetSemanticID(kNode) != null
+    override fun hasSemanticIdentity(kNode: ASTNode): Boolean = tryToGetSemanticID(kNode) != null
 
-    override fun semanticID(kNode: Node): String =
+    override fun semanticID(kNode: ASTNode): String =
         tryToGetSemanticID(kNode)
             ?: throw RuntimeException("Cannot find rule for node type: ${kNode::class.qualifiedName}")
 
-    private fun tryToGetSemanticID(kNode: Node): String? =
+    private fun tryToGetSemanticID(kNode: ASTNode): String? =
         this.rules
             .firstOrNull {
                 it.canBeInvokedWith(kNode::class)
@@ -48,14 +49,14 @@ inline fun <reified NodeTy : Node> idFor(
 /**
  * Class representing a single rule of a DeclarativeNodeIdProvider.
  **/
-class DeclarativeNodeIdProviderRule<NodeTy : Node>(
+class DeclarativeNodeIdProviderRule<NodeTy : ASTNode>(
     private val nodeType: KClass<NodeTy>,
     private val specification: SemanticNodeIDProvider.(NodeTy) -> String,
 ) : Comparable<DeclarativeNodeIdProviderRule<*>>,
-    (SemanticNodeIDProvider, Node) -> String {
+    (SemanticNodeIDProvider, ASTNode) -> String {
     override fun invoke(
         nodeIdProvider: SemanticNodeIDProvider,
-        node: Node,
+        node: ASTNode,
     ): String {
         @Suppress("UNCHECKED_CAST")
         return nodeIdProvider.specification(node as NodeTy)

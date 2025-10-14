@@ -7,7 +7,7 @@ import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 import com.google.gson.stream.JsonWriter
-import com.strumenta.kolasu.model.Node
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.Point
 import com.strumenta.kolasu.model.Position
 import com.strumenta.kolasu.model.ReferenceByName
@@ -84,10 +84,10 @@ class JsonGenerator {
      * Converts an AST to JSON format.
      */
     fun generateJSON(
-        root: Node,
-        withIds: IdentityHashMap<Node, String>? = null,
-        withOriginIds: IdentityHashMap<Node, String>? = null,
-        withDestinationIds: IdentityHashMap<Node, String>? = null,
+        root: ASTNode,
+        withIds: IdentityHashMap<ASTNode, String>? = null,
+        withOriginIds: IdentityHashMap<ASTNode, String>? = null,
+        withDestinationIds: IdentityHashMap<ASTNode, String>? = null,
         shortClassNames: Boolean = false,
     ): JsonElement =
         nodeToJson(
@@ -102,8 +102,8 @@ class JsonGenerator {
      * Converts "results" to JSON format.
      */
     fun generateJSON(
-        result: Result<out Node>,
-        withIds: IdentityHashMap<Node, String>? = null,
+        result: Result<out ASTNode>,
+        withIds: IdentityHashMap<ASTNode, String>? = null,
     ): JsonElement =
         jsonObject(
             "issues" to result.issues.map { it.toJson() }.toJsonArray(),
@@ -114,8 +114,8 @@ class JsonGenerator {
      * Converts "results" to JSON format.
      */
     fun generateJSON(
-        result: ParsingResult<out Node>,
-        withIds: IdentityHashMap<Node, String>? = null,
+        result: ParsingResult<out ASTNode>,
+        withIds: IdentityHashMap<ASTNode, String>? = null,
     ): JsonElement =
         jsonObject(
             "issues" to result.issues.map { it.toJson() }.toJsonArray(),
@@ -126,7 +126,7 @@ class JsonGenerator {
      * Converts "results" to JSON format.
      */
     fun generateJSONWithStreaming(
-        result: Result<out Node>,
+        result: Result<out ASTNode>,
         writer: JsonWriter,
         shortClassNames: Boolean = false,
     ) {
@@ -145,7 +145,7 @@ class JsonGenerator {
     }
 
     fun generateJSONWithStreaming(
-        root: Node,
+        root: ASTNode,
         writer: JsonWriter,
         shortClassNames: Boolean = false,
     ) {
@@ -163,56 +163,56 @@ class JsonGenerator {
     }
 
     fun generateString(
-        root: Node,
-        withIds: IdentityHashMap<Node, String>? = null,
+        root: ASTNode,
+        withIds: IdentityHashMap<ASTNode, String>? = null,
     ): String {
         val gson = gsonBuilder.setPrettyPrinting().create()
         return gson.toJson(generateJSON(root, withIds))
     }
 
     fun generateString(
-        result: Result<out Node>,
-        withIds: IdentityHashMap<Node, String>? = null,
+        result: Result<out ASTNode>,
+        withIds: IdentityHashMap<ASTNode, String>? = null,
     ): String {
         val gson = gsonBuilder.setPrettyPrinting().create()
         return gson.toJson(generateJSON(result, withIds))
     }
 
     fun generateString(
-        result: ParsingResult<out Node>,
-        withIds: IdentityHashMap<Node, String>? = null,
+        result: ParsingResult<out ASTNode>,
+        withIds: IdentityHashMap<ASTNode, String>? = null,
     ): String {
         val gson = gsonBuilder.setPrettyPrinting().create()
         return gson.toJson(generateJSON(result, withIds))
     }
 
     fun generateFile(
-        root: Node,
+        root: ASTNode,
         file: File,
-        withIds: IdentityHashMap<Node, String>? = null,
+        withIds: IdentityHashMap<ASTNode, String>? = null,
     ) {
         File(file.toURI()).writeText(generateString(root, withIds))
     }
 
     fun generateFile(
-        result: Result<out Node>,
+        result: Result<out ASTNode>,
         file: File,
-        withIds: IdentityHashMap<Node, String>? = null,
+        withIds: IdentityHashMap<ASTNode, String>? = null,
     ) {
         File(file.toURI()).writeText(generateString(result, withIds))
     }
 
     fun generateFile(
-        result: ParsingResult<out Node>,
+        result: ParsingResult<out ASTNode>,
         file: File,
-        withIds: IdentityHashMap<Node, String>? = null,
+        withIds: IdentityHashMap<ASTNode, String>? = null,
     ) {
         File(file.toURI()).writeText(generateString(result, withIds))
     }
 
     private fun valueToJson(
         value: Any?,
-        withIds: IdentityHashMap<Node, String>? = null,
+        withIds: IdentityHashMap<ASTNode, String>? = null,
     ): JsonElement {
         try {
             return when (value) {
@@ -226,7 +226,7 @@ class JsonGenerator {
                     if (withIds != null) {
                         jsonObject.addProperty(
                             "referred",
-                            if (value.resolved) withIds[value.referred as Node] ?: "<unknown>" else null,
+                            if (value.resolved) withIds[value.referred as ASTNode] ?: "<unknown>" else null,
                         )
                     }
                     jsonObject
@@ -241,23 +241,23 @@ class JsonGenerator {
         }
     }
 
-    private fun computeIds(root: Node): IdentityHashMap<Node, String> =
-        IdentityHashMap<Node, String>().apply {
+    private fun computeIds(root: ASTNode): IdentityHashMap<ASTNode, String> =
+        IdentityHashMap<ASTNode, String>().apply {
             root.walk().forEach { this[it] = UUID.randomUUID().toString() }
         }
 
-    private fun computeIds(result: Result<out Node>): IdentityHashMap<Node, String> =
+    private fun computeIds(result: Result<out ASTNode>): IdentityHashMap<ASTNode, String> =
         if (result.root != null) computeIds(result.root) else IdentityHashMap()
 
-    private fun computeIds(result: ParsingResult<out Node>): IdentityHashMap<Node, String> =
+    private fun computeIds(result: ParsingResult<out ASTNode>): IdentityHashMap<ASTNode, String> =
         if (result.root != null) computeIds(result.root) else IdentityHashMap()
 
     private fun nodeToJson(
-        node: Node,
+        node: ASTNode,
         shortClassNames: Boolean = false,
-        withIds: IdentityHashMap<Node, String>? = null,
-        withOriginIds: IdentityHashMap<Node, String>? = null,
-        withDestinationIds: IdentityHashMap<Node, String>? = null,
+        withIds: IdentityHashMap<ASTNode, String>? = null,
+        withOriginIds: IdentityHashMap<ASTNode, String>? = null,
+        withDestinationIds: IdentityHashMap<ASTNode, String>? = null,
     ): JsonElement {
         val nodeType = node.nodeType
         val jsonObject =
@@ -272,8 +272,8 @@ class JsonGenerator {
             }
         }
         if (withOriginIds != null) {
-            if (node.origin is Node) {
-                jsonObject.addProperty(JSON_ORIGIN_KEY, withOriginIds[node.origin as Node] ?: "<unknown>")
+            if (node.origin is ASTNode) {
+                jsonObject.addProperty(JSON_ORIGIN_KEY, withOriginIds[node.origin as ASTNode] ?: "<unknown>")
             }
         }
         if (withDestinationIds != null) {
@@ -293,7 +293,7 @@ class JsonGenerator {
                             (it.value as Collection<*>)
                                 .map { el ->
                                     nodeToJson(
-                                        el as Node,
+                                        el as ASTNode,
                                         shortClassNames,
                                         withIds = withIds,
                                         withOriginIds = withOriginIds,
@@ -309,7 +309,7 @@ class JsonGenerator {
                         jsonObject.add(
                             it.name,
                             nodeToJson(
-                                it.value as Node,
+                                it.value as ASTNode,
                                 shortClassNames,
                                 withIds = withIds,
                                 withOriginIds = withOriginIds,
@@ -328,7 +328,7 @@ class JsonGenerator {
     }
 }
 
-private fun Node.toJsonStreaming(
+private fun ASTNode.toJsonStreaming(
     writer: JsonWriter,
     shortClassNames: Boolean = false,
 ) {
@@ -347,7 +347,7 @@ private fun Node.toJsonStreaming(
             writer.beginArray()
             if (it.providesNodes) {
                 (it.value as Collection<*>).forEach {
-                    (it as Node).toJsonStreaming(writer, shortClassNames)
+                    (it as ASTNode).toJsonStreaming(writer, shortClassNames)
                 }
             } else {
                 (it.value as Collection<*>).forEach {
@@ -357,7 +357,7 @@ private fun Node.toJsonStreaming(
             writer.endArray()
         } else {
             if (it.providesNodes) {
-                (it.value as Node).toJsonStreaming(writer, shortClassNames)
+                (it.value as ASTNode).toJsonStreaming(writer, shortClassNames)
             } else {
                 it.value.toJsonStreaming(writer)
             }

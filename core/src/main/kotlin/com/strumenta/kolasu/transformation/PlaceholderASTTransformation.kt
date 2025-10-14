@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.transformation
 
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.Origin
 import com.strumenta.kolasu.model.Position
@@ -11,7 +12,7 @@ import kotlin.reflect.KClass
  * as such and still be the descendants of such type of Node. In other words it could be in a placeholder tree.
  * This operation is not expensive to perform.
  */
-val Node.isDirectlyPlaceholderASTTransformation: Boolean
+val ASTNode.isDirectlyPlaceholderASTTransformation: Boolean
     get() = this.origin is PlaceholderASTTransformation
 
 /**
@@ -20,7 +21,7 @@ val Node.isDirectlyPlaceholderASTTransformation: Boolean
  * in a placeholder tree.
  * This operation is expensive to perform.
  */
-val Node.isDirectlyOrIndirectlyAPlaceholderASTTransformation: Boolean
+val ASTNode.isDirectlyOrIndirectlyAPlaceholderASTTransformation: Boolean
     get() =
         this.isDirectlyPlaceholderASTTransformation ||
             this.walkAncestors().any {

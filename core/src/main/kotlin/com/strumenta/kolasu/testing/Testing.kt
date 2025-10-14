@@ -2,6 +2,7 @@
 
 package com.strumenta.kolasu.testing
 
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.KReferenceByName
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.PossiblyNamed
@@ -302,7 +303,7 @@ fun assertASTsAreEqual(
     }
 }
 
-fun Node.assertReferencesResolved(forProperty: KReferenceByName<out Node>) {
+fun ASTNode.assertReferencesResolved(forProperty: KReferenceByName<out ASTNode>) {
     this
         .kReferenceByNameProperties()
         .filter { it == forProperty }
@@ -317,7 +318,7 @@ fun Node.assertReferencesResolved(forProperty: KReferenceByName<out Node>) {
     this.walkChildren().forEach { it.assertReferencesResolved(forProperty = forProperty) }
 }
 
-fun Node.assertReferencesResolved(withReturnType: KClass<out PossiblyNamed> = PossiblyNamed::class) {
+fun ASTNode.assertReferencesResolved(withReturnType: KClass<out PossiblyNamed> = PossiblyNamed::class) {
     this
         .kReferenceByNameProperties(targetClass = withReturnType)
         .mapNotNull { it.get(this) }
@@ -329,7 +330,7 @@ fun Node.assertReferencesResolved(withReturnType: KClass<out PossiblyNamed> = Po
     this.walkChildren().forEach { it.assertReferencesResolved(withReturnType = withReturnType) }
 }
 
-fun Node.assertReferencesNotResolved(forProperty: KReferenceByName<out Node>) {
+fun ASTNode.assertReferencesNotResolved(forProperty: KReferenceByName<out ASTNode>) {
     this
         .kReferenceByNameProperties()
         .filter { it == forProperty }
@@ -338,7 +339,7 @@ fun Node.assertReferencesNotResolved(forProperty: KReferenceByName<out Node>) {
     this.walkChildren().forEach { it.assertReferencesNotResolved(forProperty = forProperty) }
 }
 
-fun Node.assertReferencesNotResolved(withReturnType: KClass<out PossiblyNamed> = PossiblyNamed::class) {
+fun ASTNode.assertReferencesNotResolved(withReturnType: KClass<out PossiblyNamed> = PossiblyNamed::class) {
     this
         .kReferenceByNameProperties(targetClass = withReturnType)
         .mapNotNull { it.get(this) }

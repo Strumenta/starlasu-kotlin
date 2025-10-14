@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.ids
 
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.Node
 import java.util.IdentityHashMap
 
@@ -11,13 +12,13 @@ import java.util.IdentityHashMap
 class CachingNodeIDProvider(
     val wrapped: NodeIdProvider,
 ) : BaseNodeIdProvider() {
-    private val cache = IdentityHashMap<Node, String>()
+    private val cache = IdentityHashMap<ASTNode, String>()
 
     init {
         wrapped.topLevelProvider.parentProvider = this
     }
 
-    override fun id(kNode: Node): String {
+    override fun id(kNode: ASTNode): String {
         if (cache.containsKey(kNode)) {
             return cache[kNode]!!
         } else {

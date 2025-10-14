@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.semantics
 
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.KReferenceByName
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.PossiblyNamed
@@ -22,15 +23,15 @@ class SymbolResolver(
     }
 
     @Suppress("unchecked_cast")
-    fun resolve(node: Node) {
-        node.kReferenceByNameProperties().forEach { this.resolve(it as KReferenceByName<out Node>, node) }
+    fun resolve(node: ASTNode) {
+        node.kReferenceByNameProperties().forEach { this.resolve(it as KReferenceByName<out ASTNode>, node) }
         node.walkChildren().forEach(this::resolve)
     }
 
     @Suppress("unchecked_cast")
     fun resolve(
-        property: KReferenceByName<out Node>,
-        node: Node,
+        property: KReferenceByName<out ASTNode>,
+        node: ASTNode,
     ) {
         (node.properties.find { it.name == property.name }?.value as ReferenceByName<PossiblyNamed>?)?.apply {
             this.referred = scopeProvider.scopeFor(property, node).resolve(this.name, property.getReferredType())

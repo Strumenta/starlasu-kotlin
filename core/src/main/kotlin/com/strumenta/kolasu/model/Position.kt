@@ -238,7 +238,7 @@ data class Position(
      * Tests whether the given node is contained in the interval represented by this object.
      * @param node the node
      */
-    fun contains(node: BaseASTNode): Boolean = this.contains(node.position)
+    fun contains(node: ASTNode): Boolean = this.contains(node.position)
 
     /**
      * Tests whether the given position overlaps the interval represented by this object.

@@ -9,7 +9,7 @@ class NodeIdProviderAdapter(
     private var available: List<String>? = null
     private var index: Int = -1
 
-    override fun id(kNode: Node): String {
+    override fun id(kNode: ASTNode): String {
         if (available == null || index >= available!!.count()) {
             available = idProvider.provideIDs(4096)
             index = 0
@@ -22,7 +22,7 @@ class NodeIdProviderAdapter(
 }
 
 fun NodeIdProvider.assignIDsToTree(
-    root: Node,
+    root: ASTNode,
     overriding: Boolean = false,
 ) {
     if (overriding || root.id == null) {

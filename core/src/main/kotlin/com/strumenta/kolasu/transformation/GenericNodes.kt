@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.transformation
 
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.traversing.children
 
@@ -8,7 +9,7 @@ import com.strumenta.kolasu.traversing.children
  */
 @Deprecated("To be removed in Kolasu 2.0")
 class GenericNode(
-    parent: Node? = null,
+    parent: ASTNode? = null,
 ) : Node() {
     init {
         this.parent = parent
@@ -16,7 +17,7 @@ class GenericNode(
 }
 
 @Deprecated("To be removed in Kolasu 2.0")
-fun Node.findGenericNode(): GenericNode? =
+fun ASTNode.findGenericNode(): GenericNode? =
     if (this is GenericNode) {
         this
     } else {

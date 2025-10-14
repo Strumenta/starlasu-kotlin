@@ -142,5 +142,5 @@ fun KReferenceByName<*>.getReferredType(): KClass<out PossiblyNamed> =
 /**
  * Retrieves all reference properties for a given node.
  **/
-fun Node.kReferenceByNameProperties(targetClass: KClass<out PossiblyNamed> = PossiblyNamed::class) =
+fun ASTNode.kReferenceByNameProperties(targetClass: KClass<out PossiblyNamed> = PossiblyNamed::class) =
     this.nodeProperties.filter { it.returnType.isSubtypeOf(kReferenceByNameType(targetClass)) }

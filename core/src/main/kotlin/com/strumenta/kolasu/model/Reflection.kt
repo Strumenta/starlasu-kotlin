@@ -17,7 +17,7 @@ import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.superclasses
 import kotlin.reflect.full.withNullability
 
-fun <T : BaseASTNode> T.relevantMemberProperties(
+fun <T : ASTNode> T.relevantMemberProperties(
     withPosition: Boolean = false,
     withNodeType: Boolean = false,
     includeDerived: Boolean = false,

@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.ids
 
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.SyntheticSource
 import com.strumenta.kolasu.model.assignParents
@@ -10,7 +11,7 @@ class CachingNodeIDProviderTest {
     class CountingNodeIdProvider : StructuralNodeIdProvider() {
         var count: Int = 0
 
-        override fun id(kNode: Node): String {
+        override fun id(kNode: ASTNode): String {
             count++
             return super.id(kNode)
         }

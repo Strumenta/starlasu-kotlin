@@ -2,6 +2,7 @@
 
 package com.strumenta.kolasu.traversing
 
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.BaseASTNode
 import com.strumenta.kolasu.model.Node
 import java.util.ArrayDeque
@@ -14,13 +15,13 @@ import kotlin.reflect.KFunction1
  *
  * @return a Sequence representing the Nodes encountered.
  */
-fun BaseASTNode.walk(): Sequence<BaseASTNode> {
-    val stack: Stack<BaseASTNode> = mutableStackOf(this)
+fun ASTNode.walk(): Sequence<ASTNode> {
+    val stack: Stack<ASTNode> = mutableStackOf(this)
     return generateSequence {
         if (stack.isEmpty()) {
             null
         } else {
-            val next: BaseASTNode = stack.pop()
+            val next: ASTNode = stack.pop()
             stack.pushAll(next.children)
             next
         }
@@ -30,22 +31,22 @@ fun BaseASTNode.walk(): Sequence<BaseASTNode> {
 /**
  * Performs a post-order (or leaves-first) node traversal starting with a given node.
  */
-fun BaseASTNode.walkLeavesFirst(): Sequence<BaseASTNode> {
-    val nodesStack: Stack<List<BaseASTNode>> = mutableStackOf()
+fun ASTNode.walkLeavesFirst(): Sequence<ASTNode> {
+    val nodesStack: Stack<List<ASTNode>> = mutableStackOf()
     val cursorStack: Stack<Int> = ArrayDeque()
     var done = false
 
-    fun nextFromLevel(): BaseASTNode {
-        val nodes: List<BaseASTNode> = nodesStack.peek()
+    fun nextFromLevel(): ASTNode {
+        val nodes: List<ASTNode> = nodesStack.peek()
         val cursor = cursorStack.pop()
         cursorStack.push(cursor + 1)
         return nodes[cursor]
     }
 
-    fun fillStackToLeaf(node: BaseASTNode) {
-        var currentNode: BaseASTNode = node
+    fun fillStackToLeaf(node: ASTNode) {
+        var currentNode: ASTNode = node
         while (true) {
-            val childNodes: List<BaseASTNode> = currentNode.children
+            val childNodes: List<ASTNode> = currentNode.children
             if (childNodes.isEmpty()) {
                 break
             }
@@ -59,11 +60,11 @@ fun BaseASTNode.walkLeavesFirst(): Sequence<BaseASTNode> {
         if (done) {
             null
         } else {
-            val nodes: List<BaseASTNode> = nodesStack.peek()
+            val nodes: List<ASTNode> = nodesStack.peek()
             val cursor = cursorStack.peek()
             val levelHasNext = cursor < nodes.size
             if (levelHasNext) {
-                val node: BaseASTNode = nodes[cursor]
+                val node: ASTNode = nodes[cursor]
                 fillStackToLeaf(node)
                 nextFromLevel()
             } else {
@@ -85,8 +86,8 @@ fun BaseASTNode.walkLeavesFirst(): Sequence<BaseASTNode> {
  * @return the sequence of nodes from this.parent all the way up to the root node.
  * For this to work, assignParents() must have been called.
  */
-fun BaseASTNode.walkAncestors(): Sequence<BaseASTNode> {
-    var currentNode: BaseASTNode? = this
+fun ASTNode.walkAncestors(): Sequence<ASTNode> {
+    var currentNode: ASTNode? = this
     return generateSequence {
         currentNode = currentNode!!.parent
         currentNode
@@ -96,7 +97,7 @@ fun BaseASTNode.walkAncestors(): Sequence<BaseASTNode> {
 /**
  * @return all direct children of this node.
  */
-fun BaseASTNode.walkChildren(includeDerived: Boolean = false): Sequence<BaseASTNode> =
+fun ASTNode.walkChildren(includeDerived: Boolean = false): Sequence<ASTNode> =
     sequence {
         (
             if (includeDerived) {
@@ -106,8 +107,8 @@ fun BaseASTNode.walkChildren(includeDerived: Boolean = false): Sequence<BaseASTN
             }
         ).forEach { property ->
             when (val value = property.value) {
-                is BaseASTNode -> yield(value)
-                is Collection<*> -> value.forEach { if (it is BaseASTNode) yield(it) }
+                is ASTNode -> yield(value)
+                is Collection<*> -> value.forEach { if (it is ASTNode) yield(it) }
             }
         }
     }
@@ -115,7 +116,7 @@ fun BaseASTNode.walkChildren(includeDerived: Boolean = false): Sequence<BaseASTN
 /**
  * @return all direct children of this node, together with the name of the containment of each child.
  */
-fun Node.walkChildrenByContainment(includeDerived: Boolean = false): Sequence<Pair<String, Node>> =
+fun ASTNode.walkChildrenByContainment(includeDerived: Boolean = false): Sequence<Pair<String, ASTNode>> =
     sequence {
         (
             if (includeDerived) {
@@ -125,8 +126,8 @@ fun Node.walkChildrenByContainment(includeDerived: Boolean = false): Sequence<Pa
             }
         ).forEach { property ->
             when (val value = property.value) {
-                is Node -> yield(property.name to value)
-                is Collection<*> -> value.forEach { if (it is Node) yield(property.name to it) }
+                is ASTNode -> yield(property.name to value)
+                is Collection<*> -> value.forEach { if (it is ASTNode) yield(property.name to it) }
             }
         }
     }
@@ -137,15 +138,15 @@ fun Node.walkChildrenByContainment(includeDerived: Boolean = false): Sequence<Pa
  * @return walks the whole AST starting from the childnodes of this node.
  */
 @JvmOverloads
-fun BaseASTNode.walkDescendants(
-    walker: (BaseASTNode) ->
-    Sequence<BaseASTNode> = BaseASTNode::walk,
-): Sequence<BaseASTNode> = walker.invoke(this).filter { node -> node != this }
+fun ASTNode.walkDescendants(
+    walker: (ASTNode) ->
+    Sequence<ASTNode> = ASTNode::walk,
+): Sequence<ASTNode> = walker.invoke(this).filter { node -> node != this }
 
 @JvmOverloads
-fun <N : Any> BaseASTNode.walkDescendants(
+fun <N : Any> ASTNode.walkDescendants(
     type: KClass<N>,
-    walker: (BaseASTNode) -> Sequence<BaseASTNode> = BaseASTNode::walk,
+    walker: (ASTNode) -> Sequence<ASTNode> = ASTNode::walk,
 ): Sequence<N> = walkDescendants(walker).filterIsInstance(type.java)
 
 /**
@@ -160,7 +161,7 @@ fun <T> BaseASTNode.findAncestorOfType(klass: Class<T>): T? = walkAncestors().fi
 /**
  * @return all direct children of this node.
  */
-val BaseASTNode.children: List<BaseASTNode>
+val ASTNode.children: List<ASTNode>
     get() {
         return walkChildren().toList()
     }
@@ -168,15 +169,15 @@ val BaseASTNode.children: List<BaseASTNode>
 /**
  * @return all direct children of this node.
  */
-val Node.childrenByContainment: List<Pair<String, Node>>
+val ASTNode.childrenByContainment: List<Pair<String, ASTNode>>
     get() {
         return walkChildrenByContainment().toList()
     }
 
 @JvmOverloads
-fun <T> BaseASTNode.searchByType(
+fun <T> ASTNode.searchByType(
     klass: Class<T>,
-    walker: KFunction1<BaseASTNode, Sequence<BaseASTNode>> = BaseASTNode::walk,
+    walker: KFunction1<ASTNode, Sequence<ASTNode>> = ASTNode::walk,
 ) = walker.invoke(this).filterIsInstance(klass)
 
 /**
@@ -185,9 +186,9 @@ fun <T> BaseASTNode.searchByType(
  * @param walker the function that generates the nodes to operate on in the desired sequence.
  * @return all nodes in this AST (sub)tree that are instances of, or extend [klass].
  */
-fun <T> BaseASTNode.collectByType(
+fun <T> ASTNode.collectByType(
     klass: Class<T>,
-    walker: KFunction1<BaseASTNode, Sequence<BaseASTNode>> = BaseASTNode::walk,
+    walker: KFunction1<ASTNode, Sequence<ASTNode>> = ASTNode::walk,
 ): List<T> = walker.invoke(this).filterIsInstance(klass).toList()
 
 /**
@@ -196,11 +197,11 @@ fun <T> BaseASTNode.collectByType(
  * This walker will ignore any change to the nodes.
  */
 class FastWalker(
-    val node: BaseASTNode,
+    val node: ASTNode,
 ) {
-    private val childrenMap: WeakHashMap<BaseASTNode, List<BaseASTNode>> = WeakHashMap<BaseASTNode, List<BaseASTNode>>()
+    private val childrenMap: WeakHashMap<ASTNode, List<ASTNode>> = WeakHashMap<ASTNode, List<ASTNode>>()
 
-    private fun getChildren(child: BaseASTNode): List<BaseASTNode> =
+    private fun getChildren(child: ASTNode): List<ASTNode> =
         if (childrenMap.containsKey(child)) {
             childrenMap[child]!!
         } else {
@@ -208,13 +209,13 @@ class FastWalker(
             childrenMap[child]!!
         }
 
-    fun walk(root: BaseASTNode = node): Sequence<BaseASTNode> {
-        val stack: Stack<BaseASTNode> = mutableStackOf(root)
+    fun walk(root: ASTNode = node): Sequence<ASTNode> {
+        val stack: Stack<ASTNode> = mutableStackOf(root)
         return generateSequence {
             if (stack.isEmpty()) {
                 null
             } else {
-                val next: BaseASTNode = stack.pop()
+                val next: ASTNode = stack.pop()
                 stack.pushAll(getChildren(next))
                 next
             }
