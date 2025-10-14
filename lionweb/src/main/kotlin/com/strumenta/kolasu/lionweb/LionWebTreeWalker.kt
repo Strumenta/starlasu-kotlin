@@ -5,7 +5,7 @@ import io.lionweb.language.Containment
 import io.lionweb.model.impl.ProxyNode
 import java.util.concurrent.ConcurrentHashMap
 
-class LWWalkSpeeder {
+class LionWebTreeWalker {
 
     private val containmentsCache = ConcurrentHashMap<Concept, List<Containment>>()
 
