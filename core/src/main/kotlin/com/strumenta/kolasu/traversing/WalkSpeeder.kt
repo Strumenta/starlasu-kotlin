@@ -7,10 +7,11 @@ import com.strumenta.kolasu.model.assignParents
 import com.strumenta.kolasu.model.nodeOriginalProperties
 import com.strumenta.kolasu.model.providesNodes
 import kotlin.reflect.KClass
+import java.util.concurrent.ConcurrentHashMap;
 
 class WalkSpeeder {
     // Use primitive Class as key - faster hashCode/equals than KClass
-    private val calculatorCaches = mutableMapOf<Class<out Node>, Function1<Node, Sequence<Node>>>()
+    private val calculatorCaches = ConcurrentHashMap<Class<out Node>, Function1<Node, Sequence<Node>>>()
 
     fun <N : Node> walkChildren(node: N): Sequence<Node> {
         return calculatorCaches.computeIfAbsent(node.javaClass) { javaClass ->
