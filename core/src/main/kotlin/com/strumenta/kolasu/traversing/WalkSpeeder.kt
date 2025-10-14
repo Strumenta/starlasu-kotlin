@@ -6,8 +6,8 @@ import com.strumenta.kolasu.model.PropertyDescription.Companion.multiplicity
 import com.strumenta.kolasu.model.assignParents
 import com.strumenta.kolasu.model.nodeOriginalProperties
 import com.strumenta.kolasu.model.providesNodes
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
-import java.util.concurrent.ConcurrentHashMap;
 
 class WalkSpeeder {
     // Use primitive Class as key - faster hashCode/equals than KClass
