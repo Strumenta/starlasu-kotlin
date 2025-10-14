@@ -1,6 +1,7 @@
 package com.strumenta.kolasu.lionwebclient
 import com.strumenta.kolasu.language.KolasuLanguage
 import com.strumenta.kolasu.lionweb.StructuralLionWebNodeIdProvider
+import com.strumenta.kolasu.model.assignParents
 import com.strumenta.kolasu.parsing.ParsingResult
 import com.strumenta.kolasu.testing.assertASTsAreEqual
 import com.strumenta.kolasu.traversing.children
@@ -23,6 +24,7 @@ abstract class AbstractLionWebConversion<R : KNode>(val kolasuLanguage: KolasuLa
     ) {
         val result = parse(inputStream)
         val ast = result.root ?: throw IllegalStateException()
+        ast.assignParents()
         val encounteredNodes = mutableListOf<KNode>()
         ast.walk().forEach { descendant ->
             val encounteredChildren = mutableListOf<KNode>()
