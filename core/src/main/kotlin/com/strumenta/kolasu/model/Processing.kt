@@ -273,10 +273,13 @@ fun Node.indexInContainingProperty(): Int? {
     val p = this.containingProperty()
     return if (p == null) {
         null
-    } else if (p.value is Collection<*>) {
-        p.value.indexOfFirst { this === it }
     } else {
-        0
+        val value = p.value
+        if (value is Collection<*>) {
+            value.indexOfFirst { this === it }
+        } else {
+            0
+        }
     }
 }
 

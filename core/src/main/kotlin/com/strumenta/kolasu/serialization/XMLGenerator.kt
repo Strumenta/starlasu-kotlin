@@ -136,19 +136,20 @@ private fun Node.toXML(
         element.addChild(it.toXML(document = document))
     }
     this.processProperties {
-        if (it.value == null) {
+        val value = it.value
+        if (value == null) {
             element.addNullChild(it.name, document)
         } else if (it.multiple) {
-            if (it.provideNodes) {
-                element.addListOfNodes(it.name, (it.value as Collection<*>).map { it as Node }, document)
+            if (it.providesNodes) {
+                element.addListOfNodes(it.name, (value as Collection<*>).map { it as Node }, document)
             } else {
-                element.addAttributesList(it.name, it.value as Collection<*>, document)
+                element.addAttributesList(it.name, value as Collection<*>, document)
             }
         } else {
-            if (it.provideNodes) {
-                element.addChild((it.value as Node).toXML(it.name, document))
+            if (it.providesNodes) {
+                element.addChild((value as Node).toXML(it.name, document))
             } else {
-                element.addAttribute(it.name, it.value)
+                element.addAttribute(it.name, value)
             }
         }
     }

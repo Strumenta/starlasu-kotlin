@@ -1,6 +1,18 @@
 package com.strumenta.kolasu.model
 
-val RESERVED_FEATURE_NAMES = setOf("parent", "position")
+val RESERVED_FEATURE_NAMES =
+    setOf(
+        "parent",
+        "position",
+        "annotations",
+        "destination",
+        "origin",
+        "id",
+        "nodeType",
+        "simpleNodeType",
+        "source",
+        "sourceText",
+    )
 
 fun <N : BaseASTNode> N.withPosition(position: Position?): N {
     this.position = position

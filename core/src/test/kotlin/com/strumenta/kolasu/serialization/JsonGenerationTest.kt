@@ -3,6 +3,7 @@ package com.strumenta.kolasu.serialization
 import com.google.gson.stream.JsonWriter
 import com.strumenta.kolasu.model.BaseNode
 import com.strumenta.kolasu.model.ExtNode
+import com.strumenta.kolasu.model.Internal
 import com.strumenta.kolasu.model.Multiplicity
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.NodeOverridingName
@@ -369,36 +370,32 @@ class JsonGenerationTest {
                 listOf(
                     PropertyDescription(
                         "someAttr",
-                        false,
                         Multiplicity.SINGULAR,
-                        123,
+                        { 123 },
                         PropertyType.ATTRIBUTE,
                         derived = false,
                         type = String::class.createType(),
                     ),
                     PropertyDescription(
                         "someListAttr",
-                        false,
                         Multiplicity.MANY,
-                        listOf("a", "b"),
+                        { listOf("a", "b") },
                         PropertyType.ATTRIBUTE,
                         derived = false,
                         type = String::class.createType(),
                     ),
                     PropertyDescription(
                         "someChild",
-                        true,
                         Multiplicity.SINGULAR,
-                        BaseNode(456),
+                        { BaseNode(456) },
                         PropertyType.CONTAINMENT,
                         derived = false,
                         type = String::class.createType(),
                     ),
                     PropertyDescription(
                         "someChildren",
-                        true,
                         Multiplicity.MANY,
-                        listOf(BaseNode(78), BaseNode(90)),
+                        { listOf(BaseNode(78), BaseNode(90)) },
                         PropertyType.CONTAINMENT,
                         derived = false,
                         type = String::class.createType(),
@@ -437,6 +434,8 @@ class JsonGenerationTest {
 }
 
 data class DynamicNode(
+    @property:Internal
     override val nodeType: String,
+    @property:Internal
     override val originalProperties: List<PropertyDescription>,
 ) : Node()

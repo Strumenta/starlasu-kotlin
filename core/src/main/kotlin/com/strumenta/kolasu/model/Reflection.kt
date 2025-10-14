@@ -61,19 +61,60 @@ enum class PropertyType {
 
 data class PropertyDescription(
     val name: String,
-    @Deprecated("Redundant", replaceWith = ReplaceWith("propertyType == PropertyType.CONTAINMENT"))
-    val provideNodes: Boolean,
     val multiplicity: Multiplicity,
-    val value: Any?,
     val propertyType: PropertyType,
     val derived: Boolean,
     val type: KType,
 ) {
-    fun valueToString(): String {
-        if (value == null) {
-            return "null"
+    // Note: it can't be declared in the constructor, otherwise it's used for equality, and two different closures
+    // computing the same function still aren't equal
+    private var valueProvider: () -> Any? = { null }
+    val value: Any? by lazy { valueProvider() }
+
+    @Deprecated("Typo", replaceWith = ReplaceWith("providesNodes"))
+    val provideNodes: Boolean get() = providesNodes
+    val providesNodes: Boolean get() = propertyType == PropertyType.CONTAINMENT
+
+    @Deprecated("Use the constructor without providesNodes")
+    constructor(
+        name: String,
+        provideNodes: Boolean,
+        multiplicity: Multiplicity,
+        value: Any?,
+        propertyType: PropertyType,
+        derived: Boolean,
+        type: KType,
+    ) : this(name, multiplicity, value, propertyType, derived, type) {
+        if (provideNodes != this.provideNodes) {
+            throw IllegalArgumentException("providesNodes value is inconsistent with propertyType")
         }
-        return if (propertyType == PropertyType.CONTAINMENT) {
+    }
+
+    constructor(
+        name: String,
+        multiplicity: Multiplicity,
+        valueProvider: () -> Any?,
+        propertyType: PropertyType,
+        derived: Boolean,
+        type: KType,
+    ) : this(name, multiplicity, propertyType, derived, type) {
+        this.valueProvider = valueProvider
+    }
+
+    constructor(
+        name: String,
+        multiplicity: Multiplicity,
+        value: Any?,
+        propertyType: PropertyType,
+        derived: Boolean,
+        type: KType,
+    ) : this(name, multiplicity, propertyType, derived, type) {
+        valueProvider = { value }
+    }
+
+    fun valueToString(): String {
+        val value = this.value ?: return "null"
+        return if (providesNodes) {
             if (multiplicity == Multiplicity.MANY) {
                 when (value) {
                     is IgnoreChildren<*> -> "<Ignore Children Placeholder>"
@@ -137,9 +178,8 @@ data class PropertyDescription(
                 }
             return PropertyDescription(
                 name = property.name,
-                provideNodes = provideNodes,
                 multiplicity = multiplicity,
-                value = property.get(node as N),
+                valueProvider = { property.get(node as N) },
                 when {
                     property.isReference() -> PropertyType.REFERENCE
                     provideNodes -> PropertyType.CONTAINMENT
