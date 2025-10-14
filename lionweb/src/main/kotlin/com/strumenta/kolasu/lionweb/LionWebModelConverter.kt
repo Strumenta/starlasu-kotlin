@@ -4,6 +4,7 @@ import com.strumenta.kolasu.ids.IDGenerationException
 import com.strumenta.kolasu.ids.NodeIdProvider
 import com.strumenta.kolasu.language.Feature
 import com.strumenta.kolasu.language.KolasuLanguage
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.CompositeDestination
 import com.strumenta.kolasu.model.DroppedDestination
 import com.strumenta.kolasu.model.Multiplicity
@@ -163,16 +164,16 @@ class LionWebModelConverter(
     }
 
     fun exportModelToLionWeb(
-        kolasuTree: KNode,
+        kolasuTree: ASTNode,
         nodeIdProvider: NodeIdProvider = this.nodeIdProvider,
         considerParent: Boolean = true,
     ): LWNode {
         kolasuTree.assignParents()
         val myIDManager =
             object {
-                private val cache = IdentityHashMap<KNode, String>()
+                private val cache = IdentityHashMap<ASTNode, String>()
 
-                fun nodeId(kNode: KNode): String =
+                fun nodeId(kNode: ASTNode): String =
                     cache.getOrPut(kNode) {
                         val currentId = kNode.id
                         if (currentId != null) {
@@ -997,7 +998,7 @@ class LionWebModelConverter(
             }
         }
 
-    private fun findConcept(kNode: com.strumenta.kolasu.model.Node): Concept =
+    private fun findConcept(kNode: ASTNode): Concept =
         synchronized(languageConverter) {
             languageConverter.correspondingConcept(kNode.nodeType)
         }

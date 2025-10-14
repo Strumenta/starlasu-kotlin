@@ -1,9 +1,16 @@
 package com.strumenta.kolasu.model
 
+import com.strumenta.kolasu.language.Attribute
+import com.strumenta.kolasu.language.Containment
+import io.lionweb.model.AnnotationInstance
+
 interface ASTNode {
 
     @Internal
     var id: String?
+
+    @Internal
+    val annotations : MutableList<AnnotationInstance>
 
     /**
      * The parent node, if any.
@@ -27,6 +34,9 @@ interface ASTNode {
     var origin: Origin?
 
     @Internal
+    var destination: Destination?
+
+    @Internal
     val nodeType: String
 
     /**
@@ -40,4 +50,11 @@ interface ASTNode {
      * @param position the position
      */
     fun overlaps(position: Position?): Boolean = this.position?.overlaps(position) ?: false
+
+    fun getAttributeValue(attribute: Attribute): Any?
+
+    fun getChildren(
+        containment: Containment,
+        includeDerived: Boolean = false,
+    ): List<ASTNode>
 }

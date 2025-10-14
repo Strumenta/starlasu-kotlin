@@ -1,16 +1,17 @@
 package com.strumenta.kolasu.lionweb
 
 import com.strumenta.kolasu.ids.NodeIdProvider
+import com.strumenta.kolasu.model.ASTNode
 import com.strumenta.kolasu.model.Node
 import java.util.IdentityHashMap
 
 class SequentialNodeIdProvider(
     startId: Long = 1L,
 ) : NodeIdProvider {
-    private val cache = IdentityHashMap<KNode, String>()
+    private val cache = IdentityHashMap<ASTNode, String>()
     private var next = startId
 
-    override fun id(kNode: Node): String =
+    override fun id(kNode: ASTNode): String =
         cache.getOrPut(kNode) {
             (next++).toString()
         }
@@ -22,7 +23,7 @@ class SequentialNodeIdProvider(
         }
 
     override fun registerMapping(
-        kNode: Node,
+        kNode: ASTNode,
         nodeId: String,
     ) {
         if (cache.containsKey(kNode)) {

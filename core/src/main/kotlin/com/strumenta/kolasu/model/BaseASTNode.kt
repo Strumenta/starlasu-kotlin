@@ -24,7 +24,7 @@ open class BaseASTNode() :
     HasID,
     ASTNode {
     @Internal
-    val annotations = mutableListOf<AnnotationInstance>()
+    override val annotations = mutableListOf<AnnotationInstance>()
 
     @Internal
     override var id: String? = null
@@ -155,7 +155,7 @@ open class BaseASTNode() :
         get() = origin?.sourceText
 
     @Internal
-    var destination: Destination? = null
+    override var destination: Destination? = null
 
     /**
      * This must be final because otherwise data classes extending this will automatically generate
@@ -165,15 +165,15 @@ open class BaseASTNode() :
     final override fun toString(): String =
         "${this.nodeType}(${originalProperties.joinToString(", ") { "${it.name}=${it.valueToString()}" }})"
 
-    fun getChildren(
+    override fun getChildren(
         containment: Containment,
-        includeDerived: Boolean = false,
-    ): List<Node> = getChildren(containment.name, includeDerived)
+        includeDerived: Boolean
+    ): List<ASTNode> = getChildren(containment.name, includeDerived)
 
     fun getChildren(
         propertyName: String,
         includeDerived: Boolean = false,
-    ): List<Node> {
+    ): List<ASTNode> {
         checkFeatureName(propertyName)
         val property =
             (if (includeDerived) properties else originalProperties)
@@ -209,7 +209,7 @@ open class BaseASTNode() :
         return rawValue as ReferenceByName<*>
     }
 
-    fun getAttributeValue(attribute: Attribute): Any? {
+    override fun getAttributeValue(attribute: Attribute): Any? {
         val value = getAttributeValue(attribute.name)
         if (value == null) {
             if (!attribute.optional) {
