@@ -992,7 +992,7 @@ class LionWebModelConverter(
             TokensList(tokens)
         )
         if (idCheck) {
-            resultNode.thisAndAllDescendants().forEach { lwNode ->
+            lwWalker.thisAndAllDescendants(resultNode).forEach { lwNode ->
                 require(lwNode.id != null) { "Node $lwNode should get a valid ID" }
             }
         }
