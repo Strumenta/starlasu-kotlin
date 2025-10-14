@@ -22,7 +22,7 @@ import com.strumenta.kolasu.parsing.ParsingResult
 import com.strumenta.kolasu.transformation.FailingASTTransformation
 import com.strumenta.kolasu.transformation.MissingASTTransformation
 import com.strumenta.kolasu.transformation.PlaceholderASTTransformation
-import com.strumenta.kolasu.traversing.StarlasuTreeWalker
+import com.strumenta.kolasu.traversing.CommonStarlasuTreeWalker
 import com.strumenta.kolasu.validation.Issue
 import com.strumenta.kolasu.validation.IssueSeverity
 import com.strumenta.kolasu.validation.IssueType
@@ -123,8 +123,8 @@ class LionWebModelConverter(
      */
     private val nodesMapping = BiMap<Any, LWNode>(usingIdentity = true)
     private val primitiveValueSerializations = ConcurrentHashMap<KClass<*>, PrimitiveValueSerialization<*>>()
-    private val starlasuTreeWalker = StarlasuTreeWalker()
-    private val lionWebTreeWalker = LionWebTreeWalker()
+    private val starlasuTreeWalker = CommonStarlasuTreeWalker()
+    var lionWebTreeWalker = LionWebTreeWalker()
 
     var externalNodeResolver: NodeResolver = DummyNodeResolver()
 
@@ -162,7 +162,6 @@ class LionWebModelConverter(
         nodeIdProvider: NodeIdProvider = this.nodeIdProvider,
         considerParent: Boolean = true
     ): LWNode {
-        starlasuTreeWalker.assignParents(kolasuTree)
         val myIDManager = object {
 
             private val cache = IdentityHashMap<KNode, String>()
