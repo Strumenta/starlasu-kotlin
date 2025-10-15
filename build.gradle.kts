@@ -205,32 +205,33 @@ val dropClosedRepositories by tasks.registering {
 
 subprojects {
     plugins.withId("signing") {
-        extensions.configure(SigningExtension::class.java) { signingExt ->
-            val raw = providers.gradleProperty("signingInMemoryKey").orNull
-            val key = raw
-                ?.replace("\\r\\n", "\n")
-                ?.replace("\\n", "\n")
-                ?.replace("\\r", "\n")
-                ?.trim()
-            val keyId = providers.gradleProperty("signingInMemoryKeyId").orNull
-            val pass = providers.gradleProperty("signingInMemoryKeyPassword").orNull
+        val signingExt = extensions.getByType(SigningExtension::class.java)
 
-            if (key.isNullOrBlank()) {
-                throw GradleException("Missing signingInMemoryKey")
-            }
-            require(key.startsWith("-----BEGIN PGP PRIVATE KEY BLOCK-----")) {
-                "signingInMemoryKey is not a PRIVATE key"
-            }
-            signingExt.useInMemoryPgpKeys(keyId, key, pass)
+        val raw = providers.gradleProperty("signingInMemoryKey").orNull
+        val key = raw
+            ?.replace("\\r\\n", "\n")
+            ?.replace("\\n", "\n")
+            ?.replace("\\r", "\n")
+            ?.trim()
+        val keyId = providers.gradleProperty("signingInMemoryKeyId").orNull
+        val pass = providers.gradleProperty("signingInMemoryKeyPassword").orNull
 
-            plugins.withId("maven-publish") {
-                val pubs = extensions.getByType(PublishingExtension::class.java).publications
+        if (key.isNullOrBlank()) {
+            throw GradleException("Missing signingInMemoryKey")
+        }
+        require(key.startsWith("-----BEGIN PGP PRIVATE KEY BLOCK-----")) {
+            "signingInMemoryKey is not a PRIVATE key"
+        }
+
+        signingExt.useInMemoryPgpKeys(keyId, key, pass)
+
+        plugins.withId("maven-publish") {
+            val pubs = extensions.getByType(PublishingExtension::class.java).publications
+            signingExt.sign(pubs)
+        }
+        plugins.withId("com.vanniktech.maven.publish") {
+            extensions.findByType(PublishingExtension::class.java)?.publications?.let { pubs ->
                 signingExt.sign(pubs)
-            }
-            plugins.withId("com.vanniktech.maven.publish") {
-                extensions.findByType(PublishingExtension::class.java)?.publications?.let { pubs ->
-                    signingExt.sign(pubs)
-                }
             }
         }
     }
