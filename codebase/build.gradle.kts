@@ -106,9 +106,6 @@ project.afterEvaluate {
         .configureEach {
             dependsOn("dokkaJavadocJar", "javaSourcesJar", "javadocJar", "sourcesJar")
         }
-    tasks.named("javaSourcesJar") {
-        dependsOn(tasks.named("generateGrammarSource"))
-    }
     if (tasks.findByName("signMavenPublication") != null) {
         tasks.matching { it.name.startsWith("sign") && it.name.endsWith("Publication") }
             .configureEach {
