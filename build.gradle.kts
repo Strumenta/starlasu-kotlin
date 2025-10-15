@@ -201,3 +201,28 @@ val dropClosedRepositories by tasks.registering {
         }
     }
 }
+
+subprojects {
+    plugins.withId("signing") {
+        extensions.configure<org.gradle.plugins.signing.SigningExtension> {
+            val raw = providers.gradleProperty("signingInMemoryKey").orNull
+            val key = raw
+                ?.replace("\\r\\n", "\n")
+                ?.replace("\\n", "\n")
+                ?.replace("\\r", "\n")
+                ?.trim()
+            val keyId = providers.gradleProperty("signingInMemoryKeyId").orNull
+            val pass = providers.gradleProperty("signingInMemoryKeyPassword").orNull
+
+            if (!key.isNullOrBlank()) {
+                require(key.startsWith("-----BEGIN PGP PRIVATE KEY BLOCK-----")) {
+                    "signingInMemoryKey is not a PRIVATE key"
+                }
+                useInMemoryPgpKeys(keyId, key, pass)
+                sign(extensions.getByType<PublishingExtension>().publications)
+            } else {
+               throw RuntimeException("Missing signingInMemoryKey")
+            }
+        }
+    }
+}
