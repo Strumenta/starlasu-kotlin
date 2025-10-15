@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.vanniktech.publish)
     id("antlr")
     id("idea")
-    id("signing")
+//    id("signing")
     id("org.jetbrains.dokka")
 }
 
