@@ -1,5 +1,6 @@
 package com.strumenta.starlasu.javalib;
 
+import com.strumenta.starlasu.model.ASTNode;
 import com.strumenta.starlasu.model.DebugPrintConfiguration;
 import com.strumenta.starlasu.model.BaseASTNode;
 import com.strumenta.starlasu.model.PrintingKt;
@@ -15,11 +16,11 @@ public class DebugPrinter {
         return this.configuration;
     }
 
-    public String printNodeToString(BaseASTNode node) {
+    public String printNodeToString(ASTNode node) {
         return PrintingKt.debugPrint(node, "", configuration);
     }
 
-    public void printNodeOnConsole(BaseASTNode node) {
+    public void printNodeOnConsole(ASTNode node) {
         System.out.println(printNodeToString(node));
     }
 }
