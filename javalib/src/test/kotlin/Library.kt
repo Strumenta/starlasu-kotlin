@@ -1,7 +1,7 @@
-package com.strumenta.kolasu.javalib
+package com.strumenta.starlasu.javalib
 
-import com.strumenta.kolasu.model.Node
-import com.strumenta.kolasu.model.NodeType
+import com.strumenta.starlasu.model.Node
+import com.strumenta.starlasu.model.NodeType
 
 data class Library(
     val books: List<Book>,
