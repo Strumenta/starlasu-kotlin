@@ -94,7 +94,6 @@ signing {
 
 
 plugins.withId("maven-publish") {
-    // Salta le varianti "cli" per la publication Maven (restano nel metadata Gradle)
     val javaComponent = components.findByName("java") as? AdhocComponentWithVariants
     if (javaComponent != null) {
         javaComponent.withVariantsFromConfiguration(configurations["cliApiElements"]) { skip() }
