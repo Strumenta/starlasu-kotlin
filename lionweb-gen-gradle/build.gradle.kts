@@ -83,10 +83,15 @@ tasks {
 }
 
 signing {
-    val key = providers.gradleProperty("signingInMemoryKey").orNull
+    val keyRaw = providers.gradleProperty("signingInMemoryKey").orNull
+    val key = keyRaw?.replace("\\n", "\n") // <-- trasforma \n in newline reali
     val keyId = providers.gradleProperty("signingInMemoryKeyId").orNull
     val pass = providers.gradleProperty("signingInMemoryKeyPassword").orNull
+
     if (!key.isNullOrBlank()) {
+        require(key.startsWith("-----BEGIN PGP PRIVATE KEY BLOCK-----")) {
+            "signingInMemoryKey non contiene una PRIVATE key"
+        }
         useInMemoryPgpKeys(keyId, key, pass)
         sign(publishing.publications)
     }

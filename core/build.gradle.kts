@@ -136,16 +136,6 @@ publishing {
     }
 }
 
-//signing {
-//    val key = providers.gradleProperty("signingInMemoryKey").orNull
-//    val keyId = providers.gradleProperty("signingInMemoryKeyId").orNull
-//    val pass = providers.gradleProperty("signingInMemoryKeyPassword").orNull
-//    if (!key.isNullOrBlank()) {
-//        useInMemoryPgpKeys(keyId, key, pass)
-//        sign(publishing.publications)
-//    }
-//}
-
 signing {
     val keyRaw = providers.gradleProperty("signingInMemoryKey").orNull
     val key = keyRaw?.replace("\\n", "\n") // <-- trasforma \n in newline reali
