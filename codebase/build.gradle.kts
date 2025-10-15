@@ -41,9 +41,8 @@ publishing {
             url = if (!version.toString().endsWith("SNAPSHOT")) releaseRepo else snapshotRepo
         }
     }
-    publications {
-        create<MavenPublication>("kolasu_codebase") {
-            from(components["java"])
+    publications.withType<MavenPublication>().configureEach {
+        if (name == "maven") {
             artifactId = "kolasu-${project.name}"
             suppressPomMetadataWarningsFor("cliApiElements")
             suppressPomMetadataWarningsFor("cliRuntimeElements")
