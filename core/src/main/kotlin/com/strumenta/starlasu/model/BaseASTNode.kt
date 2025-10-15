@@ -131,7 +131,7 @@ open class BaseASTNode() :
             } else {
                 this.origin = null
             }
-            if (existingOrigin is BaseASTNode && existingOrigin.destination == this) {
+            if (existingOrigin is ASTNode && existingOrigin.destination == this) {
                 existingOrigin.destination = null
             }
         }

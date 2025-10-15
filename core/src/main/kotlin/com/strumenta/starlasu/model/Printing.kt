@@ -16,7 +16,7 @@ data class DebugPrintConfiguration constructor(
     var indentBlock: String = "  ",
 )
 
-private fun Node.showSingleAttribute(
+private fun ASTNode.showSingleAttribute(
     indent: String,
     sb: StringBuilder,
     propertyName: String,
@@ -35,7 +35,7 @@ fun Any?.debugPrint(
     return sb.toString()
 }
 
-fun <N : Node> ParsingResult<N>.debugPrint(
+fun <N : ASTNode> ParsingResult<N>.debugPrint(
     indent: String = "",
     configuration: DebugPrintConfiguration = DebugPrintConfiguration(),
 ): String {
@@ -56,7 +56,7 @@ fun <N : Node> ParsingResult<N>.debugPrint(
 }
 
 @JvmOverloads
-fun Node.debugPrint(
+fun ASTNode.debugPrint(
     indent: String = "",
     configuration: DebugPrintConfiguration = DebugPrintConfiguration(),
 ): String {

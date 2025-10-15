@@ -1,5 +1,6 @@
 package com.strumenta.starlasu.javalib;
 
+import com.strumenta.starlasu.model.ASTNode;
 import com.strumenta.starlasu.model.BaseASTNode;
 import com.strumenta.starlasu.model.Source;
 import com.strumenta.starlasu.transformation.ASTTransformer;
@@ -31,21 +32,21 @@ public class ParseTreeToASTTransformer extends com.strumenta.starlasu.mapping.Pa
         super(issues);
     }
 
-    protected <S, T extends BaseASTNode> @NotNull NodeFactory<S, T> registerNodeFactory(Class<S> source, Class<T> target) {
+    protected <S, T extends ASTNode> @NotNull NodeFactory<S, T> registerNodeFactory(Class<S> source, Class<T> target) {
         return registerNodeFactory(source, target, target.getName());
     }
 
-    protected <S, T extends BaseASTNode> @NotNull NodeFactory<S, T> registerNodeFactory(
+    protected <S, T extends ASTNode> @NotNull NodeFactory<S, T> registerNodeFactory(
             Class<S> source, Class<T> target, String nodeType
     ) {
         return registerNodeFactory(getKotlinClass(source), getKotlinClass(target), nodeType);
     }
 
-    protected <S, T extends BaseASTNode> NodeFactory<S, T> registerNodeFactory(Class<S> source, Function1<S, T> function) {
+    protected <S, T extends ASTNode> NodeFactory<S, T> registerNodeFactory(Class<S> source, Function1<S, T> function) {
         return registerNodeFactory(getKotlinClass(source), (s, t) -> function.invoke(s));
     }
 
-    protected <S, T extends BaseASTNode> NodeFactory<S, T> registerNodeFactory(Class<S> source, Function2<S, ? super ASTTransformer, T> function) {
+    protected <S, T extends ASTNode> NodeFactory<S, T> registerNodeFactory(Class<S> source, Function2<S, ? super ASTTransformer, T> function) {
         return registerNodeFactory(getKotlinClass(source), function);
     }
 
