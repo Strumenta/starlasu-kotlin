@@ -60,7 +60,7 @@ Releases are published on Maven Central:
 
 ```
 dependencies {
-    compile "com.strumenta.kolasu:kolasu-core:1.5.0-RC5"
+    compile "com.strumenta.starlasu:kolasu-core:1.5.0-RC5"
 }
 ```
 
