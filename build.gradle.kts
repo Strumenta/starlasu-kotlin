@@ -1,13 +1,13 @@
 import com.google.gson.JsonParser
+import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.plugins.signing.SigningExtension
 import org.jetbrains.dokka.gradle.DokkaTask
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.util.Base64
-import org.gradle.api.publish.PublishingExtension
-import org.gradle.plugins.signing.SigningExtension
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -228,6 +228,4 @@ subprojects {
             }
         }
     }
-
 }
-
