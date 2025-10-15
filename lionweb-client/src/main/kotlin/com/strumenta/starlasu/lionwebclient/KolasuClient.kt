@@ -13,6 +13,7 @@ import com.strumenta.starlasu.lionweb.LionWebSource
 import com.strumenta.starlasu.lionweb.PerformanceLogger
 import com.strumenta.starlasu.lionweb.PrimitiveValueSerialization
 import com.strumenta.starlasu.lionweb.ProxyBasedNodeResolver
+import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.ASTRoot
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.assignParents
@@ -454,7 +455,7 @@ class KolasuClient(
     // Private methods
     //
 
-    private fun toLionWeb(kNode: Node): LWNode {
+    private fun toLionWeb(kNode: ASTNode): LWNode {
         require(kNode.javaClass.annotations.any { it is ASTRoot })
         kNode.assignParents()
         kNode.walkDescendants().forEach { descendant ->
