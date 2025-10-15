@@ -92,7 +92,6 @@ signing {
     }
 }
 
-
 plugins.withId("maven-publish") {
     val javaComponent = components.findByName("java") as? AdhocComponentWithVariants
     if (javaComponent != null) {
