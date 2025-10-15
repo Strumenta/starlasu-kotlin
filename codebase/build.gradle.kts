@@ -106,3 +106,12 @@ project.afterEvaluate {
         dependsOn(tasks.named("javaSourcesJar"))
     }
 }
+
+tasks.register("debugSigningProp") {
+    doLast {
+        val p = providers.gradleProperty("signingInMemoryKey").orNull
+        println("present=${p != null}")
+        println("hasLiteral\\n=${p?.contains("\\n") == true}") // true = stai passando '\n' letterali
+        println("startsWithPrivate=${p?.startsWith("-----BEGIN PGP PRIVATE KEY BLOCK-----") == true}")
+    }
+}
