@@ -73,11 +73,11 @@ interface PrimitiveValueSerialization<E> {
 }
 
 interface NodeResolver {
-    fun resolve(nodeID: String): KNode?
+    fun resolve(nodeID: String): SNode?
 }
 
 class DummyNodeResolver : NodeResolver {
-    override fun resolve(nodeID: String): KNode? = null
+    override fun resolve(nodeID: String): SNode? = null
 }
 
 private val ASTNodePosition = ASTLanguage.getASTNode().getPropertyByName("position")!!
@@ -268,7 +268,7 @@ class LionWebModelConverter(
                         is Reference -> {
                             if (feature == ASTNodeOriginalNode) {
                                 val origin = kNode.origin
-                                if (origin is KNode) {
+                                if (origin is SNode) {
                                     val targetID = origin.id ?: myIDManager.nodeId(origin)
                                     setOriginalNode(lwNode, targetID)
                                 } else if (origin is PlaceholderASTTransformation) {
@@ -279,7 +279,7 @@ class LionWebModelConverter(
                                                 PlaceholderNode,
                                             )
                                         val effectiveOrigin = origin.origin
-                                        if (effectiveOrigin is KNode) {
+                                        if (effectiveOrigin is SNode) {
                                             val targetID = effectiveOrigin.id ?: myIDManager.nodeId(effectiveOrigin)
                                             setOriginalNode(lwNode, targetID)
                                         }
@@ -297,18 +297,18 @@ class LionWebModelConverter(
                                     }
                                 }
                             } else if (feature == ASTNodeTranspiledNodes) {
-                                val destinationNodes = mutableListOf<KNode>()
+                                val destinationNodes = mutableListOf<SNode>()
                                 if (kNode.destination != null) {
                                     when (kNode.destination) {
-                                        is KNode -> {
-                                            destinationNodes.add(kNode.destination as KNode)
+                                        is SNode -> {
+                                            destinationNodes.add(kNode.destination as SNode)
                                         }
 
                                         is CompositeDestination -> {
                                             destinationNodes.addAll(
                                                 (kNode.destination as CompositeDestination)
                                                     .elements
-                                                    .filterIsInstance<KNode>(),
+                                                    .filterIsInstance<SNode>(),
                                             )
                                         }
 
@@ -350,7 +350,7 @@ class LionWebModelConverter(
                                                         "Reference " +
                                                             "retrieved but referred is empty",
                                                     )
-                                                ) as KNode
+                                                ) as SNode
                                             // We may have a reference to a Kolasu Node that we are not exporting, and for
                                             // which we have therefore no LionWeb node. In that case, if we have the
                                             // identifier, we can produce a ProxyNode instead
@@ -469,7 +469,7 @@ class LionWebModelConverter(
                     )
             try {
                 val instantiated = instantiate(kClass, lwNode, referencesPostponer)
-                if (instantiated is KNode) {
+                if (instantiated is SNode) {
                     starlasuTreeWalker.assignParents(instantiated)
                     // This mapping will eventually become superfluous because we will store the ID directly in the
                     // instantiated kNode
@@ -484,10 +484,10 @@ class LionWebModelConverter(
                 throw RuntimeException("Issue instantiating $kClass from LionWeb node $lwNode", e)
             }
         }
-        val placeholderNodes = mutableMapOf<KNode, (KNode) -> Unit>()
+        val placeholderNodes = mutableMapOf<SNode, (SNode) -> Unit>()
         lionWebTreeWalker.thisAndAllDescendants(lwTree).forEach { lwNode ->
             val kNode = nodesMapping.byB(lwNode)!!
-            if (kNode is KNode) {
+            if (kNode is SNode) {
                 val lwPosition = lwNode.getPropertyValue(ASTNodePosition)
                 if (lwPosition != null) {
                     kNode.position = lwPosition as Position
@@ -528,7 +528,7 @@ class LionWebModelConverter(
                                 kNode.origin =
                                     MissingASTTransformation(
                                         origin = kNode.origin,
-                                        transformationSource = kNode.origin as? KNode,
+                                        transformationSource = kNode.origin as? SNode,
                                         expectedType = null,
                                     )
                             }
@@ -644,8 +644,8 @@ class LionWebModelConverter(
         val ignoreMissingReferences: Boolean,
     ) {
         private val values = IdentityHashMap<ReferenceByName<PossiblyNamed>, LWNode?>()
-        private val originValues = IdentityHashMap<KNode, String>()
-        private val destinationValues = IdentityHashMap<KNode, List<String>>()
+        private val originValues = IdentityHashMap<SNode, String>()
+        private val destinationValues = IdentityHashMap<SNode, List<String>>()
 
         fun registerPostponedReference(
             referenceByName: ReferenceByName<PossiblyNamed>,
@@ -680,9 +680,9 @@ class LionWebModelConverter(
             originValues.forEach { entry ->
                 val lwNode = nodesMapping.bs.find { it.id == entry.value }
                 if (lwNode != null) {
-                    val correspondingKNode = nodesMapping.byB(lwNode) as KNode
+                    val correspondingSNode = nodesMapping.byB(lwNode) as SNode
                     // TODO keep also position
-                    entry.key.origin = correspondingKNode
+                    entry.key.origin = correspondingSNode
                 } else {
                     val correspondingKNode =
                         externalNodeResolver.resolve(entry.value) ?: throw IllegalStateException(
@@ -697,7 +697,7 @@ class LionWebModelConverter(
                     entry.value.mapNotNull { targetID ->
                         val lwNode = nodesMapping.bs.find { it.id == targetID }
                         if (lwNode != null) {
-                            nodesMapping.byB(lwNode) as KNode
+                            nodesMapping.byB(lwNode) as SNode
                         } else {
                             val resolved = externalNodeResolver.resolve(targetID)
                             when {
@@ -718,17 +718,17 @@ class LionWebModelConverter(
         }
 
         fun registerPostponedOriginReference(
-            kNode: KNode,
+            sNode: SNode,
             originalNodeID: String,
         ) {
-            originValues[kNode] = originalNodeID
+            originValues[sNode] = originalNodeID
         }
 
         fun registerPostponedTranspiledReference(
-            kNode: KNode,
+            sNode: SNode,
             transpiledNodeIDs: List<String>,
         ) {
-            destinationValues[kNode] = transpiledNodeIDs
+            destinationValues[sNode] = transpiledNodeIDs
         }
     }
 
@@ -915,9 +915,9 @@ class LionWebModelConverter(
             val feature = lwFeatureByName(data.classifier, property.name)
             if (property !is KMutableProperty<*>) {
                 if (property.isContainment() && property.asContainment().multiplicity == Multiplicity.MANY) {
-                    val currentValue = property.get(kNode) as MutableList<KNode>
+                    val currentValue = property.get(kNode) as MutableList<SNode>
                     currentValue.clear()
-                    val valueToSet = containmentValue(data, feature as Containment) as List<KNode>
+                    val valueToSet = containmentValue(data, feature as Containment) as List<SNode>
                     currentValue.addAll(valueToSet)
                 } else if (property.isReference()) {
                     val currentValue = property.get(kNode) as ReferenceByName<PossiblyNamed>
@@ -989,7 +989,7 @@ class LionWebModelConverter(
                     data.getChildrenByContainmentName(ParsingResult<*>::issues.name).map {
                         importModelFromLionWeb(it) as Issue
                     },
-                    if (root != null) importModelFromLionWeb(root) as KNode else null,
+                    if (root != null) importModelFromLionWeb(root) as SNode else null,
                     tokens?.tokens ?: listOf(),
                 )
             }
@@ -1007,7 +1007,7 @@ class LionWebModelConverter(
         kNode: Any,
         lwNode: LWNode,
     ) {
-        if (kNode is KNode) {
+        if (kNode is SNode) {
             require(kNode.id == null || kNode.id == lwNode.id)
             kNode.id = lwNode.id
         }

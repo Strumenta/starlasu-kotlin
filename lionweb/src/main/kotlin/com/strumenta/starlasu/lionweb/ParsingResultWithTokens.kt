@@ -7,7 +7,7 @@ import com.strumenta.starlasu.parsing.KolasuToken
 import com.strumenta.starlasu.parsing.ParsingResult
 import com.strumenta.starlasu.validation.Issue
 
-class ParsingResultWithTokens<RootNode : KNode>(
+class ParsingResultWithTokens<RootNode : SNode>(
     issues: List<Issue>,
     root: RootNode?,
     val tokens: List<KolasuToken>,

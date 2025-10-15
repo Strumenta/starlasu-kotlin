@@ -12,6 +12,10 @@ class ConstantSourceIdProvider(
     override fun sourceId(source: Source?) = value
 }
 
+/**
+ * It should be considered that StructuralNodeIdProvider leads to long IDs and it has not-so-good
+ * performances. For this reason, it should not be used when performances are key.
+ */
 open class StructuralNodeIdProvider(
     var sourceIdProvider: SourceIdProvider = SimpleSourceIdProvider(),
 ) : BaseNodeIdProvider() {

@@ -3,15 +3,15 @@ package com.strumenta.starlasu.ids
 import com.strumenta.starlasu.model.ASTNode
 
 /**
- * This defines a policy to associate IDs to Kolasu Nodes.
- * This is necessary as Kolasu Nodes have no IDs, but several systems need IDs.
+ * This defines a policy to associate IDs to Starlasu Nodes.
+ * This is necessary as Starlasu Nodes have no IDs, but several systems need IDs.
  * It is important that the logic is implemented so that given the same Node, the same ID is returned.
  */
 interface NodeIdProvider {
     fun id(kNode: ASTNode): String
 
     /**
-     * This should be replaced in the future by setting kNode.id directly, instead of relying
+     * This should be replaced in the future by setting sNode.id directly, instead of relying
      * on this external mapping
      */
     @Deprecated("No nodes have an ID")
