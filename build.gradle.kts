@@ -205,7 +205,7 @@ val dropClosedRepositories by tasks.registering {
 
 subprojects {
     plugins.withId("signing") {
-        extensions.configure<org.gradle.plugins.signing.SigningExtension> {
+        extensions.configure(SigningExtension::class.java) { signingExt ->
             val raw = providers.gradleProperty("signingInMemoryKey").orNull
             val key = raw
                 ?.replace("\\r\\n", "\n")
@@ -215,17 +215,22 @@ subprojects {
             val keyId = providers.gradleProperty("signingInMemoryKeyId").orNull
             val pass = providers.gradleProperty("signingInMemoryKeyPassword").orNull
 
-            if (!key.isNullOrBlank()) {
-                require(key.startsWith("-----BEGIN PGP PRIVATE KEY BLOCK-----")) {
-                    "signingInMemoryKey is not a PRIVATE key"
-                }
-                useInMemoryPgpKeys(keyId, key, pass)
-                sign(extensions.getByType<PublishingExtension>().publications)
-            } else {
-               throw RuntimeException("Missing signingInMemoryKey")
+            if (key.isNullOrBlank()) {
+                throw GradleException("Missing signingInMemoryKey")
             }
-            extensions.findByType(PublishingExtension::class.java)?.publications?.let { pubs ->
-                sign(pubs)
+            require(key.startsWith("-----BEGIN PGP PRIVATE KEY BLOCK-----")) {
+                "signingInMemoryKey is not a PRIVATE key"
+            }
+            signingExt.useInMemoryPgpKeys(keyId, key, pass)
+
+            plugins.withId("maven-publish") {
+                val pubs = extensions.getByType(PublishingExtension::class.java).publications
+                signingExt.sign(pubs)
+            }
+            plugins.withId("com.vanniktech.maven.publish") {
+                extensions.findByType(PublishingExtension::class.java)?.publications?.let { pubs ->
+                    signingExt.sign(pubs)
+                }
             }
         }
     }
