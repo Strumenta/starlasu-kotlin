@@ -1,7 +1,8 @@
 plugins {
     kotlin("jvm")
     alias(libs.plugins.ktlint)
-    alias(libs.plugins.vanniktech.publish)
+    id("maven-publish")
+    id("signing")
     id("org.jetbrains.dokka")
 }
 
@@ -40,8 +41,9 @@ publishing {
             url = if (!version.toString().endsWith("SNAPSHOT")) releaseRepo else snapshotRepo
         }
     }
-    publications.withType<MavenPublication>().configureEach {
-        if (name == "maven") {
+    publications {
+        create<MavenPublication>("kolasu_codebase") {
+            from(components["java"])
             artifactId = "kolasu-${project.name}"
             suppressPomMetadataWarningsFor("cliApiElements")
             suppressPomMetadataWarningsFor("cliRuntimeElements")
@@ -80,40 +82,17 @@ publishing {
     }
 }
 
+signing {
+    val key = providers.gradleProperty("signingInMemoryKey").orNull
+    val keyId = providers.gradleProperty("signingInMemoryKeyId").orNull
+    val pass = providers.gradleProperty("signingInMemoryKeyPassword").orNull
+    if (!key.isNullOrBlank()) {
+        useInMemoryPgpKeys(keyId, key, pass)
+        sign(publishing.publications["kolasu_codebase"])
+    }
+}
+
 tasks.named("dokkaJavadoc").configure {
     dependsOn(":core:compileKotlin")
     dependsOn(":lionweb:jar")
-}
-
-// Some tasks are created during the configuration, and therefore we need to set the dependencies involving
-// them after the configuration has been completed
-project.afterEvaluate {
-    tasks.named("dokkaJavadocJar") {
-        dependsOn(tasks.named("dokkaJavadoc"))
-    }
-    tasks.matching { it.name.startsWith("publish") && it.name.endsWith("ToMavenRepository") }
-        .configureEach {
-            dependsOn("dokkaJavadocJar", "javaSourcesJar", "javadocJar", "sourcesJar")
-        }
-    if (tasks.findByName("signMavenPublication") != null) {
-        tasks.matching { it.name.startsWith("sign") && it.name.endsWith("Publication") }
-            .configureEach {
-                dependsOn("javadocJar", "sourcesJar")
-            }
-    }
-    tasks.named("generateMetadataFileForMavenPublication") {
-        dependsOn(tasks.named("dokkaJavadocJar"))
-        dependsOn(tasks.named("javaSourcesJar"))
-    }
-}
-
-tasks.register("dumpSigningKeyHead") {
-    doLast {
-        val s = providers.gradleProperty("signingInMemoryKey").orNull ?: error("missing")
-        val bytes = s.toByteArray(Charsets.UTF_8)
-        print("headHex=")
-        println(bytes.take(8).joinToString("") { "%02X".format(it) })
-        println("firstLine=" + s.lineSequence().firstOrNull())
-        println("lastLine=" + s.lineSequence().lastOrNull())
-    }
 }
