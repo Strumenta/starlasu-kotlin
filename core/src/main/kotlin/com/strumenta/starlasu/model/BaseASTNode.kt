@@ -1,5 +1,6 @@
 package com.strumenta.starlasu.model
 
+import com.strumenta.starlasu.ids.HasID
 import com.strumenta.starlasu.language.Attribute
 import com.strumenta.starlasu.language.Containment
 import com.strumenta.starlasu.traversing.walk
@@ -167,9 +168,9 @@ open class BaseASTNode() :
         includeDerived: Boolean,
     ): List<ASTNode> = getChildren(containment.name, includeDerived)
 
-    fun getChildren(
+    override fun getChildren(
         propertyName: String,
-        includeDerived: Boolean = false,
+        includeDerived: Boolean,
     ): List<ASTNode> {
         checkFeatureName(propertyName)
         val property =
@@ -219,9 +220,9 @@ open class BaseASTNode() :
         return value
     }
 
-    fun getAttributeValue(name: String): Any? = properties.find { it.name == name }!!.value
+    override fun getAttributeValue(name: String): Any? = properties.find { it.name == name }!!.value
 
-    fun addAnnotation(instance: AnnotationInstance): Boolean {
+    override fun addAnnotation(instance: AnnotationInstance): Boolean {
         if (this.annotations.contains(instance)) {
             return false
         }

@@ -1,7 +1,8 @@
-package com.strumenta.starlasu.model
+package com.strumenta.starlasu.ids
 
 import com.strumenta.starlasu.base.IDProvider
-import com.strumenta.starlasu.ids.NodeIdProvider
+import com.strumenta.starlasu.model.ASTNode
+import com.strumenta.starlasu.model.children
 
 class NodeIdProviderAdapter(
     val idProvider: IDProvider,
