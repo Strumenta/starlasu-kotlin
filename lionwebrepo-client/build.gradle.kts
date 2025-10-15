@@ -77,7 +77,7 @@ mavenPublishing {
         }
     }
 
-    signAllPublications()
+    // signAllPublications()
 
     pom {
         name.set("kolasu-${project.name}")
