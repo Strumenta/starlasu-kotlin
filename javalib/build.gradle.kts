@@ -36,6 +36,8 @@ publishing {
     publications.withType<MavenPublication>().configureEach {
         if (name == "maven") {
             artifactId = "kolasu-${project.name}"
+            suppressPomMetadataWarningsFor("cliApiElements")
+            suppressPomMetadataWarningsFor("cliRuntimeElements")
             pom {
                 name.set("kolasu-${project.name}")
                 description.set("Framework to work with AST and building languages. Integrated with ANTLR.")

@@ -40,6 +40,8 @@ publishing {
     publications {
         create<MavenPublication>("kolasu_semantics") {
             artifactId = "kolasu-" + project.name
+            suppressPomMetadataWarningsFor("cliApiElements")
+            suppressPomMetadataWarningsFor("cliRuntimeElements")
             from(components["java"])
             pom {
                 name = "kolasu-" + project.name

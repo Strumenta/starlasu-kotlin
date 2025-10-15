@@ -45,6 +45,8 @@ publishing {
             artifactId "kolasu-" +project.name
             artifact sourcesJar
             artifact javadocJar
+            suppressPomMetadataWarningsFor("cliApiElements")
+            suppressPomMetadataWarningsFor("cliRuntimeElements")
             pom {
                 name = "kolasu-" +project.name
                 description = "Framework to work with AST and building languages. Integrated with ANTLR."
