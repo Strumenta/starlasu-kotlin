@@ -2,7 +2,6 @@ plugins {
     kotlin("jvm")
     alias(libs.plugins.ktlint)
     alias(libs.plugins.vanniktech.publish)
-    id("signing")
     id("org.jetbrains.dokka")
 }
 
