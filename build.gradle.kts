@@ -218,9 +218,9 @@ subprojects {
 
         val pass = providers.gradleProperty("signingInMemoryKeyPassword").orNull
         // ATTENZIONE: niente keyId (alcune versioni hanno avuto rogne con l’overload a 3 argomenti)
-        if (key.isNullOrBlank() || !key.startsWith("-----BEGIN PGP PRIVATE KEY BLOCK-----")) {
-            throw GradleException("signingInMemoryKey assente o non è una PRIVATE key")
-        }
+//        if (key.isNullOrBlank() || !key.startsWith("-----BEGIN PGP PRIVATE KEY BLOCK-----")) {
+//            throw GradleException("signingInMemoryKey assente o non è una PRIVATE key")
+//        }
         signingExt.useInMemoryPgpKeys(key, pass)
 
         // 2) firma SOLO se il plugin di publishing è presente, e *dopo* che lo è
