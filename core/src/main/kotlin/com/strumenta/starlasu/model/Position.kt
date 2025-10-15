@@ -267,12 +267,12 @@ fun pos(
     Point(endLine, endCol),
 )
 
-fun BaseASTNode.isBefore(other: BaseASTNode): Boolean = position!!.start.isBefore(other.position!!.start)
+fun ASTNode.isBefore(other: ASTNode): Boolean = position!!.start.isBefore(other.position!!.start)
 
-val BaseASTNode.startLine: Int?
+val ASTNode.startLine: Int?
     get() = this.position?.start?.line
 
-val BaseASTNode.endLine: Int?
+val ASTNode.endLine: Int?
     get() = this.position?.end?.line
 
 /**

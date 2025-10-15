@@ -1,5 +1,6 @@
 package com.strumenta.starlasu.transformation
 
+import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.PossiblyNamed
 import com.strumenta.starlasu.model.ReferenceByName
@@ -19,7 +20,7 @@ import kotlin.reflect.jvm.javaType
  * Typically, the only goal of the element would be to hold some annotation that indicates that the element
  * is representing an error or a missing transformation or something of that sort.
  */
-fun <T : Node> KClass<T>.dummyInstance(levelOfDummyTree: Int = 0): T {
+fun <T : ASTNode> KClass<T>.dummyInstance(levelOfDummyTree: Int = 0): T {
     val kClassToInstantiate = this.toInstantiableType(levelOfDummyTree)
     val emptyConstructor = kClassToInstantiate.constructors.find { it.parameters.isEmpty() }
     if (emptyConstructor != null) {
