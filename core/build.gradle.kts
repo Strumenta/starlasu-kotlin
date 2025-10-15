@@ -140,9 +140,6 @@ signing {
     val key = providers.gradleProperty("signingInMemoryKey").orNull
     val keyId = providers.gradleProperty("signingInMemoryKeyId").orNull
     val pass = providers.gradleProperty("signingInMemoryKeyPassword").orNull
-    println("Signing with in memory key key=[${key}]")
-    println("Signing with in memory key keyId=[${keyId}]")
-    println("Signing with in memory key pass=[${pass}]")
     if (!key.isNullOrBlank()) {
         useInMemoryPgpKeys(keyId, key, pass)
         sign(publishing.publications)
