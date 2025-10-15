@@ -238,3 +238,4 @@ subprojects {
     // Niente doppie firme: non chiamare signAllPublications() in Vanniktech.
     // Se da qualche parte lo chiami, rimuovilo.
 }
+

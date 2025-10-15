@@ -107,11 +107,13 @@ project.afterEvaluate {
     }
 }
 
-tasks.register("debugSigningProp") {
+tasks.register("dumpSigningKeyHead") {
     doLast {
-        val p = providers.gradleProperty("signingInMemoryKey").orNull
-        println("present=${p != null}")
-        println("hasLiteral\\n=${p?.contains("\\n") == true}") // true = stai passando '\n' letterali
-        println("startsWithPrivate=${p?.startsWith("-----BEGIN PGP PRIVATE KEY BLOCK-----") == true}")
+        val s = providers.gradleProperty("signingInMemoryKey").orNull ?: error("missing")
+        val bytes = s.toByteArray(Charsets.UTF_8)
+        print("headHex=")
+        println(bytes.take(8).joinToString("") { "%02X".format(it) })
+        println("firstLine=" + s.lineSequence().firstOrNull())
+        println("lastLine=" + s.lineSequence().lastOrNull())
     }
 }
