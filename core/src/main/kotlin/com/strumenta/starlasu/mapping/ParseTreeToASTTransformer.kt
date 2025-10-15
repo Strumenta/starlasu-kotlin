@@ -1,6 +1,6 @@
 package com.strumenta.starlasu.mapping
 
-import com.strumenta.starlasu.model.BaseASTNode
+import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.Origin
 import com.strumenta.starlasu.model.Source
@@ -32,9 +32,9 @@ open class ParseTreeToASTTransformer
          */
         override fun transformIntoNodes(
             source: Any?,
-            parent: BaseASTNode?,
-            expectedType: KClass<out BaseASTNode>,
-        ): List<BaseASTNode> {
+            parent: ASTNode?,
+            expectedType: KClass<out ASTNode>,
+        ): List<ASTNode> {
             val transformed = super.transformIntoNodes(source, parent, expectedType)
             return transformed
                 .map { node ->
@@ -50,7 +50,7 @@ open class ParseTreeToASTTransformer
         }
 
         override fun getSource(
-            node: Node,
+            node: ASTNode,
             source: Any,
         ): Any {
             val origin = node.origin

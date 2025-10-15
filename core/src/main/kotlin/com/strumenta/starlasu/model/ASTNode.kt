@@ -6,7 +6,10 @@ import com.strumenta.starlasu.language.Containment
 import com.strumenta.starlasu.language.Reference
 import io.lionweb.model.AnnotationInstance
 
-interface ASTNode : HasID {
+interface ASTNode :
+    HasID,
+    Origin,
+    Destination {
     @Internal
     val annotations: MutableList<AnnotationInstance>
 
@@ -17,10 +20,10 @@ interface ASTNode : HasID {
     var parent: ASTNode?
 
     @property:Internal
-    var source: Source?
+    override var source: Source?
 
     @property:Internal
-    var position: Position?
+    override var position: Position?
 
     @property:Internal
     val properties: List<PropertyDescription>
@@ -36,6 +39,10 @@ interface ASTNode : HasID {
 
     @Internal
     val nodeType: String
+
+    @Internal
+    open val simpleNodeType: String
+        get() = nodeType.split(".").last()
 
     /**
      * Tests whether the given position is contained in the interval represented by this object.

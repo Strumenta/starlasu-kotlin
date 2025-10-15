@@ -1,23 +1,22 @@
 package com.strumenta.starlasu.transformation
 
 import com.strumenta.starlasu.model.ASTNode
-import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.Origin
 import com.strumenta.starlasu.model.Position
 import com.strumenta.starlasu.traversing.walkAncestors
 import kotlin.reflect.KClass
 
 /**
- * This indicates if the Node itself is marked as a placeholder. Note that the Node could not be directly marked
- * as such and still be the descendants of such type of Node. In other words it could be in a placeholder tree.
+ * This indicates if the ASTNode itself is marked as a placeholder. Note that the ASTNode could not be directly marked
+ * as such and still be the descendants of such type of ASTNode. In other words it could be in a placeholder tree.
  * This operation is not expensive to perform.
  */
 val ASTNode.isDirectlyPlaceholderASTTransformation: Boolean
     get() = this.origin is PlaceholderASTTransformation
 
 /**
- * This indicates if the Node itself is marked as a placeholder or if any of its ancestors are. Note that the Node
- * could not be directly marked as such and still be the descendants of such type of Node. In other words it could be
+ * This indicates if the ASTNode itself is marked as a placeholder or if any of its ancestors are. Note that the ASTNode
+ * could not be directly marked as such and still be the descendants of such type of ASTNode. In other words it could be
  * in a placeholder tree.
  * This operation is expensive to perform.
  */
@@ -29,7 +28,7 @@ val ASTNode.isDirectlyOrIndirectlyAPlaceholderASTTransformation: Boolean
             }
 
 /**
- * This is used to indicate that a Node represents some form of placeholders to be used in transformation.
+ * This is used to indicate that a ASTNode represents some form of placeholders to be used in transformation.
  */
 sealed class PlaceholderASTTransformation(
     val origin: Origin?,
@@ -47,13 +46,13 @@ sealed class PlaceholderASTTransformation(
 class MissingASTTransformation(
     origin: Origin?,
     val transformationSource: Any?,
-    val expectedType: KClass<out Node>? = null,
+    val expectedType: KClass<out ASTNode>? = null,
     message: String =
         "Translation of a node is not yet implemented: " +
-            "${if (transformationSource is Node) transformationSource.simpleNodeType else transformationSource}" +
+            "${if (transformationSource is ASTNode) transformationSource.simpleNodeType else transformationSource}" +
             if (expectedType != null) " into $expectedType" else "",
 ) : PlaceholderASTTransformation(origin, message) {
-    constructor(transformationSource: Node, expectedType: KClass<out Node>? = null) : this(
+    constructor(transformationSource: ASTNode, expectedType: KClass<out ASTNode>? = null) : this(
         transformationSource,
         transformationSource,
         expectedType,

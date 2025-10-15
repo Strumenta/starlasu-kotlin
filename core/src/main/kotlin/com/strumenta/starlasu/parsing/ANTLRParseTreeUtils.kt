@@ -2,6 +2,7 @@
 
 package com.strumenta.starlasu.parsing
 
+import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.Origin
 import com.strumenta.starlasu.model.Point
@@ -109,7 +110,7 @@ class ParseTreeOrigin(
  * Set the origin of the AST node as a ParseTreeOrigin, providing the parseTree is not null.
  * If the parseTree is null, no operation is performed.
  */
-fun <T : Node> T.withParseTreeNode(
+fun <T : ASTNode> T.withParseTreeNode(
     parseTree: ParserRuleContext?,
     source: Source? = null,
 ): T {

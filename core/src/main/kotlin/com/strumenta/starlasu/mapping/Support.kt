@@ -1,6 +1,6 @@
 package com.strumenta.starlasu.mapping
 
-import com.strumenta.starlasu.model.Node
+import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.parsing.getOriginalText
 import com.strumenta.starlasu.transformation.ASTTransformer
 import org.antlr.v4.runtime.ParserRuleContext
@@ -13,7 +13,7 @@ import org.antlr.v4.runtime.ParserRuleContext
  * JPostIncrementExpr(translateCasted<JExpression>(expression().first()))
  * ```
  */
-inline fun <reified T : Node> ASTTransformer.translateCasted(original: Any): T {
+inline fun <reified T : ASTNode> ASTTransformer.translateCasted(original: Any): T {
     val result = transform(original, expectedType = T::class)
     if (result is Nothing) {
         throw IllegalStateException("Transformation produced Nothing")
@@ -30,7 +30,7 @@ inline fun <reified T : Node> ASTTransformer.translateCasted(original: Any): T {
  * JExtendsType(translateCasted(pt.typeType()), translateList(pt.annotation()))
  * ```
  */
-inline fun <reified T : Node> ASTTransformer.translateList(original: Collection<out Any>?): MutableList<T> =
+inline fun <reified T : ASTNode> ASTTransformer.translateList(original: Collection<out Any>?): MutableList<T> =
     original?.map { transformIntoNodes(it, expectedType = T::class) as List<T> }?.flatten()?.toMutableList()
         ?: mutableListOf()
 
@@ -47,7 +47,7 @@ inline fun <reified T : Node> ASTTransformer.translateList(original: Collection<
  *  )
  *  ```
  */
-inline fun <reified T : Node> ASTTransformer.translateOptional(original: Any?): T? {
+inline fun <reified T : ASTNode> ASTTransformer.translateOptional(original: Any?): T? {
     return original?.let {
         val transformed = transform(it, expectedType = T::class)
         if (transformed == null) {

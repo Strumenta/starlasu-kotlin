@@ -1,6 +1,7 @@
 package com.strumenta.starlasu.lionweb
 
 import com.strumenta.starlasu.language.KolasuLanguage
+import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.ASTRoot
 import com.strumenta.starlasu.model.BaseASTNode
 import com.strumenta.starlasu.model.CompositeDestination
@@ -643,7 +644,7 @@ class LionWebModelConverterTest {
             }
         val mc = LionWebModelConverter()
         mc.exportLanguageToLionWeb(kl)
-        val n1: BaseASTNode =
+        val n1: ASTNode =
             NodeWithEnum("foo", AnEnum.FOO)
                 .withPosition(Position(Point(3, 5), Point(27, 200)))
                 .setSourceForTree(LionWebSource("MySource"))

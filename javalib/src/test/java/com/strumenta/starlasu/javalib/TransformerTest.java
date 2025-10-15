@@ -20,7 +20,7 @@ public class TransformerTest {
         t.registerNodeFactory(Node2.class, Node2.class);
         Node1 node1 = new Node1();
         node1.setNode2(new Node2());
-        BaseASTNode transformed = t.transform(node1);
+        ASTNode transformed = t.transform(node1);
         assertTrue(issues.toString(), issues.isEmpty());
         assertASTsAreEqual(node1, transformed);
     }

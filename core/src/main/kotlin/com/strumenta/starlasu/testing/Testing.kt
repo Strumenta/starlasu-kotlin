@@ -4,7 +4,6 @@ package com.strumenta.starlasu.testing
 
 import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.KReferenceByName
-import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.PossiblyNamed
 import com.strumenta.starlasu.model.PropertyType
 import com.strumenta.starlasu.model.ReferenceByName
@@ -34,7 +33,7 @@ fun assertParseTreeStr(
     assertEquals(expectedMultiLineStr.trim(), actualParseTree.trim())
 }
 
-class IgnoreChildren<N : Node> : MutableList<N> {
+class IgnoreChildren<N : ASTNode> : MutableList<N> {
     override val size: Int
         get() = TODO("Not yet implemented")
 
@@ -147,7 +146,7 @@ class ASTDifferenceException(
     val actual: Any,
 ) : Exception("$context: expecting $expected, actual $actual")
 
-fun <T : Node> assertParsingResultsAreEqual(
+fun <T : ASTNode> assertParsingResultsAreEqual(
     expected: ParsingResult<T>,
     actual: ParsingResult<T>,
 ) {
@@ -159,8 +158,8 @@ fun <T : Node> assertParsingResultsAreEqual(
 }
 
 @JvmOverloads
-fun <N : Node> assertASTsAreEqual(
-    expected: Node,
+fun <N : ASTNode> assertASTsAreEqual(
+    expected: ASTNode,
     actual: ParsingResult<N>,
     context: String = "<root>",
     considerPosition: Boolean = false,
@@ -176,8 +175,8 @@ fun <N : Node> assertASTsAreEqual(
 
 @JvmOverloads
 fun assertASTsAreEqual(
-    expected: Node,
-    actual: Node,
+    expected: ASTNode,
+    actual: ASTNode,
     context: String = "<root>",
     considerPosition: Boolean = false,
     useLightweightAttributeEquality: Boolean = false,
@@ -198,8 +197,8 @@ fun assertASTsAreEqual(
                     if (expectedPropValue is IgnoreChildren<*>) {
                         // Nothing to do
                     } else {
-                        val actualPropValueCollection = actualPropValue?.let { it as Collection<Node> }
-                        val expectedPropValueCollection = expectedPropValue?.let { it as Collection<Node> }
+                        val actualPropValueCollection = actualPropValue?.let { it as Collection<ASTNode> }
+                        val expectedPropValueCollection = expectedPropValue?.let { it as Collection<ASTNode> }
                         assertEquals(
                             actualPropValueCollection == null,
                             expectedPropValueCollection == null,
@@ -243,8 +242,8 @@ fun assertASTsAreEqual(
                         // that is ok
                     } else {
                         assertASTsAreEqual(
-                            expectedPropValue as Node,
-                            actualPropValue as Node,
+                            expectedPropValue as ASTNode,
+                            actualPropValue as ASTNode,
                             context = "$context.${expectedProperty.name}",
                             considerPosition = considerPosition,
                             useLightweightAttributeEquality = useLightweightAttributeEquality,

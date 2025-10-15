@@ -75,7 +75,7 @@ fun <T : ASTNode> T.withParent(parent: ASTNode?): T {
  * @param propertyOperation the operation to perform on each property.
  */
 @JvmOverloads
-fun Node.processProperties(
+fun ASTNode.processProperties(
     propertiesToIgnore: Set<String> = emptySet(),
     propertyOperation: (PropertyDescription) -> Unit,
 ) {

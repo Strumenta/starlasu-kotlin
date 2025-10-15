@@ -1,6 +1,5 @@
 package com.strumenta.starlasu.model
 
-import com.strumenta.starlasu.ids.HasID
 import com.strumenta.starlasu.language.Attribute
 import com.strumenta.starlasu.language.Containment
 import com.strumenta.starlasu.traversing.walk
@@ -18,10 +17,7 @@ typealias Node = BaseASTNode
  * the Origin of another node.
  */
 open class BaseASTNode() :
-    Origin,
-    Destination,
     Serializable,
-    HasID,
     ASTNode {
     @Internal
     override val annotations = mutableListOf<AnnotationInstance>()
@@ -45,10 +41,6 @@ open class BaseASTNode() :
     @Internal
     override val nodeType: String
         get() = this::class.qualifiedName!!
-
-    @Internal
-    open val simpleNodeType: String
-        get() = nodeType.split(".").last()
 
     /**
      * The properties of this AST nodes, including attributes, children, and references.
@@ -116,7 +108,7 @@ open class BaseASTNode() :
             }
         }
 
-    fun setSourceForTree(source: Source): BaseASTNode {
+    fun setSourceForTree(source: Source): ASTNode {
         this.source = source
         this.walk().forEach {
             it.source = source

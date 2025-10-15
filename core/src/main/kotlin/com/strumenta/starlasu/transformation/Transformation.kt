@@ -1,7 +1,7 @@
 package com.strumenta.starlasu.transformation
 
+import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.GenericErrorNode
-import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.Origin
 import com.strumenta.starlasu.model.Position
 import com.strumenta.starlasu.model.PropertyDescription
@@ -9,6 +9,7 @@ import com.strumenta.starlasu.model.asContainment
 import com.strumenta.starlasu.model.children
 import com.strumenta.starlasu.model.processProperties
 import com.strumenta.starlasu.model.withOrigin
+import com.strumenta.starlasu.transformation.dummyInstance
 import com.strumenta.starlasu.validation.Issue
 import com.strumenta.starlasu.validation.IssueSeverity
 import kotlin.reflect.KClass
@@ -25,7 +26,7 @@ import kotlin.reflect.full.superclasses
 /**
  * Factory that, given a tree node, will instantiate the corresponding transformed node.
  */
-class NodeFactory<Source, Output : Node>(
+class NodeFactory<Source, Output : ASTNode>(
     val constructor: (Source, ASTTransformer, NodeFactory<Source, Output>) -> List<Output>,
     var children: MutableMap<String, ChildNodeFactory<Source, *, *>?> = mutableMapOf(),
     var finalizer: (Output) -> Unit = {},
@@ -33,7 +34,7 @@ class NodeFactory<Source, Output : Node>(
     var childrenSetAtConstruction: Boolean = false,
 ) {
     companion object {
-        fun <Source, Output : Node> single(
+        fun <Source, Output : ASTNode> single(
             singleConstructor: (Source, ASTTransformer, NodeFactory<Source, Output>) -> Output?,
             children: MutableMap<String, ChildNodeFactory<Source, *, *>?> = mutableMapOf(),
             finalizer: (Output) -> Unit = {},
@@ -81,12 +82,12 @@ class NodeFactory<Source, Output : Node>(
             getPropertyType(targetProperty),
         )
 
-    private fun getPropertyType(targetProperty: KProperty1<out Any, *>): KClass<out Node> {
+    private fun getPropertyType(targetProperty: KProperty1<out Any, *>): KClass<out ASTNode> {
         val returnType = targetProperty.asContainment().type
-        return if (returnType.isSubclassOf(Node::class)) {
-            returnType as KClass<out Node>
+        return if (returnType.isSubclassOf(ASTNode::class)) {
+            returnType as KClass<out ASTNode>
         } else {
-            Node::class
+            ASTNode::class
         }
     }
 
@@ -137,7 +138,7 @@ class NodeFactory<Source, Output : Node>(
         sourceAccessor: Source.() -> Any?,
         scopedToType: KClass<*>,
     ): NodeFactory<Source, Output> =
-        withChild<Output, Node>(
+        withChild<Output, ASTNode>(
             get = { source -> source.sourceAccessor() },
             null,
             targetProperty.name,
@@ -156,7 +157,7 @@ class NodeFactory<Source, Output : Node>(
         set: ((Target, Child?) -> Unit)?,
         name: String,
         scopedToType: KClass<*>? = null,
-        childType: KClass<out Node> = Node::class,
+        childType: KClass<out ASTNode> = ASTNode::class,
     ): NodeFactory<Source, Output> {
         val prefix = if (scopedToType != null) scopedToType.qualifiedName + "#" else ""
         if (set == null) {
@@ -183,7 +184,7 @@ class NodeFactory<Source, Output : Node>(
      * transformer.registerNodeFactory(XYZContext::class) { ctx -> transformer.transform(ctx.children[0]) }
      * ```
      *
-     * However, if the result of `transformer.transform(ctx.children[0])` is an instance of a Node with a child
+     * However, if the result of `transformer.transform(ctx.children[0])` is an instance of a ASTNode with a child
      * for which `withChild` was configured, the transformer will think that it has to populate that child,
      * according to the configuration determined by reflection. When it tries to do so, the "source" of the node will
      * be an instance of `XYZContext` that may not have a child with a corresponding name, and the transformation will
@@ -237,7 +238,7 @@ data class ChildNodeFactory<Source, Target, Child : Any>(
     val name: String,
     val get: (Source) -> Any?,
     val setter: ((Target, Child?) -> Unit)?,
-    val type: KClass<out Node>,
+    val type: KClass<out ASTNode>,
 ) {
     fun set(
         node: Target,
@@ -257,7 +258,7 @@ data class ChildNodeFactory<Source, Target, Child : Any>(
 /**
  * Sentinel value used to represent the information that a given property is not a child node.
  */
-private val NO_CHILD_NODE = ChildNodeFactory<Any, Any, Any>("", { x -> x }, { _, _ -> }, Node::class)
+private val NO_CHILD_NODE = ChildNodeFactory<Any, Any, Any>("", { x -> x }, { _, _ -> }, ASTNode::class)
 
 /**
  * Implementation of a tree-to-tree transformation. For each source node type, we can register a factory that knows how
@@ -285,10 +286,10 @@ open class ASTTransformer
         val defaultTransformation: (
             (
                 source: Any?,
-                parent: Node?,
-                expectedType: KClass<out Node>,
+                parent: ASTNode?,
+                expectedType: KClass<out ASTNode>,
                 astTransformer: ASTTransformer,
-            ) -> List<Node>
+            ) -> List<ASTNode>
         )? = null,
     ) {
         /**
@@ -300,25 +301,25 @@ open class ASTTransformer
         val knownClasses: Map<String, Set<KClass<*>>> = _knownClasses
 
         /**
-         * This ensures that the generated value is a single Node or null.
+         * This ensures that the generated value is a single ASTNode or null.
          */
         @JvmOverloads
         fun transform(
             source: Any?,
-            parent: Node? = null,
-            expectedType: KClass<out Node> = Node::class,
-        ): Node? {
+            parent: ASTNode? = null,
+            expectedType: KClass<out ASTNode> = ASTNode::class,
+        ): ASTNode? {
             val result = transformIntoNodes(source, parent, expectedType)
             return when (result.size) {
                 0 -> null
                 1 -> {
                     val node = result.first()
-                    require(node is Node)
+                    require(node is ASTNode)
                     node
                 }
 
                 else -> throw IllegalStateException(
-                    "Cannot transform into a single Node as multiple nodes where produced",
+                    "Cannot transform into a single ASTNode as multiple nodes where produced",
                 )
             }
         }
@@ -329,17 +330,17 @@ open class ASTTransformer
         @JvmOverloads
         open fun transformIntoNodes(
             source: Any?,
-            parent: Node? = null,
-            expectedType: KClass<out Node> = Node::class,
-        ): List<Node> {
+            parent: ASTNode? = null,
+            expectedType: KClass<out ASTNode> = ASTNode::class,
+        ): List<ASTNode> {
             if (source == null) {
                 return emptyList()
             }
             if (source is Collection<*>) {
                 throw Error("Mapping error: received collection when value was expected")
             }
-            val factory = getNodeFactory<Any, Node>(source::class as KClass<Any>)
-            val nodes: List<Node>
+            val factory = getNodeFactory<Any, ASTNode>(source::class as KClass<Any>)
+            val nodes: List<ASTNode>
             if (factory != null) {
                 nodes = makeNodes(factory, source, allowGenericNode = allowGenericNode)
                 if (!factory.skipChildren && !factory.childrenSetAtConstruction) {
@@ -388,12 +389,12 @@ open class ASTTransformer
         }
 
         protected open fun setChildren(
-            factory: NodeFactory<Any, Node>,
+            factory: NodeFactory<Any, ASTNode>,
             source: Any,
-            node: Node,
+            node: ASTNode,
         ) {
             node.processProperties { pd ->
-                val childNodeFactory = factory.getChildNodeFactory<Any, Node, Any>(node, pd.name)
+                val childNodeFactory = factory.getChildNodeFactory<Any, ASTNode, Any>(node, pd.name)
                 if (childNodeFactory != null) {
                     if (childNodeFactory != NO_CHILD_NODE) {
                         setChild(childNodeFactory, source, node, pd)
@@ -409,7 +410,7 @@ open class ASTTransformer
         protected open fun setChild(
             childNodeFactory: ChildNodeFactory<*, *, *>,
             source: Any,
-            node: Node,
+            node: ASTNode,
             pd: PropertyDescription,
         ) {
             val childFactory = childNodeFactory as ChildNodeFactory<Any, Any, Any>
@@ -419,7 +420,7 @@ open class ASTTransformer
                     (childrenSource as List<*>?)
                         ?.map {
                             transformIntoNodes(it, node, childFactory.type)
-                        }?.flatten() ?: listOf<Node>()
+                        }?.flatten() ?: listOf<ASTNode>()
                 } else {
                     transform(childrenSource, node)
                 }
@@ -431,15 +432,15 @@ open class ASTTransformer
         }
 
         protected open fun getSource(
-            node: Node,
+            node: ASTNode,
             source: Any,
         ): Any = source
 
-        protected open fun <S : Any, T : Node> makeNodes(
+        protected open fun <S : Any, T : ASTNode> makeNodes(
             factory: NodeFactory<S, T>,
             source: S,
             allowGenericNode: Boolean = true,
-        ): List<Node> {
+        ): List<ASTNode> {
             val nodes =
                 try {
                     factory.constructor(source, this, factory)
@@ -462,7 +463,7 @@ open class ASTTransformer
             return nodes
         }
 
-        protected open fun <S : Any, T : Node> getNodeFactory(kClass: KClass<S>): NodeFactory<S, T>? {
+        protected open fun <S : Any, T : ASTNode> getNodeFactory(kClass: KClass<S>): NodeFactory<S, T>? {
             val factory = factories[kClass]
             if (factory != null) {
                 return factory as NodeFactory<S, T>
@@ -480,7 +481,7 @@ open class ASTTransformer
             return null
         }
 
-        fun <S : Any, T : Node> registerNodeFactory(
+        fun <S : Any, T : ASTNode> registerNodeFactory(
             kclass: KClass<S>,
             factory: (S, ASTTransformer, NodeFactory<S, T>) -> T?,
         ): NodeFactory<S, T> {
@@ -489,7 +490,7 @@ open class ASTTransformer
             return nodeFactory
         }
 
-        fun <S : Any, T : Node> registerMultipleNodeFactory(
+        fun <S : Any, T : ASTNode> registerMultipleNodeFactory(
             kclass: KClass<S>,
             factory: (S, ASTTransformer, NodeFactory<S, T>) -> List<T>,
         ): NodeFactory<S, T> {
@@ -498,19 +499,19 @@ open class ASTTransformer
             return nodeFactory
         }
 
-        fun <S : Any, T : Node> registerNodeFactory(
+        fun <S : Any, T : ASTNode> registerNodeFactory(
             kclass: KClass<S>,
             factory: (S, ASTTransformer) -> T?,
         ): NodeFactory<S, T> = registerNodeFactory(kclass) { source, transformer, _ -> factory(source, transformer) }
 
-        inline fun <reified S : Any, T : Node> registerNodeFactory(
+        inline fun <reified S : Any, T : ASTNode> registerNodeFactory(
             crossinline factory: S.(ASTTransformer) -> T?,
         ): NodeFactory<S, T> = registerNodeFactory(S::class) { source, transformer, _ -> source.factory(transformer) }
 
         /**
          * We need T to be reified because we may need to install dummy classes of T.
          */
-        inline fun <S : Any, reified T : Node> registerNodeFactory(
+        inline fun <S : Any, reified T : ASTNode> registerNodeFactory(
             kclass: KClass<S>,
             crossinline factory: (S) -> T?,
         ): NodeFactory<S, T> =
@@ -545,24 +546,24 @@ open class ASTTransformer
                 }
             }
 
-        fun <S : Any, T : Node> registerMultipleNodeFactory(
+        fun <S : Any, T : ASTNode> registerMultipleNodeFactory(
             kclass: KClass<S>,
             factory: (S) -> List<T>,
         ): NodeFactory<S, T> = registerMultipleNodeFactory(kclass) { input, _, _ -> factory(input) }
 
-        inline fun <reified S : Any, reified T : Node> registerNodeFactory(): NodeFactory<S, T> =
+        inline fun <reified S : Any, reified T : ASTNode> registerNodeFactory(): NodeFactory<S, T> =
             registerNodeFactory(S::class, T::class)
 
-        inline fun <reified S : Any> notTranslateDirectly(): NodeFactory<S, Node> =
-            registerNodeFactory<S, Node> {
+        inline fun <reified S : Any> notTranslateDirectly(): NodeFactory<S, ASTNode> =
+            registerNodeFactory<S, ASTNode> {
                 throw java.lang.IllegalStateException(
-                    "A Node of this type (${this.javaClass.canonicalName}) should never be translated directly. " +
+                    "A ASTNode of this type (${this.javaClass.canonicalName}) should never be translated directly. " +
                         "It is expected that the container will not delegate the translation of this node but it " +
                         "will handle it directly",
                 )
             }
 
-        private fun <S : Any, T : Node> parameterValue(
+        private fun <S : Any, T : ASTNode> parameterValue(
             kParameter: KParameter,
             source: S,
             childNodeFactory: ChildNodeFactory<Any, T, Any>,
@@ -608,10 +609,10 @@ open class ASTTransformer
          *
          * @param source the class of the source node
          * @param target the class of the target node
-         * @param nodeType the [Node.nodeType] of the target node. Normally, the node type is the same as the class name,
-         * however, [Node] subclasses may want to override it, and in that case, the parameter must be provided explicitly.
+         * @param nodeType the [ASTNode.nodeType] of the target node. Normally, the node type is the same as the class name,
+         * however, [ASTNode] subclasses may want to override it, and in that case, the parameter must be provided explicitly.
          */
-        fun <S : Any, T : Node> registerNodeFactory(
+        fun <S : Any, T : ASTNode> registerNodeFactory(
             source: KClass<S>,
             target: KClass<T>,
             nodeType: String = target.qualifiedName!!,
@@ -708,7 +709,7 @@ open class ASTTransformer
          * Here the method needs to be inlined and the type parameter reified as in the invoked
          * registerNodeFactory we need to access the nodeClass
          */
-        inline fun <reified T : Node> registerIdentityTransformation(nodeClass: KClass<T>) =
+        inline fun <reified T : ASTNode> registerIdentityTransformation(nodeClass: KClass<T>) =
             registerNodeFactory(nodeClass) { node -> node }.skipChildren()
 
         private fun registerKnownClass(target: KClass<*>) {
@@ -739,12 +740,12 @@ open class ASTTransformer
         }
     }
 
-private fun <Source : Any, Target : Node, Child : Any> NodeFactory<*, *>.getChildNodeFactory(
+private fun <Source : Any, Target : ASTNode, Child : Any> NodeFactory<*, *>.getChildNodeFactory(
     node: Target,
     parameterName: String,
 ): ChildNodeFactory<Source, Target, Child>? = getChildNodeFactory(node.nodeType, parameterName)
 
-private fun <Source : Any, Target : Node, Child : Any> NodeFactory<*, *>.getChildNodeFactory(
+private fun <Source : Any, Target : ASTNode, Child : Any> NodeFactory<*, *>.getChildNodeFactory(
     nodeType: String,
     parameterName: String,
 ): ChildNodeFactory<Source, Target, Child>? {
