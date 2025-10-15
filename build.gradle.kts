@@ -207,7 +207,6 @@ subprojects {
     plugins.withId("signing") {
         val signingExt = extensions.getByType(SigningExtension::class.java)
 
-        // 1) normalizza davvero ogni variante di newline/escape
         val raw = providers.gradleProperty("signingInMemoryKey").orNull
         val key = raw
             ?.replace("\\u000D", "\n")
@@ -217,13 +216,8 @@ subprojects {
             ?.trim()
 
         val pass = providers.gradleProperty("signingInMemoryKeyPassword").orNull
-        // ATTENZIONE: niente keyId (alcune versioni hanno avuto rogne con l’overload a 3 argomenti)
-//        if (key.isNullOrBlank() || !key.startsWith("-----BEGIN PGP PRIVATE KEY BLOCK-----")) {
-//            throw GradleException("signingInMemoryKey assente o non è una PRIVATE key")
-//        }
         signingExt.useInMemoryPgpKeys(key, pass)
 
-        // 2) firma SOLO se il plugin di publishing è presente, e *dopo* che lo è
         plugins.withId("maven-publish") {
             val pubs = extensions.getByType(PublishingExtension::class.java).publications
             signingExt.sign(pubs)
@@ -235,7 +229,5 @@ subprojects {
         }
     }
 
-    // Niente doppie firme: non chiamare signAllPublications() in Vanniktech.
-    // Se da qualche parte lo chiami, rimuovilo.
 }
 

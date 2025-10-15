@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.vanniktech.publish)
     id("antlr")
     id("idea")
-//    id("signing")
     id("org.jetbrains.dokka")
 }
 
@@ -135,21 +134,6 @@ publishing {
         }
     }
 }
-
-//signing {
-//    val keyRaw = providers.gradleProperty("signingInMemoryKey").orNull
-//    val key = keyRaw?.replace("\\n", "\n") // <-- trasforma \n in newline reali
-//    val keyId = providers.gradleProperty("signingInMemoryKeyId").orNull
-//    val pass = providers.gradleProperty("signingInMemoryKeyPassword").orNull
-//
-//    if (!key.isNullOrBlank()) {
-//        require(key.startsWith("-----BEGIN PGP PRIVATE KEY BLOCK-----")) {
-//            "signingInMemoryKey non contiene una PRIVATE key"
-//        }
-//        useInMemoryPgpKeys(keyId, key, pass)
-//        sign(publishing.publications)
-//    }
-//}
 
 // Some tasks are created during the configuration, and therefore we need to set the dependencies involving
 // them after the configuration has been completed

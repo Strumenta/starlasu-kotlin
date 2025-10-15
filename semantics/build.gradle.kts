@@ -73,5 +73,4 @@ publishing {
     }
 }
 
-
 tasks.findByName("dokkaJavadoc")?.dependsOn(":core:compileKotlin")

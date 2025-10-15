@@ -77,8 +77,6 @@ mavenPublishing {
         }
     }
 
-    // signAllPublications()
-
     pom {
         name.set("kolasu-${project.name}")
         description.set("The Kotlin client for working with StarLasu ASTSs and the lionweb-repository")
