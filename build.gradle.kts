@@ -6,7 +6,8 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.util.Base64
-
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.plugins.signing.SigningExtension
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -222,6 +223,9 @@ subprojects {
                 sign(extensions.getByType<PublishingExtension>().publications)
             } else {
                throw RuntimeException("Missing signingInMemoryKey")
+            }
+            extensions.findByType(PublishingExtension::class.java)?.publications?.let { pubs ->
+                sign(pubs)
             }
         }
     }
