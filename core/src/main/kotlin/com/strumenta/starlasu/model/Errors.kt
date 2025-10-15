@@ -5,9 +5,9 @@ import com.strumenta.starlasu.traversing.walkDescendants
 /**
  * An AST node that marks the presence of an error, for example a syntactic or semantic error in the original tree.
  */
-interface ErrorNode {
+interface ErrorNode : ASTNode {
     val message: String
-    val position: Position?
+    override var position: Position?
 }
 
 /**

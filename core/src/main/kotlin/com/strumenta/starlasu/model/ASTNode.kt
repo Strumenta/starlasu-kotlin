@@ -1,14 +1,12 @@
 package com.strumenta.starlasu.model
 
+import com.strumenta.starlasu.ids.HasID
 import com.strumenta.starlasu.language.Attribute
 import com.strumenta.starlasu.language.Containment
 import com.strumenta.starlasu.language.Reference
 import io.lionweb.model.AnnotationInstance
 
-interface ASTNode {
-    @Internal
-    var id: String?
-
+interface ASTNode : HasID {
     @Internal
     val annotations: MutableList<AnnotationInstance>
 
@@ -58,7 +56,16 @@ interface ASTNode {
         includeDerived: Boolean = false,
     ): List<ASTNode>
 
+    fun getChildren(
+        propertyName: String,
+        includeDerived: Boolean = false,
+    ): List<ASTNode>
+
     fun getReference(name: String): ReferenceByName<*>?
 
     fun getReference(reference: Reference): ReferenceByName<*>? = getReference(reference.name)
+
+    fun getAttributeValue(name: String): Any?
+
+    fun addAnnotation(instance: AnnotationInstance): Boolean
 }

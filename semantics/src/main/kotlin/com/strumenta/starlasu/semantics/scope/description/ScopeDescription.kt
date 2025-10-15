@@ -1,6 +1,6 @@
 package com.strumenta.starlasu.semantics.scope.description
 
-import com.strumenta.starlasu.model.HasID
+import com.strumenta.starlasu.ids.HasID
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.PossiblyNamed
 import com.strumenta.starlasu.model.ReferenceByName

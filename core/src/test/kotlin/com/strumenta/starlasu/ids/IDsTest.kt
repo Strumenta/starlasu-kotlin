@@ -2,8 +2,6 @@ package com.strumenta.starlasu.ids
 
 import com.strumenta.starlasu.base.IDProvider
 import com.strumenta.starlasu.model.Node
-import com.strumenta.starlasu.model.NodeIdProviderAdapter
-import com.strumenta.starlasu.model.assignIDsToTree
 import com.strumenta.starlasu.traversing.walk
 import kotlin.test.Test
 import kotlin.test.assertEquals
