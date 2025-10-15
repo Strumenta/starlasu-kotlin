@@ -1,6 +1,6 @@
 package com.strumenta.starlasu.lionwebclient
 
-import com.strumenta.starlasu.lionweb.KNode
+import com.strumenta.starlasu.lionweb.SNode
 import com.strumenta.starlasu.lionweb.LWNode
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.Source
@@ -26,8 +26,8 @@ fun HasSettableParent.setParentID(parentID: String?) {
     this.setParent(parent)
 }
 
-fun KolasuClient.getASTRoots(aLWNode: LWNode): Sequence<KNode> {
-    val res = mutableListOf<KNode>()
+fun KolasuClient.getASTRoots(aLWNode: LWNode): Sequence<SNode> {
+    val res = mutableListOf<SNode>()
 
     fun exploreForASTs(aLWNode: LWNode) {
         val isKNode: Boolean = isKolasuConcept(aLWNode.classifier)

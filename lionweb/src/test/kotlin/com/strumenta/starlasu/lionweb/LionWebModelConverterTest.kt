@@ -359,7 +359,7 @@ class LionWebModelConverterTest {
             }
         mConverter.exportLanguageToLionWeb(kLanguage)
         val lwAST = mConverter.deserializeToNodes(serialized).first()
-        val kAST = mConverter.importModelFromLionWeb(lwAST) as KNode
+        val kAST = mConverter.importModelFromLionWeb(lwAST) as SNode
 
         val a1 = SimpleNodeA("A1", ReferenceByName("A1"), null)
         a1.ref.referred = a1
@@ -438,7 +438,7 @@ class LionWebModelConverterTest {
         val lwASTChild2 = lwAST.children[2]
         assertEquals(Position(Point(3, 4), Point(3, 12)), lwASTChild2.getPropertyValueByName("position"))
 
-        val deserializedAST = mConverter.importModelFromLionWeb(lwAST) as KNode
+        val deserializedAST = mConverter.importModelFromLionWeb(lwAST) as SNode
 
         assertASTsAreEqual(initialAst, deserializedAST, considerPosition = true)
     }
@@ -700,7 +700,7 @@ class LionWebModelConverterTest {
 
         mc.externalNodeResolver =
             object : NodeResolver {
-                override fun resolve(nodeID: String): KNode? =
+                override fun resolve(nodeID: String): SNode? =
                     if (nodeID == "MySource2") {
                         node2
                     } else {
@@ -749,7 +749,7 @@ class LionWebModelConverterTest {
 
         mc.externalNodeResolver =
             object : NodeResolver {
-                override fun resolve(nodeID: String): KNode? =
+                override fun resolve(nodeID: String): SNode? =
                     if (nodeID == "MySource1") {
                         node1
                     } else {
@@ -785,7 +785,7 @@ class LionWebModelConverterTest {
 
         mc.externalNodeResolver =
             object : NodeResolver {
-                override fun resolve(nodeID: String): KNode? =
+                override fun resolve(nodeID: String): SNode? =
                     when (nodeID) {
                         "MySource1" -> {
                             node1
@@ -828,7 +828,7 @@ class LionWebModelConverterTest {
         // We verify the re-imported data is correct
         mc.externalNodeResolver =
             object : NodeResolver {
-                override fun resolve(nodeID: String): KNode? =
+                override fun resolve(nodeID: String): SNode? =
                     when (nodeID) {
                         "MySource1" -> {
                             node1
@@ -1004,10 +1004,10 @@ class LionWebModelConverterTest {
         annInstance1.setPropertyValue(annotation1Value, 123)
         lwNode1.addAnnotation(annInstance1)
 
-        val myKNode2 = converter1.importModelFromLionWeb(lwNode1) as KNode
-        assertEquals(1, myKNode2.annotations.size)
+        val mySNode2 = converter1.importModelFromLionWeb(lwNode1) as SNode
+        assertEquals(1, mySNode2.annotations.size)
 
-        val lwNode2 = converter1.exportModelToLionWeb(myKNode2)
+        val lwNode2 = converter1.exportModelToLionWeb(mySNode2)
         assertEquals(1, lwNode2.annotations.size)
         assertEquals(annInstance1, lwNode2.annotations.first())
 
@@ -1019,8 +1019,8 @@ class LionWebModelConverterTest {
             },
         )
 
-        val myKNode3 = converter2.importModelFromLionWeb(lwNode1) as KNode
-        assertEquals(1, myKNode2.annotations.size)
+        val mySNode3 = converter2.importModelFromLionWeb(lwNode1) as SNode
+        assertEquals(1, mySNode2.annotations.size)
 
         val converter3 = LionWebModelConverter()
         converter3.exportLanguageToLionWeb(
@@ -1029,7 +1029,7 @@ class LionWebModelConverterTest {
             },
         )
 
-        val lwNode3 = converter3.exportModelToLionWeb(myKNode3)
+        val lwNode3 = converter3.exportModelToLionWeb(mySNode3)
         assertEquals(1, lwNode3.annotations.size)
         assertEquals(annInstance1, lwNode3.annotations.first())
     }

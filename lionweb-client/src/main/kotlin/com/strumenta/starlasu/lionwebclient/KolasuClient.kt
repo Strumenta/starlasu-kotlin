@@ -4,7 +4,7 @@ import com.strumenta.starlasu.ids.CommonNodeIdProvider
 import com.strumenta.starlasu.ids.NodeIdProvider
 import com.strumenta.starlasu.ids.caching
 import com.strumenta.starlasu.language.KolasuLanguage
-import com.strumenta.starlasu.lionweb.KNode
+import com.strumenta.starlasu.lionweb.SNode
 import com.strumenta.starlasu.lionweb.LIONWEB_VERSION_USED_BY_KOLASU
 import com.strumenta.starlasu.lionweb.LWLanguage
 import com.strumenta.starlasu.lionweb.LWNode
@@ -25,7 +25,6 @@ import io.lionweb.model.HasSettableParent
 import io.lionweb.model.impl.ProxyNode
 import io.lionweb.serialization.JsonSerialization
 import io.lionweb.serialization.UnavailableNodePolicy
-import kotlin.collections.get
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
@@ -181,12 +180,12 @@ class KolasuClient(
     // Operation on ASTs
     //
 
-    fun astNodeExist(kNode: KNode): Boolean {
-        return nodeExist(idFor(kNode))
+    fun astNodeExist(sNode: SNode): Boolean {
+        return nodeExist(idFor(sNode))
     }
 
-    fun astNodeExistWithExplanation(kNode: KNode): String? {
-        return nodeExistWithExplanation(idFor(kNode))
+    fun astNodeExistWithExplanation(sNode: SNode): String? {
+        return nodeExistWithExplanation(idFor(sNode))
     }
 
     fun attachAST(
@@ -258,14 +257,14 @@ class KolasuClient(
         return attachAST(kNode, containerID, containment.name, containmentIndex)
     }
 
-    fun updateAST(kNode: KNode): String {
-        require(kNode::class.annotations.any { it is ASTRoot })
-        val msg = nodeExistWithExplanation(idFor(kNode))
+    fun updateAST(sNode: SNode): String {
+        require(sNode::class.annotations.any { it is ASTRoot })
+        val msg = nodeExistWithExplanation(idFor(sNode))
         require(msg == null) {
             "We can only update existing nodes. While this is not a valid node because: $msg"
         }
-        kNode.assignParents()
-        val lwNode = toLionWeb(kNode)
+        sNode.assignParents()
+        val lwNode = toLionWeb(sNode)
         require(lwNode is HasSettableParent) // In the future we may relax that
         // Now, if the parent of this node is null we need to find the real parent from the model repository
         // Otherwise we need to be sure to set the parent anyway
@@ -280,13 +279,13 @@ class KolasuClient(
     /**
      * While we can add or update only entire ASTs, we can retrieve any node we want.
      */
-    fun getAST(nodeID: String): KNode {
+    fun getAST(nodeID: String): SNode {
         val lwNode = lionWebClient.retrieve(nodeID)
         return toKolasuNode(lwNode)
     }
 
-    fun toKolasuNode(lwNode: LWNode): KNode {
-        val result = nodeConverter.importModelFromLionWeb(lwNode) as KNode
+    fun toKolasuNode(lwNode: LWNode): SNode {
+        val result = nodeConverter.importModelFromLionWeb(lwNode) as SNode
         // We actually do not know if this is a source or not...
         result.source = LionWebSource(lwNode.id!!)
         return result
@@ -420,8 +419,8 @@ class KolasuClient(
      * _where_ in the repository you will insert it, therefore the ID you will get would be the one for the
      * Node as "dangling in the void". The Node ID obtained after the insertion could be different!
      */
-    fun idFor(kNode: KNode): String {
-        return idProvider.id(kNode)
+    fun idFor(sNode: SNode): String {
+        return idProvider.id(sNode)
     }
 
     fun nodesByConcept(): Map<KClass<*>, ClassifierResult> {
