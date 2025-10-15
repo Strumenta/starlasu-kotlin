@@ -464,7 +464,7 @@ class LionWebModelConverter(
                     languageConverter.correspondingKolasuClass(lwNode.classifier)
                 }
                     ?: throw RuntimeException(
-                        "We do not have StarLasu AST class for LionWeb Concept " +
+                        "We do not have Starlasu AST class for LionWeb Concept " +
                             "${lwNode.classifier}",
                     )
             try {
