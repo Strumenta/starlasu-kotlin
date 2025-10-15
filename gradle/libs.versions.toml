@@ -14,7 +14,7 @@ dokka="1.8.20"
 build-config = { id = "com.github.gmazzo.buildconfig", version = "5.4.0" }
 # More recent versions of this plugin do not work with JVM 8
 # We should configure JVM 11 for the build and JVM 8 only as a target
-vanniktech-publish = { id = "com.vanniktech.maven.publish", version = "0.34.0" }
+vanniktech-publish = { id = "com.vanniktech.maven.publish", version = "0.22.0" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "11.5.1" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
