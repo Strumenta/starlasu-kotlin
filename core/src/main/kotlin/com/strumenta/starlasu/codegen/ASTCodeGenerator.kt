@@ -11,7 +11,7 @@ import kotlin.reflect.KClass
  *
  * The logic for printing the different elements of the language must be defined in subclasses. This logic could be
  * potentially expressed in a DSL, with multi-platform generators. It would permit to have code generators usable from
- * all the StarLasu platforms.
+ * all the Starlasu platforms.
  */
 abstract class ASTCodeGenerator<R : Node> {
     protected val nodePrinters: MutableMap<KClass<*>, NodePrinter> = HashMap()

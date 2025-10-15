@@ -14,7 +14,7 @@ Kolasu strives to be usable and idiomatic also in Java projects.
 
 It stands for _**Ko**tlin_ _**La**nguage_ _**Su**pport_.
 
-Kolasu is part of the [StarLasu](https://github.com/Strumenta/StarLasu) set of libraries. The other libraries provide 
+Kolasu is part of the [Starlasu](https://github.com/Strumenta/Starlasu) set of libraries. The other libraries provide 
 similar support in other languages such as Typescript and Python.
 
 ## JDK supported
@@ -23,7 +23,7 @@ We support JDK 8, 11, and 17. All JDKs in between should work too, but these are
 
 ## Documentation
 
-You can take a look at the documentation for StarLasu, as it explain the principles used in the whole set of libraries, including Kolasu: [StarLasu documentation](https://github.com/Strumenta/StarLasu/tree/main/documentation).
+You can take a look at the documentation for Starlasu, as it explain the principles used in the whole set of libraries, including Kolasu: [Starlasu documentation](https://github.com/Strumenta/Starlasu/tree/main/documentation).
 
 The documentation of Kolasu's APIs is on Maven Central for consumption by IDEs. It's also possible to consult it online at https://www.javadoc.io/doc/com.strumenta.kolasu.
 
