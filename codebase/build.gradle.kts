@@ -88,9 +88,10 @@ signing {
     val pass = providers.gradleProperty("signingInMemoryKeyPassword").orNull
     if (!key.isNullOrBlank()) {
         useInMemoryPgpKeys(keyId, key, pass)
-        sign(publishing.publications["kolasu_codebase"])
+        sign(publishing.publications)
     }
 }
+
 
 tasks.named("dokkaJavadoc").configure {
     dependsOn(":core:compileKotlin")
