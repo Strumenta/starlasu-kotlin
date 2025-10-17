@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.lionweb
 
+import WeakIdentityBiMap
 import com.strumenta.kolasu.ids.IDGenerationException
 import com.strumenta.kolasu.ids.NodeIdProvider
 import com.strumenta.kolasu.language.Feature
@@ -121,7 +122,7 @@ class LionWebModelConverter(
      * In the future we could rely on the HasID.id field to consider removing this field, which can grow significantly
      * and cause issues when nodes are cached and changes happening between two conversions are ignored.
      */
-    private val nodesMapping = BiMap<Any, LWNode>(usingIdentity = true)
+    private val nodesMapping = WeakIdentityBiMap<Any, LWNode>()
     private val primitiveValueSerializations = ConcurrentHashMap<KClass<*>, PrimitiveValueSerialization<*>>()
     private val starlasuTreeWalker = CommonStarlasuTreeWalker()
     var lionWebTreeWalker = LionWebTreeWalker()
@@ -198,7 +199,7 @@ class LionWebModelConverter(
                 }
             }
             starlasuTreeWalker.walk(kolasuTree).forEach { kNode ->
-                val lwNode = nodesMapping.byA(kNode)!!
+                val lwNode = nodesMapping.byA(kNode) ?: throw RuntimeException("Unable to find mapping for $kNode")
                 kNode.annotations.forEach { annotationInstance ->
                     lwNode.addAnnotation(annotationInstance)
                 }
@@ -242,7 +243,9 @@ class LionWebModelConverter(
                                     as com.strumenta.kolasu.language.Containment
                                 val kValue = kNode.getChildren(kContainment)
                                 kValue.forEach { kChild ->
-                                    val lwChild = nodesMapping.byA(kChild)!!
+                                    val lwChild = nodesMapping.byA(kChild) ?: throw RuntimeException(
+                                        "Cannot find mapping for $kChild"
+                                    )
                                     lwNode.addChild(feature, lwChild)
                                 }
                             } catch (e: Exception) {
@@ -596,7 +599,7 @@ class LionWebModelConverter(
             values[referenceByName] = referred
         }
 
-        fun populateReferences(nodesMapping: BiMap<Any, LWNode>, externalNodeResolver: NodeResolver) {
+        fun populateReferences(nodesMapping: WeakIdentityBiMap<Any, LWNode>, externalNodeResolver: NodeResolver) {
             values.forEach { entry ->
                 if (entry.value == null) {
                     entry.key.referred = null
