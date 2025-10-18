@@ -107,3 +107,30 @@ tasks.named<Wrapper>("wrapper") {
     gradleVersion = "8.14.2"
     distributionType = Wrapper.DistributionType.ALL
 }
+
+subprojects {
+    plugins.withId("signing") {
+        val signingExt = extensions.getByType(SigningExtension::class.java)
+
+        val raw = providers.gradleProperty("signingInMemoryKey").orNull
+        val key = raw
+            ?.replace("\\u000D", "\n")
+            ?.replace("\\r\\n", "\n")
+            ?.replace("\\n", "\n")
+            ?.replace("\\r", "\n")
+            ?.trim()
+
+        val pass = providers.gradleProperty("signingInMemoryKeyPassword").orNull
+        signingExt.useInMemoryPgpKeys(key, pass)
+
+        plugins.withId("maven-publish") {
+            val pubs = extensions.getByType(PublishingExtension::class.java).publications
+            signingExt.sign(pubs)
+        }
+        plugins.withId("com.vanniktech.maven.publish") {
+            extensions.findByType(PublishingExtension::class.java)?.publications?.let { pubs ->
+                signingExt.sign(pubs)
+            }
+        }
+    }
+}
