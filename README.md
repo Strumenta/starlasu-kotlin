@@ -1,31 +1,26 @@
-# Kolasu
+# Starlasu Kotlin
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.strumenta.kolasu/kolasu-core/badge.svg?gav=true)](https://maven-badges.herokuapp.com/maven-central/com.strumenta.kolasu/kolasu-core?gav=true)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Strumenta/kolasu/check.yml)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.strumenta.starlasy/starlasu-core/badge.svg?gav=true)](https://maven-badges.herokuapp.com/maven-central/com.strumenta.kolasu/kolasu-core?gav=true)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Strumenta/starlasu-kotlin/check.yml)
 
-<!-- 
-Hiding these badges as they appear broken when they are not!
-[![javadoc](https://javadoc.io/badge2/com.strumenta.kolasu/kolasu-core/javadoc.svg)](https://javadoc.io/doc/com.strumenta.kolasu/kolasu-core)
- -->
-
-Kolasu supplies the infrastructure to build a custom, possibly mutable, Abstract Syntax Tree (AST) using Kotlin.
+Starlasu supplies the infrastructure to build a custom, possibly mutable, Abstract Syntax Tree (AST). This library
+specifically support Kotlin and Java.
 In particular, it can be integrated easily with ANTLR, but it can also be used on its own.
-Kolasu strives to be usable and idiomatic also in Java projects.
+Starlasu Kotlin strives to be usable and idiomatic also in Java projects.
 
-It stands for _**Ko**tlin_ _**La**nguage_ _**Su**pport_.
-
-Kolasu is part of the [Starlasu](https://github.com/Strumenta/Starlasu) set of libraries. The other libraries provide 
-similar support in other languages such as Typescript and Python.
+Starlasu stands for **Star** _**La**nguage_ _**Su**pport_.
+The **Star** indicates that this is a multi-language library, with ports of this same code
+for Python, Typescript and C#.
 
 ## JDK supported
 
-We support JDK 8, 11, and 17. All JDKs in between should work too, but these are explicitly tested.
+We support JDK 11, 17, and 21. All JDKs in between should work too, but these are explicitly tested.
 
 ## Documentation
 
 You can take a look at the documentation for Starlasu, as it explain the principles used in the whole set of libraries, including Kolasu: [Starlasu documentation](https://github.com/Strumenta/Starlasu/tree/main/documentation).
 
-The documentation of Kolasu's APIs is on Maven Central for consumption by IDEs. It's also possible to consult it online at https://www.javadoc.io/doc/com.strumenta.kolasu.
+The documentation of Starlasu Kotlin's APIs is on Maven Central for consumption by IDEs. It's also possible to consult it online at https://www.javadoc.io/doc/com.strumenta.kolasu.
 
 ## What do we use Kolasu for?
 
@@ -50,17 +45,17 @@ All properties, and therefore the whole tree structure, will be detected automat
 
 ## Origin
 
-Kolasu was born as a small framework to support building languages using ANTLR and Kotlin. It evolved over the time as 
+Starlasu was born as a small framework to support building languages using ANTLR and Kotlin. It evolved over the time as 
 it was used at Strumenta as part of open-source and commercial projects for building transpilers, interpreters, 
 compilers, and more.
 
-## Using Kolasu in your project
+## Using Starlasu in your project
 
 Releases are published on Maven Central: 
 
 ```
 dependencies {
-    compile "com.strumenta.starlasu:kolasu-core:1.5.0-RC5"
+    compile "com.strumenta.starlasu:starlasu-core:1.7.x"
 }
 ```
 
