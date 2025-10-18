@@ -44,7 +44,7 @@ data class ListValueDescription(
     override val value: List<ValueDescription> = emptyList(),
 ) : ValueDescription(value)
 
-const val KOLASU_SYMBOL_DESCRIPTION_LANGUAGE_NAME = "com.strumenta.kolasu.semantics.symbol.SymbolDescriptionLanguage"
+const val KOLASU_SYMBOL_DESCRIPTION_LANGUAGE_NAME = "com.strumenta.starlasu.semantics.symbol.SymbolDescriptionLanguage"
 
 val KOLASU_SYMBOL_DESCRIPTION_LANGUAGE: KolasuLanguage by lazy {
     KolasuLanguage(KOLASU_SYMBOL_DESCRIPTION_LANGUAGE_NAME).apply {

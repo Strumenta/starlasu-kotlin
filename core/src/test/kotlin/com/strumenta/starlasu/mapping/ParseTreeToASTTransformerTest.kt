@@ -563,7 +563,7 @@ class ParseTreeToASTTransformerTest {
         assertASTsAreEqual(expectedAST, actualAST)
     }
 
-    // Ensure that https://github.com/Strumenta/kolasu/issues/241 is fixed
+    // Ensure that https://github.com/Strumenta/starlasu-kotlin/issues/241 is fixed
     @Test
     fun transformChildFactory() {
         val ctx = EntCtx("foo", listOf(EntCtxFeature("bar", EntCtxStringType())))

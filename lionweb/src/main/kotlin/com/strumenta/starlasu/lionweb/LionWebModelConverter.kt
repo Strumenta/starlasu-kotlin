@@ -471,9 +471,6 @@ class LionWebModelConverter(
                 val instantiated = instantiate(kClass, lwNode, referencesPostponer)
                 if (instantiated is SNode) {
                     starlasuTreeWalker.assignParents(instantiated)
-                    // This mapping will eventually become superfluous because we will store the ID directly in the
-                    // instantiated kNode
-                    nodeIdProvider.registerMapping(instantiated, lwNode.id!!)
                     instantiated.id = lwNode.id
                     lwNode.annotations.forEach {
                         instantiated.addAnnotation(it)
