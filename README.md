@@ -22,9 +22,9 @@ You can take a look at the documentation for Starlasu, as it explain the princip
 
 The documentation of Starlasu Kotlin's APIs is on Maven Central for consumption by IDEs. It's also possible to consult it online at https://www.javadoc.io/doc/com.strumenta.kolasu.
 
-## What do we use Kolasu for?
+## What do we use Starlasu for?
 
-Kolasu has been used to implement:
+Starlasu has been used to implement:
 * Parsers
 * Editors
 * Transpilers
