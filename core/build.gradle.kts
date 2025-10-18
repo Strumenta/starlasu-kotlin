@@ -72,9 +72,6 @@ idea {
 // Some tasks are created during the configuration, and therefore we need to set the dependencies involving
 // them after the configuration has been completed
 project.afterEvaluate {
-    tasks.named("dokkaGeneratePublicationJavadoc") {
-        dependsOn(tasks.named("dokkaGenerate"))
-    }
     tasks.named("sourcesJar") {
         dependsOn("generateGrammarSource")
     }
