@@ -63,15 +63,9 @@ dependencies {
 
 val jvmVersion = libs.versions.jvm.get()
 
-tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile::class).all {
-    kotlinOptions {
-        jvmTarget = jvmVersion
-    }
-}
-
 kotlin {
     jvmToolchain {
-        languageVersion.set(JavaLanguageVersion.of(jvmVersion.removePrefix("1.")))
+        languageVersion.set(JavaLanguageVersion.of(jvmVersion))
     }
 }
 

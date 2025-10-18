@@ -104,7 +104,7 @@ configure<net.researchgate.release.ReleaseExtension> {
 
 // Gradle wrapper configuration
 tasks.named<Wrapper>("wrapper") {
-    gradleVersion = "8.14.2"
+    gradleVersion = "9.1.0"
     distributionType = Wrapper.DistributionType.ALL
 }
 
