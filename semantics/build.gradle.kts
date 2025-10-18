@@ -16,8 +16,11 @@ dependencies {
 
 mavenPublishing {
     publishToMavenCentral(automaticRelease = true)
-    coordinates(project.group.toString(),
-        "starlasu-${project.name}", project.version.toString())
+    coordinates(
+        project.group.toString(),
+        "starlasu-${project.name}",
+        project.version.toString(),
+    )
 
     pom {
         name.set(project.name)

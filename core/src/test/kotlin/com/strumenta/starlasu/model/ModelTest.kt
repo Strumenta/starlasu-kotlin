@@ -15,16 +15,19 @@ class MyNode(
 data class ASymbol(
     override val name: String,
     val index: Int = 0,
-) : Named
+) : Node(),
+    Named
 
 data class BSymbol(
     override val name: String,
     val index: Int = 0,
-) : Named
+) : Node(),
+    Named
 
 data class USymbol(
     override val name: String? = null,
-) : PossiblyNamed
+) : Node(),
+    PossiblyNamed
 
 data class NodeOverridingName(
     override var name: String,

@@ -1,7 +1,6 @@
 package com.strumenta.starlasu.model
 
-@NodeType
-sealed interface CommonElement
+sealed interface CommonElement : ASTNode
 
 /**
  * Used to mark nodes as statements (instructions used primarily for their side effects)

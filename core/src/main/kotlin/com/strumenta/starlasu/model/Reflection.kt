@@ -12,9 +12,9 @@ import kotlin.reflect.KClassifier
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
 import kotlin.reflect.KTypeProjection
+import kotlin.reflect.full.allSupertypes
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.isSubclassOf
-import kotlin.reflect.full.superclasses
 import kotlin.reflect.full.withNullability
 
 fun <T : ASTNode> T.relevantMemberProperties(
@@ -203,7 +203,7 @@ fun providesNodes(kclass: KClass<*>?): Boolean = kclass?.isANode() ?: false
 /**
  * @return can [this] class be considered an AST node?
  */
-fun KClass<*>.isANode(): Boolean = this.isSubclassOf(ASTNode::class) || this.isMarkedAsNodeType()
+fun KClass<*>.isANode(): Boolean = this.isSubclassOf(ASTNode::class) || this.implementsASTNode()
 
 val KClass<*>.isConcept: Boolean
     get() = isANode() && !this.java.isInterface
@@ -212,11 +212,9 @@ val KClass<*>.isConceptInterface: Boolean
     get() = isANode() && this.java.isInterface
 
 /**
- * @return is [this] class annotated with NodeType?
+ * @return is [this] class implementing ASTNode?
  */
-fun KClass<*>.isMarkedAsNodeType(): Boolean =
-    this.annotations.any { it.annotationClass == NodeType::class } ||
-        this.superclasses.any { it.isMarkedAsNodeType() }
+fun KClass<*>.implementsASTNode(): Boolean = this.allSupertypes.any { it.classifier == ASTNode::class }
 
 data class PropertyTypeDescription(
     val name: String,

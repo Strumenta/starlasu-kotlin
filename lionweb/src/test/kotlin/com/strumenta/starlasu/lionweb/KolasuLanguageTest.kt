@@ -1,9 +1,9 @@
 package com.strumenta.starlasu.lionweb
 
 import com.strumenta.starlasu.language.KolasuLanguage
+import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.Named
 import com.strumenta.starlasu.model.Node
-import com.strumenta.starlasu.model.NodeType
 import com.strumenta.starlasu.model.ReferenceByName
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -28,8 +28,7 @@ data class NodeB(
 
 interface FooMyIrrelevantInterface
 
-@NodeType
-interface FooMyRelevantInterface
+interface FooMyRelevantInterface : ASTNode
 
 class KolasuLanguageTest {
     @Test

@@ -113,12 +113,13 @@ subprojects {
         val signingExt = extensions.getByType(SigningExtension::class.java)
 
         val raw = providers.gradleProperty("signingInMemoryKey").orNull
-        val key = raw
-            ?.replace("\\u000D", "\n")
-            ?.replace("\\r\\n", "\n")
-            ?.replace("\\n", "\n")
-            ?.replace("\\r", "\n")
-            ?.trim()
+        val key =
+            raw
+                ?.replace("\\u000D", "\n")
+                ?.replace("\\r\\n", "\n")
+                ?.replace("\\n", "\n")
+                ?.replace("\\r", "\n")
+                ?.trim()
 
         val pass = providers.gradleProperty("signingInMemoryKeyPassword").orNull
         signingExt.useInMemoryPgpKeys(key, pass)

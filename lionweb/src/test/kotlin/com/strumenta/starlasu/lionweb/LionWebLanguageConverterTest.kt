@@ -1,11 +1,11 @@
 package com.strumenta.starlasu.lionweb
 
 import com.strumenta.starlasu.language.KolasuLanguage
+import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.ASTRoot
 import com.strumenta.starlasu.model.EntityDeclaration
 import com.strumenta.starlasu.model.Named
 import com.strumenta.starlasu.model.Node
-import com.strumenta.starlasu.model.NodeType
 import com.strumenta.starlasu.model.ReferenceByName
 import io.lionweb.language.LionCoreBuiltins
 import io.lionweb.utils.LanguageValidator
@@ -41,8 +41,7 @@ data class MyNonPartition(
 
 interface MyIrrelevantInterface
 
-@NodeType
-interface MyRelevantInterface
+interface MyRelevantInterface : ASTNode
 
 data class SimpleNodeB(
     val value: String,

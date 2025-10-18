@@ -1,15 +1,14 @@
 package com.strumenta.starlasu.javalib
 
+import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.Node
-import com.strumenta.starlasu.model.NodeType
 
 data class Library(
     val books: List<Book>,
     val team: List<TeamMember> = emptyList(),
 ) : Node()
 
-@NodeType
-interface TeamMember
+interface TeamMember : ASTNode
 
 data class Book(
     val title: String,

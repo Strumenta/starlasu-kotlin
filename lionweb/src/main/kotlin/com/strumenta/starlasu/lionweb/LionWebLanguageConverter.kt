@@ -19,9 +19,9 @@ import com.strumenta.starlasu.model.PossiblyNamed
 import com.strumenta.starlasu.model.Statement
 import com.strumenta.starlasu.model.TypeAnnotation
 import com.strumenta.starlasu.model.declaredFeatures
+import com.strumenta.starlasu.model.implementsASTNode
 import com.strumenta.starlasu.model.isConcept
 import com.strumenta.starlasu.model.isConceptInterface
-import com.strumenta.starlasu.model.isMarkedAsNodeType
 import com.strumenta.starlasu.parsing.ParsingResult
 import com.strumenta.starlasu.validation.Issue
 import com.strumenta.starlasu.validation.IssueSeverity
@@ -121,7 +121,7 @@ class LionWebLanguageConverter {
                     astClass.supertypes
                         .map { it.classifier as KClass<*> }
                         .filter { it.java.isInterface }
-                superInterfaces.filter { it.isMarkedAsNodeType() }.forEach {
+                superInterfaces.filter { it.implementsASTNode() }.forEach {
                     conceptInterface.addExtendedInterface(correspondingInterface(it))
                 }
             } else {
@@ -141,7 +141,7 @@ class LionWebLanguageConverter {
                     throw IllegalStateException()
                 }
                 val interfaces = astClass.supertypes.map { it.classifier as KClass<*> }.filter { it.java.isInterface }
-                interfaces.filter { it.isMarkedAsNodeType() }.forEach {
+                interfaces.filter { it.implementsASTNode() }.forEach {
                     concept.addImplementedInterface(correspondingInterface(it))
                 }
             }

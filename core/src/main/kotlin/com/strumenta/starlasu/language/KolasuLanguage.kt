@@ -7,9 +7,9 @@ import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.PossiblyNamed
 import com.strumenta.starlasu.model.asAttribute
 import com.strumenta.starlasu.model.containedType
+import com.strumenta.starlasu.model.implementsASTNode
 import com.strumenta.starlasu.model.isAttribute
 import com.strumenta.starlasu.model.isContainment
-import com.strumenta.starlasu.model.isMarkedAsNodeType
 import com.strumenta.starlasu.model.isReference
 import com.strumenta.starlasu.model.nodeProperties
 import com.strumenta.starlasu.model.referredType
@@ -97,7 +97,7 @@ class KolasuLanguage(
             Any::class -> Unit
             else -> {
                 if (kClass.java.isInterface) {
-                    if (kClass.isMarkedAsNodeType() && !kClass.isSubclassOf(CommonElement::class)) {
+                    if (kClass.implementsASTNode() && !kClass.isSubclassOf(CommonElement::class)) {
                         // Note: CommonElement subclasses are added to the Starlasu LW language manually
                         tentativeAddInterfaceClass(kClass, exceptions)
                     }

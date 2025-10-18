@@ -57,13 +57,6 @@ annotation class Internal
 @Retention(AnnotationRetention.RUNTIME)
 annotation class Derived
 
-/**
- * Use this to mark something that does not inherit from ASTNode as a node, so it will be included in the AST.
- */
-@Target(AnnotationTarget.CLASS)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class NodeType
-
 fun checkFeatureName(featureName: String) {
     require(featureName !in RESERVED_FEATURE_NAMES) { "$featureName is not a valid feature name" }
 }
