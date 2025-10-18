@@ -4,14 +4,14 @@
 kotlin = "2.0.21"
 lwjava = "1.1.4"
 lwkotlin = "0.6.2"
-kotest= "5.8.0"
-dokka = "2.0.0"
+kotest= "6.0.4"
+dokka = "2.1.0"
 jvm = "11"
-antlr = "4.13.1"
-gson = "2.13.1"
+antlr = "4.13.2"
+gson = "2.13.2"
 clikt = "5.0.3"
 specs = "0.6.1"
-testcontainers = "1.21.3"
+testcontainers = "2.0.1"
 
 [plugins]
 build-config  = { id = "com.github.gmazzo.buildconfig", version = "5.6.7" }
