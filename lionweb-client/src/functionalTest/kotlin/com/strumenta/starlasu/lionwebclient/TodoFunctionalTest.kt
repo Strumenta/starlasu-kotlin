@@ -1,10 +1,10 @@
 package com.strumenta.starlasu.lionwebclient
 
-import com.strumenta.kolasu.lionweb.LIONWEB_VERSION_USED_BY_KOLASU
-import com.strumenta.kolasu.lionweb.registerSerializersAndDeserializersInMetamodelRegistry
-import com.strumenta.kolasu.model.ReferenceByName
-import com.strumenta.kolasu.model.SyntheticSource
-import com.strumenta.kolasu.model.assignParents
+import com.strumenta.starlasu.lionweb.LIONWEB_VERSION_USED_BY_KOLASU
+import com.strumenta.starlasu.lionweb.registerSerializersAndDeserializersInMetamodelRegistry
+import com.strumenta.starlasu.model.ReferenceByName
+import com.strumenta.starlasu.model.SyntheticSource
+import com.strumenta.starlasu.model.assignParents
 import io.lionweb.client.testing.AbstractClientFunctionalTest
 import io.lionweb.kotlin.DefaultMetamodelRegistry
 import io.lionweb.kotlin.getChildrenByContainmentName
