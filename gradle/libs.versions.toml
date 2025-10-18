@@ -14,9 +14,9 @@ specs = "0.6.1"
 testcontainers = "2.0.1"
 
 [plugins]
-build-config  = { id = "com.github.gmazzo.buildconfig", version = "5.6.7" }
+build-config  = { id = "com.github.gmazzo.buildconfig", version = "5.7.0" }
 vanniktech-publish = { id = "com.vanniktech.maven.publish", version = "0.34.0" }
-ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "13.0.0" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "13.1.0" }
 release = { id ="net.researchgate.release", version = "3.1.0" }
 
 [libraries]
