@@ -62,7 +62,7 @@ public class JavaNode extends BaseASTNode {
         if (p.getReadMethod() == null || p.getReadMethod().getDeclaringClass() == Object.class) {
             return false;
         }
-        return !hasAnnotation(p, Internal.class) && !hasAnnotation(p, Link.class);
+        return !hasAnnotation(p, Internal.class);
     }
 
     public static boolean hasAnnotation(PropertyDescriptor p, Class<? extends Annotation> annotation) {
