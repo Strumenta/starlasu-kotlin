@@ -8,7 +8,14 @@ It supports both **Kotlin** and **Java**, and integrates smoothly with **ANTLR**
 
 > **Starlasu** stands for **Star** **La**nguage **Su**pport — a family of libraries available for multiple languages, including **Python**, **TypeScript**, and **C#**.
 
----
+### **Starlasu Kotlin (previosuly called Kolasu) Version Overview**
+
+| Version | Status | JVM Support | Kotlin Support | Notes |
+|----------|---------|--------------|----------------|--------|
+| **1.5** | Maintenance mode | 1.8 | 1.8 | Actively maintained for legacy compatibility |
+| **1.6** | Abandoned | — | — | Development discontinued |
+| **1.7** | In development | 11 | 2.0 | Current main development branch |
+| **2.0** | Planned | 17 | 2.2 | Future major release with modern JVM and Kotlin support |
 
 ## Supported JDKs
 
