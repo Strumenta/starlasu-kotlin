@@ -43,9 +43,6 @@ open class CodeProcessingResult<D>(
     val isCorrect: Boolean
         get() = issues.none { it.severity != IssueSeverity.INFO }
 
-    @Deprecated(message = "Use isCorrect instead.", replaceWith = ReplaceWith("isCorrect"))
-    val correct: Boolean = isCorrect
-
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is CodeProcessingResult<*>) return false
