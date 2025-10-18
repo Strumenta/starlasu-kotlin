@@ -10,18 +10,6 @@ import com.strumenta.starlasu.model.ASTNode
 interface NodeIdProvider {
     fun id(kNode: ASTNode): String
 
-    /**
-     * This should be replaced in the future by setting sNode.id directly, instead of relying
-     * on this external mapping
-     */
-    @Deprecated("No nodes have an ID")
-    fun registerMapping(
-        kNode: ASTNode,
-        nodeId: String,
-    ) {
-        // do nothing
-    }
-
     var parentProvider: NodeIdProvider?
     val topLevelProvider: NodeIdProvider
         get() = if (parentProvider == null) this else parentProvider!!.topLevelProvider

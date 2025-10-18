@@ -18,15 +18,4 @@ class UUIDNodeIdProvider : NodeIdProvider {
         set(value) {
             throw UnsupportedOperationException()
         }
-
-    override fun registerMapping(
-        kNode: ASTNode,
-        nodeId: String,
-    ) {
-        if (cache.containsKey(kNode)) {
-            require(cache[kNode] == nodeId)
-        } else {
-            cache[kNode] = nodeId
-        }
-    }
 }

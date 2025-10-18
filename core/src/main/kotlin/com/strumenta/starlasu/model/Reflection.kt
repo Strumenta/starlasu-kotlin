@@ -71,8 +71,6 @@ data class PropertyDescription(
     private var valueProvider: () -> Any? = { null }
     val value: Any? by lazy { valueProvider() }
 
-    @Deprecated("Typo", replaceWith = ReplaceWith("providesNodes"))
-    val provideNodes: Boolean get() = providesNodes
     val providesNodes: Boolean get() = propertyType == PropertyType.CONTAINMENT
 
     @Deprecated("Use the constructor without providesNodes")
@@ -85,7 +83,7 @@ data class PropertyDescription(
         derived: Boolean,
         type: KType,
     ) : this(name, multiplicity, value, propertyType, derived, type) {
-        if (provideNodes != this.provideNodes) {
+        if (provideNodes != this.providesNodes) {
             throw IllegalArgumentException("providesNodes value is inconsistent with propertyType")
         }
     }
