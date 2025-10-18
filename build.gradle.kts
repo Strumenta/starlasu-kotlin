@@ -95,7 +95,7 @@ subprojects {
 val isReleaseVersion = !version.toString().endsWith("SNAPSHOT")
 
 configure<net.researchgate.release.ReleaseExtension> {
-    buildTasks.set(listOf("publish"))
+    buildTasks.set(listOf("publish", ":core:publish"))
     git {
         requireBranch.set("")
         pushToRemote.set("origin")

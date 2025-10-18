@@ -80,7 +80,8 @@ project.afterEvaluate {
 }
 
 mavenPublishing {
-    coordinates("com.example.mylibrary", "mylibrary-runtime", "1.0.3-SNAPSHOT")
+    publishToMavenCentral(automaticRelease = true)
+    coordinates(project.group as String, "starlasu-${project.name}", project.version as String)
 
     pom {
         name.set(project.name)
