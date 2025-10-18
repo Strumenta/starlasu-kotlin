@@ -12,10 +12,10 @@ It supports both **Kotlin** and **Java**, and integrates smoothly with **ANTLR**
 
 | Version | Status | JVM Support | Kotlin Support | Notes |
 |----------|---------|--------------|----------------|--------|
-| **1.5** | Maintenance mode | 1.8 | 1.8 | Actively maintained for legacy compatibility |
-| **1.6** | Abandoned | — | — | Development discontinued |
-| **1.7** | In development | 11 | 2.0 | Current main development branch |
-| **2.0** | Planned | 17 | 2.2 | Future major release with modern JVM and Kotlin support |
+| **1.5** | Maintenance mode | 1.8 | 1.8            | Actively maintained for legacy compatibility |
+| **1.6** | Abandoned | — | —              | Development discontinued |
+| **1.7** | In development | 11 | 2.2            | Current main development branch |
+| **2.0** | Planned | 17 | 2.2            | Future major release with modern JVM and Kotlin support |
 
 ## Supported JDKs
 
