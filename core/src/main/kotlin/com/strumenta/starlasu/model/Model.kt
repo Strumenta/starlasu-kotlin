@@ -58,15 +58,6 @@ annotation class Internal
 annotation class Derived
 
 /**
- * Use this to mark all the properties that return a ASTNode or a list of Nodes which are not
- * contained by the ASTNode having the properties. In other words: they are just references.
- * This will prevent them from being considered branches of the AST.
- */
-@Target(AnnotationTarget.PROPERTY, AnnotationTarget.FUNCTION)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class Link
-
-/**
  * Use this to mark something that does not inherit from ASTNode as a node, so it will be included in the AST.
  */
 @Target(AnnotationTarget.CLASS)
