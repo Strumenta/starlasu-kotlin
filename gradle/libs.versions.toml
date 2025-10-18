@@ -2,7 +2,7 @@
 # Note that we use the EXACT same version of Kotlin as the one included in Gradle, to avoid
 # conflicts
 kotlin = "2.0.21"
-lwjava = "1.1.2"
+lwjava = "1.1.4"
 lwkotlin = "0.6.2"
 kotest= "5.8.0"
 dokka = "2.0.0"
@@ -10,7 +10,7 @@ jvm = "11"
 antlr = "4.13.1"
 gson = "2.13.1"
 clikt = "5.0.3"
-specs = "0.6.0"
+specs = "0.6.1"
 testcontainers = "1.21.3"
 
 [plugins]
