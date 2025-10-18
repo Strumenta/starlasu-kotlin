@@ -6,6 +6,7 @@ plugins {
     id("idea")
     id("signing")
     id("org.jetbrains.dokka")
+    id("org.jetbrains.dokka-javadoc")
 }
 
 dependencies {
@@ -71,8 +72,8 @@ idea {
 // Some tasks are created during the configuration, and therefore we need to set the dependencies involving
 // them after the configuration has been completed
 project.afterEvaluate {
-    tasks.named("dokkaJavadocJar") {
-        dependsOn(tasks.named("dokkaJavadoc"))
+    tasks.named("dokkaGeneratePublicationJavadoc") {
+        dependsOn(tasks.named("dokkaGenerate"))
     }
     tasks.named("sourcesJar") {
         dependsOn("generateGrammarSource")

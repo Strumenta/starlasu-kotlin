@@ -11,6 +11,7 @@ plugins {
     id("idea")
     id("signing")
     id("org.jetbrains.dokka") version libs.versions.dokka.get()
+    id("org.jetbrains.dokka-javadoc") version libs.versions.dokka.get()
     id("java-library")
     alias(libs.plugins.release)
 }
