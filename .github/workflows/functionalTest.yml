@@ -8,7 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # For building we need JDK 11
         java: [ '11', '17', '21' ]
     name: Java ${{ matrix.Java }} BuildAndTest
 
