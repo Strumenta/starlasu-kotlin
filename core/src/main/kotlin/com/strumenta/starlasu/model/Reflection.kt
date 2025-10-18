@@ -73,21 +73,6 @@ data class PropertyDescription(
 
     val providesNodes: Boolean get() = propertyType == PropertyType.CONTAINMENT
 
-    @Deprecated("Use the constructor without providesNodes")
-    constructor(
-        name: String,
-        provideNodes: Boolean,
-        multiplicity: Multiplicity,
-        value: Any?,
-        propertyType: PropertyType,
-        derived: Boolean,
-        type: KType,
-    ) : this(name, multiplicity, value, propertyType, derived, type) {
-        if (provideNodes != this.providesNodes) {
-            throw IllegalArgumentException("providesNodes value is inconsistent with propertyType")
-        }
-    }
-
     constructor(
         name: String,
         multiplicity: Multiplicity,
