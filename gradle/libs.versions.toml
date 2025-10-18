@@ -20,7 +20,7 @@ ktlint = { id = "org.jlleitschuh.gradle.ktlint", version = "13.1.0" }
 release = { id ="net.researchgate.release", version = "3.1.0" }
 
 [libraries]
-guava = { group = "com.google.guava", name="guava", version="33.4.8-jre" } # Only used in tests
+guava = { group = "com.google.guava", name="guava", version="33.5.0-jre" } # Only used in tests
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 lionweb-java = { group = "io.lionweb.lionweb-java", name = "lionweb-java-2024.1-core", version.ref = "lwjava" }
 lionweb-java-client-testing = { group = "io.lionweb.lionweb-java", name = "lionweb-java-2024.1-client-testing", version.ref = "lwjava" }
