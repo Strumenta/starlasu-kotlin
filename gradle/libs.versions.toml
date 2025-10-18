@@ -4,14 +4,14 @@
 kotlin = "2.0.21"
 lwjava = "1.1.4"
 lwkotlin = "0.6.2"
-kotest= "6.0.4"
+kotest= "5.9.1"
 dokka = "2.1.0"
 jvm = "11"
 antlr = "4.13.2"
 gson = "2.13.2"
 clikt = "5.0.3"
 specs = "0.6.1"
-testcontainers = "2.0.1"
+testcontainers = "1.21.3"
 
 [plugins]
 build-config  = { id = "com.github.gmazzo.buildconfig", version = "5.7.0" }
@@ -37,11 +37,9 @@ kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.re
 kotlin-test-junit5 = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit5", version.ref = "kotlin" }
 commons-io = {module="commons-io:commons-io", version="2.20.0" }
 slf4j = {module="org.slf4j:slf4j-simple", version="2.0.17" }
-
 kotest-runner-junit5 = { module="io.kotest:kotest-runner-junit5-jvm", version.ref="kotest" }
 kotest-assertions-core = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
 kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
 testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 testcontainers-junit5 = { module="org.testcontainers:junit-jupiter", version.ref="testcontainers" }
 testcontainers-pg = { module="org.testcontainers:postgresql", version.ref="testcontainers" }
-kotest-testcontainers = { module = "io.kotest.extensions:kotest-extensions-testcontainers", version.ref = "kotest" }
