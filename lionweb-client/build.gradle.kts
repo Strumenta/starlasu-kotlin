@@ -5,7 +5,7 @@ plugins {
     id("java-library")
     alias(libs.plugins.vanniktech.publish)
     alias(libs.plugins.build.config)
-    
+    id("signing")
 }
 
 repositories {

@@ -81,7 +81,7 @@ project.afterEvaluate {
 
 mavenPublishing {
     publishToMavenCentral(automaticRelease = true)
-    coordinates(project.group as String, "starlasu-${project.name}", project.version as String)
+    coordinates(project.group.toString(), "starlasu-${project.name}", project.version.toString())
 
     pom {
         name.set(project.name)
