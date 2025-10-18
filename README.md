@@ -1,94 +1,118 @@
 # Starlasu Kotlin
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.strumenta.starlasy/starlasu-core/badge.svg?gav=true)](https://maven-badges.herokuapp.com/maven-central/com.strumenta.kolasu/kolasu-core?gav=true)
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/Strumenta/starlasu-kotlin/check.yml)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.strumenta.starlasu/starlasu-core/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.strumenta.starlasu/starlasu-core)
+![Build Status](https://img.shields.io/github/actions/workflow/status/Strumenta/starlasu-kotlin/check.yml?branch=main)
 
-Starlasu supplies the infrastructure to build a custom, possibly mutable, Abstract Syntax Tree (AST). This library
-specifically support Kotlin and Java.
-In particular, it can be integrated easily with ANTLR, but it can also be used on its own.
-Starlasu Kotlin strives to be usable and idiomatic also in Java projects.
+**Starlasu Kotlin** provides the infrastructure for building custom, possibly mutable, Abstract Syntax Trees (ASTs).  
+It supports both **Kotlin** and **Java**, and integrates smoothly with **ANTLR**, though it can also be used standalone.
 
-Starlasu stands for **Star** _**La**nguage_ _**Su**pport_.
-The **Star** indicates that this is a multi-language library, with ports of this same code
-for Python, Typescript and C#.
+> **Starlasu** stands for **Star** **La**nguage **Su**pport — a family of libraries available for multiple languages, including **Python**, **TypeScript**, and **C#**.
 
-## JDK supported
+---
 
-We support JDK 11, 17, and 21. All JDKs in between should work too, but these are explicitly tested.
+## Supported JDKs
+
+Tested with **JDK 11**, **17**, and **21**.  
+Other intermediate versions are expected to work as well.
+
+---
 
 ## Documentation
 
-You can take a look at the documentation for Starlasu, as it explain the principles used in the whole set of libraries, including Kolasu: [Starlasu documentation](https://github.com/Strumenta/Starlasu/tree/main/documentation).
+- **Concepts and Principles:** [Starlasu documentation](https://github.com/Strumenta/Starlasu/tree/main/documentation) — shared across all Starlasu libraries.
+- **API Reference:** [Javadoc for Starlasu Kotlin](https://www.javadoc.io/doc/com.strumenta.starlasu).
 
-The documentation of Starlasu Kotlin's APIs is on Maven Central for consumption by IDEs. It's also possible to consult it online at https://www.javadoc.io/doc/com.strumenta.kolasu.
+---
 
-## What do we use Starlasu for?
+## What Is It Used For?
 
-Starlasu has been used to implement:
-* Parsers
-* Editors
-* Transpilers
-* Code analysis tools
+Starlasu is used to implement:
 
-## Features
+- Parsers
+- Editors
+- Transpilers
+- Code analysis tools
 
-Extend your AST classes from `Node` to get these features:
-* Navigation: utility methods to traverse, search, and modify the AST
-* Printing: print the AST as XML, as JSON, as a parse tree
-* EMF interoperability: ASTs and their metamodel can be exported to EMF
+It serves as a general foundation for projects that need to manipulate or generate language structures.
 
-Classes can have a *name*, and classes can *reference* a name.
-Utilities for resolving these references are supplied.
+---
 
-Kolasu tries to be non-invasive and implements this functionality by introspecting the AST.
-All properties, and therefore the whole tree structure, will be detected automatically. 
+## Key Features
 
-## Origin
+Extend your AST classes from `Node` to automatically gain:
 
-Starlasu was born as a small framework to support building languages using ANTLR and Kotlin. It evolved over the time as 
-it was used at Strumenta as part of open-source and commercial projects for building transpilers, interpreters, 
-compilers, and more.
+- **Navigation:** Traverse, search, and modify the AST with utility methods.
+- **Printing:** Output ASTs as XML, JSON, or parse trees.
+- **LionWev Interoperability:** Export ASTs and languages (i.e., metamodels) to LionWeb.
+- **Name Resolution:** Built-in utilities for named elements and reference resolution.
+- **Automatic Structure Discovery:** Starlasu introspects your AST — all properties and tree structure are detected automatically.
 
-## Using Starlasu in your project
+---
 
-Releases are published on Maven Central: 
+## Background
 
-```
+Starlasu began as a small framework to support building languages with ANTLR and Kotlin.  
+It has since evolved into a modular, cross-language toolkit used at **[Strumenta](https://strumenta.com)** in both open-source and commercial projects for transpilers, interpreters, compilers, and related tools.
+
+---
+
+## Installation
+
+Add the dependency from Maven Central:
+
+```gradle
 dependencies {
-    compile "com.strumenta.starlasu:starlasu-core:1.7.x"
+    implementation "com.strumenta.starlasu:starlasu-core:1.7.x"
 }
 ```
 
-## How to format code
+---
 
-Run:
+## Code Formatting
 
-```
+Format the code using:
+
+```bash
 ./gradlew ktlintFormat
 ```
 
-## Projects using Kolasu
+---
 
-Kolasu is used in several internal and commercial projects developed at [Strumenta](https://strumenta.com).
+## Projects Using Starlasu / Kolasu
 
-## Publishing a new release
+Starlasu (and its predecessor Kolasu) are used in several internal and commercial projects developed at [Strumenta](https://strumenta.com).
 
-If you do not have gpg keys:
+---
 
-1. Install gpg (`brew install gnupg` on mac)
-2. Generate the key (`gpg --gen-key`, no passphrase needed)
-3. Publish the key
+## Releasing a New Version
 
-Instructions available here: https://selectfrom.dev/publishing-your-first-open-source-library-with-gradle-50bd0b1cd3af
+If you need to publish a new release:
 
-Please note that you may have to export the keys (`gpg --keyring secring.gpg --export-secret-keys > ~/.gnupg/secring.gpg`)
+1. **Set up GPG keys**
+   ```bash
+   brew install gnupg
+   gpg --gen-key
+   ```
+   (no passphrase needed)  
+   Export your keys:
+   ```bash
+   gpg --keyring secring.gpg --export-secret-keys > ~/.gnupg/secring.gpg
+   ```
 
-You will need to store in ~/.gradle/gradle.properties your sonatype credentials under ossrhTokenUsername and ossrhTokenPassword.
+2. **Configure credentials**  
+   Add your Sonatype credentials to `~/.gradle/gradle.properties`:
+   ```
+   ossrhTokenUsername=your_username
+   ossrhTokenPassword=your_password
+   ```
 
-New release can be made by running:
+3. **Publish the release**
+   ```bash
+   ./gradlew release
+   ```
 
-```
-./gradlew release
-```
+Releases are handled automatically once triggered.
 
-Releases are performed automatically.
+For detailed setup instructions, see  
+[Publishing your first open-source library with Gradle](https://selectfrom.dev/publishing-your-first-open-source-library-with-gradle-50bd0b1cd3af).
+
