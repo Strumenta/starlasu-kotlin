@@ -24,7 +24,7 @@ public class CompilationUnit extends BaseASTNode {
         public List<PropertyDescription> getOriginalProperties() {
             Type type = new TypeToken<List<B>>() {}.getType();
             return Arrays.asList(new PropertyDescription(
-                    "bs", true, Multiplicity.MANY, getBs(), PropertyType.CONTAINMENT, false,
+                    "bs", Multiplicity.MANY, getBs(), PropertyType.CONTAINMENT, false,
                     JavaNode.kotlinType((ParameterizedType) type, false)));
         }
 
