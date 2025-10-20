@@ -68,12 +68,54 @@ class PrinterOutput(
         if (needPrintln) {
             adaptedText = adaptedText.removeSuffix("\n")
         }
-        considerIndentation()
+        if (!needPrintln || text.isNotBlank()) {
+            considerIndentation()
+        }
         require(adaptedText.lines().size < 2 || allowMultiLine) { "Given text span multiple lines: $adaptedText" }
         sb.append(adaptedText)
         currentPoint += adaptedText
         if (needPrintln) {
             println()
+        }
+    }
+
+    fun ensureSpace() {
+        val text = this.text()
+        if (text.isEmpty()) {
+            return
+        }
+        if (!text.last().isWhitespace()) {
+            print(" ")
+        }
+    }
+
+    fun <T : Node> printList(
+        prefix: String,
+        elements: List<T>,
+        postfix: String,
+        printEvenIfEmpty: Boolean = false,
+        separatorLogic: (PrinterOutput.() -> Unit),
+    ) {
+        val elementPrinter: (T) -> Unit = { el -> print(el) }
+        if (elements.isNotEmpty() || printEvenIfEmpty) {
+            print(prefix)
+            printList(elements, separatorLogic, elementPrinter)
+            print(postfix)
+        }
+    }
+
+    fun <T : Node> printList(
+        elements: List<T>,
+        separatorLogic: (PrinterOutput.() -> Unit),
+        elementPrinter: (T) -> Unit,
+    ) {
+        var i = 0
+        while (i < elements.size) {
+            if (i != 0) {
+                separatorLogic.invoke(this)
+            }
+            elementPrinter(elements[i])
+            i += 1
         }
     }
 
