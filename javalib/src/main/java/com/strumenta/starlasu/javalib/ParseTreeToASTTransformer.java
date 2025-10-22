@@ -1,10 +1,9 @@
 package com.strumenta.starlasu.javalib;
 
 import com.strumenta.starlasu.model.ASTNode;
-import com.strumenta.starlasu.model.BaseASTNode;
 import com.strumenta.starlasu.model.Source;
 import com.strumenta.starlasu.transformation.ASTTransformer;
-import com.strumenta.starlasu.transformation.NodeFactory;
+import com.strumenta.starlasu.transformation.Transform;
 import com.strumenta.starlasu.validation.Issue;
 import kotlin.jvm.functions.Function1;
 import kotlin.jvm.functions.Function2;
@@ -32,22 +31,22 @@ public class ParseTreeToASTTransformer extends com.strumenta.starlasu.mapping.Pa
         super(issues);
     }
 
-    protected <S, T extends ASTNode> @NotNull NodeFactory<S, T> registerNodeFactory(Class<S> source, Class<T> target) {
+    protected <S, T extends ASTNode> @NotNull Transform<S, T> registerNodeFactory(Class<S> source, Class<T> target) {
         return registerNodeFactory(source, target, target.getName());
     }
 
-    protected <S, T extends ASTNode> @NotNull NodeFactory<S, T> registerNodeFactory(
+    protected <S, T extends ASTNode> @NotNull Transform<S, T> registerNodeFactory(
             Class<S> source, Class<T> target, String nodeType
     ) {
-        return registerNodeFactory(getKotlinClass(source), getKotlinClass(target), nodeType);
+        return registerTransform(getKotlinClass(source), getKotlinClass(target), nodeType);
     }
 
-    protected <S, T extends ASTNode> NodeFactory<S, T> registerNodeFactory(Class<S> source, Function1<S, T> function) {
-        return registerNodeFactory(getKotlinClass(source), (s, t) -> function.invoke(s));
+    protected <S, T extends ASTNode> Transform<S, T> registerNodeFactory(Class<S> source, Function1<S, T> function) {
+        return registerTransform(getKotlinClass(source), (s, t) -> function.invoke(s));
     }
 
-    protected <S, T extends ASTNode> NodeFactory<S, T> registerNodeFactory(Class<S> source, Function2<S, ? super ASTTransformer, T> function) {
-        return registerNodeFactory(getKotlinClass(source), function);
+    protected <S, T extends ASTNode> Transform<S, T> registerNodeFactory(Class<S> source, Function2<S, ? super ASTTransformer, T> function) {
+        return registerTransform(getKotlinClass(source), function);
     }
 
 }

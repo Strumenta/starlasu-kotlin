@@ -2,6 +2,7 @@ package com.strumenta.starlasu.transformation
 
 import com.strumenta.starlasu.mapping.translateCasted
 import com.strumenta.starlasu.mapping.translateList
+import com.strumenta.starlasu.model.BaseASTNode
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.children
 import com.strumenta.starlasu.model.hasValidParents
@@ -120,7 +121,7 @@ class ASTTransformerTest {
     fun testIdentitiyTransformer() {
         val transformer = ASTTransformer()
         transformer
-            .registerNodeFactory(CU::class, CU::class)
+            .registerTransform(CU::class, CU::class)
             .withChild(CU::statements, CU::statements)
         transformer.registerIdentityTransformation(DisplayIntStatement::class)
         transformer.registerIdentityTransformation(SetStatement::class)
@@ -145,8 +146,8 @@ class ASTTransformerTest {
     @Test
     fun translateBinaryExpression() {
         val myTransformer =
-            ASTTransformer(allowGenericNode = false).apply {
-                registerNodeFactory(GenericBinaryExpression::class) { source: GenericBinaryExpression ->
+            ASTTransformer().apply {
+                registerTransform(GenericBinaryExpression::class) { source: GenericBinaryExpression ->
                     when (source.operator) {
                         Operator.MULT ->
                             Mult(
@@ -179,15 +180,15 @@ class ASTTransformerTest {
     @Test
     fun translateAcrossLanguages() {
         val myTransformer =
-            ASTTransformer(allowGenericNode = false).apply {
-                registerNodeFactory(ALangIntLiteral::class) { source: ALangIntLiteral -> BLangIntLiteral(source.value) }
-                registerNodeFactory(ALangSum::class) { source: ALangSum ->
+            ASTTransformer().apply {
+                registerTransform(ALangIntLiteral::class) { source: ALangIntLiteral -> BLangIntLiteral(source.value) }
+                registerTransform(ALangSum::class) { source: ALangSum ->
                     BLangSum(
                         transform(source.left) as BLangExpression,
                         transform(source.right) as BLangExpression,
                     )
                 }
-                registerNodeFactory(ALangMult::class) { source: ALangMult ->
+                registerTransform(ALangMult::class) { source: ALangMult ->
                     BLangMult(
                         transform(source.left) as BLangExpression,
                         transform(source.right) as BLangExpression,
@@ -220,7 +221,7 @@ class ASTTransformerTest {
     @Test
     fun computeTypes() {
         val myTransformer =
-            ASTTransformer(allowGenericNode = false).apply {
+            ASTTransformer().apply {
                 registerIdentityTransformation(TypedSum::class).withFinalizer {
                     if (it.left.type == Type.INT && it.right.type == Type.INT) {
                         it.type = Type.INT
@@ -327,9 +328,9 @@ class ASTTransformerTest {
     fun testDroppingNodes() {
         val transformer = ASTTransformer()
         transformer
-            .registerNodeFactory(CU::class, CU::class)
+            .registerTransform(CU::class, CU::class)
             .withChild(CU::statements, CU::statements)
-        transformer.registerNodeFactory(DisplayIntStatement::class) { _ -> null }
+        transformer.registerTransform(DisplayIntStatement::class) { _ -> null }
         transformer.registerIdentityTransformation(SetStatement::class)
 
         val cu =
@@ -349,11 +350,13 @@ class ASTTransformerTest {
 
     @Test
     fun testNestedOrigin() {
+        class GenericNode : BaseASTNode()
+
         val transformer = ASTTransformer()
         transformer
-            .registerNodeFactory(CU::class, CU::class)
+            .registerTransform(CU::class, CU::class)
             .withChild(CU::statements, CU::statements)
-        transformer.registerNodeFactory(DisplayIntStatement::class) { s ->
+        transformer.registerTransform(DisplayIntStatement::class) { s ->
             s.withOrigin(GenericNode())
         }
 
@@ -374,9 +377,9 @@ class ASTTransformerTest {
     fun testTransformingOneNodeToMany() {
         val transformer = ASTTransformer()
         transformer
-            .registerNodeFactory(BarRoot::class, BazRoot::class)
+            .registerTransform(BarRoot::class, BazRoot::class)
             .withChild(BazRoot::stmts, BarRoot::stmts)
-        transformer.registerMultipleNodeFactory(BarStmt::class) { s ->
+        transformer.registerMultipleTransform(BarStmt::class) { s ->
             listOf(BazStmt("${s.desc}-1"), BazStmt("${s.desc}-2"))
         }
 
@@ -406,9 +409,9 @@ class ASTTransformerTest {
 
     @Test
     fun testUnmappedNode() {
-        val transformer1 = ASTTransformer(allowGenericNode = false)
+        val transformer1 = ASTTransformer()
         transformer1
-            .registerNodeFactory(BarRoot::class, BazRoot::class)
+            .registerTransform(BarRoot::class, BazRoot::class)
             .withChild(BazRoot::stmts) { stmts }
         val original =
             BarRoot(
@@ -453,7 +456,7 @@ class ASTTransformerTest {
     @Test
     fun testPartialIdentityTransformation() {
         val transformer1 = ASTTransformer(defaultTransformation = IDENTTITY_TRANSFORMATION)
-        transformer1.registerNodeFactory(BarRoot::class) { original: BarRoot, astTransformer: ASTTransformer, _ ->
+        transformer1.registerTransform(BarRoot::class) { original: BarRoot, astTransformer: ASTTransformer, _ ->
             FooRoot(
                 desc = "#children = ${original.children.size}",
                 stmts = astTransformer.translateList(original.stmts),
@@ -483,7 +486,7 @@ class ASTTransformerTest {
     @Test
     fun testIdentityTransformationOfIntermediateNodes() {
         val transformer1 = ASTTransformer(defaultTransformation = IDENTTITY_TRANSFORMATION)
-        transformer1.registerNodeFactory(BarRoot::class) { original: BarRoot, astTransformer: ASTTransformer, _ ->
+        transformer1.registerTransform(BarRoot::class) { original: BarRoot, astTransformer: ASTTransformer, _ ->
             FooRoot(
                 desc = "#children = ${original.children.size}",
                 stmts = astTransformer.translateList(original.stmts),
@@ -529,7 +532,7 @@ class ASTTransformerTest {
             transformer1.transform(original) as AA,
         )
         // All identity besides AA
-        transformer1.registerNodeFactory(AA::class) { original, t, _ ->
+        transformer1.registerTransform(AA::class) { original, t, _ ->
             BA("your_" + original.a.removePrefix("my_"), t.translateCasted(original.child))
         }
         assertASTsAreEqual(
@@ -553,7 +556,7 @@ class ASTTransformerTest {
             transformer1.transform(original) as AA,
         )
         // All identity besides AA and AB
-        transformer1.registerNodeFactory(AB::class) { original, t, _ ->
+        transformer1.registerTransform(AB::class) { original, t, _ ->
             BB("your_" + original.b.removePrefix("my_"), t.translateCasted(original.child))
         }
         assertASTsAreEqual(
@@ -577,7 +580,7 @@ class ASTTransformerTest {
             transformer1.transform(original) as AA,
         )
         // All identity besides AA and AB and AD
-        transformer1.registerNodeFactory(AD::class) { original, t, _ ->
+        transformer1.registerTransform(AD::class) { original, t, _ ->
             BD("your_" + original.d.removePrefix("my_"))
         }
         assertASTsAreEqual(
@@ -605,7 +608,7 @@ class ASTTransformerTest {
     @Test
     fun testIdentityTransformationOfIntermediateNodesWithOrigin() {
         val transformer1 = ASTTransformer(defaultTransformation = IDENTTITY_TRANSFORMATION)
-        transformer1.registerNodeFactory(AA::class) { original, t, _ ->
+        transformer1.registerTransform(AA::class) { original, t, _ ->
             BA("your_" + original.a.removePrefix("my_"), t.translateCasted(original.child))
         }
         val original =
