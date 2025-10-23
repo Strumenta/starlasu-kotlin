@@ -4,6 +4,7 @@ import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.Origin
 import com.strumenta.starlasu.model.Position
 import com.strumenta.starlasu.model.PropertyDescription
+import com.strumenta.starlasu.model.Source
 import com.strumenta.starlasu.model.asContainment
 import com.strumenta.starlasu.model.children
 import com.strumenta.starlasu.model.processProperties
@@ -263,6 +264,18 @@ data class ChildTransform<Source, Target, Child : Any>(
  */
 private val NO_CHILD_NODE = ChildTransform<Any, Any, Any>("", { x -> x }, { _, _ -> }, ASTNode::class)
 
+/**
+ * A context holding metadata relevant to the transformation process, such as parent node reference, associated source,
+ * and issues discovered during transformation.
+ *
+ * This is an open class so that specialized AST transformers can extend it to track additional information.
+ *
+ * @constructor Creates an instance of the transformation context.
+ * @param issues A mutable list of issues encountered during the transformation.
+ *               Defaults to an empty list if not provided.
+ * @param parent The parent [ASTNode] in the hierarchy, if available. Defaults to null.
+ * @param source The [Source] object associated with this context, if any. Defaults to null.
+ */
 open class TransformationContext
     @JvmOverloads
     constructor(
@@ -271,13 +284,19 @@ open class TransformationContext
          */
         val issues: MutableList<Issue> = mutableListOf(),
         var parent: ASTNode? = null,
+        var source: Source? = null,
     ) {
         fun addIssue(
             message: String,
             severity: IssueSeverity = IssueSeverity.ERROR,
             position: Position? = null,
         ): Issue {
-            val issue = Issue.semantic(message, severity, position)
+            val issue =
+                Issue.semantic(
+                    message,
+                    severity,
+                    position?.apply { source = this@TransformationContext.source },
+                )
             issues.add(issue)
             return issue
         }
@@ -295,7 +314,7 @@ open class ASTTransformer
     constructor(
         val throwOnUnmappedNode: Boolean = false,
         /**
-         * When the fault-tolerant flag is set, in case a transformation fails we will add a node
+         * When the fault-tolerant flag is set, in case a transformation fails, we will add a node
          * with the origin FailingASTTransformation. If the flag is not set, then the transformation will just
          * fail.
          */
@@ -380,7 +399,7 @@ open class ASTTransformer
                 }
                 nodes = defaultNodes(source, context, expectedType)
                 nodes.filter { it.origin == null }.forEach { node ->
-                    node.origin = MissingASTTransformation(asOrigin(source), source, expectedType)
+                    node.origin = MissingASTTransformation(asOrigin(source, context), source, expectedType)
                 }
             }
             return nodes
@@ -429,7 +448,10 @@ open class ASTTransformer
             }
         }
 
-        open fun asOrigin(source: Any): Origin? = if (source is Origin) source else null
+        open fun asOrigin(
+            source: Any,
+            context: TransformationContext,
+        ): Origin? = source as? Origin
 
         protected open fun setChild(
             childTransform: ChildTransform<*, *, *>,
@@ -469,7 +491,7 @@ open class ASTTransformer
             val nodes = transform.constructor(source, context, this, transform)
             nodes.forEach { node ->
                 if (node.origin == null) {
-                    node.withOrigin(asOrigin(source))
+                    node.withOrigin(asOrigin(source, context))
                 }
             }
             return nodes
@@ -533,7 +555,7 @@ open class ASTTransformer
             kclass: KClass<S>,
             crossinline factory: (S) -> T?,
         ): Transform<S, T> =
-            registerTransform(kclass) { input, _, _, _ ->
+            registerTransform(kclass) { input, context ->
                 try {
                     factory(input)
                 } catch (t: NotImplementedError) {
@@ -541,7 +563,7 @@ open class ASTTransformer
                         val node = T::class.dummyInstance()
                         node.origin =
                             FailingASTTransformation(
-                                asOrigin(input),
+                                asOrigin(input, context),
                                 "Failed to transform $input into $kclass because the implementation is not complete " +
                                     "(${t.message}",
                             )
@@ -554,7 +576,7 @@ open class ASTTransformer
                         val node = T::class.dummyInstance()
                         node.origin =
                             FailingASTTransformation(
-                                asOrigin(input),
+                                asOrigin(input, context),
                                 "Failed to transform $input into $kclass because of an error (${e.message})",
                             )
                         node

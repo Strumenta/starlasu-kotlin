@@ -3,7 +3,6 @@ package com.strumenta.starlasu.mapping
 import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.Origin
-import com.strumenta.starlasu.model.Source
 import com.strumenta.starlasu.parsing.ParseTreeOrigin
 import com.strumenta.starlasu.parsing.withParseTreeNode
 import com.strumenta.starlasu.transformation.ASTTransformer
@@ -21,7 +20,6 @@ import kotlin.reflect.KClass
 open class ParseTreeToASTTransformer
     @JvmOverloads
     constructor(
-        val source: Source? = null,
         throwOnUnmappedNode: Boolean = true,
         faultTolerant: Boolean = throwOnUnmappedNode,
     ) : ASTTransformer(throwOnUnmappedNode, faultTolerant) {
@@ -36,15 +34,14 @@ open class ParseTreeToASTTransformer
             expectedType: KClass<out ASTNode>,
         ): List<ASTNode> {
             if (source is ParserRuleContext && source.exception != null) {
+                if (!faultTolerant) {
+                    throw RuntimeException("Failed to transform $source into $expectedType", source.exception)
+                }
                 val origin =
-                    if (faultTolerant) {
-                        FailingASTTransformation(
-                            asOrigin(source),
-                            "Failed to transform $source into $expectedType because of an error (${source.exception.message})",
-                        )
-                    } else {
-                        throw RuntimeException("Failed to transform $source into $expectedType", source.exception)
-                    }
+                    FailingASTTransformation(
+                        asOrigin(source, context),
+                        "Failed to transform $source into $expectedType because of an error (${source.exception.message})",
+                    )
                 val nodes = defaultNodes(source, context, expectedType)
                 nodes.forEach { node ->
                     node.origin = origin
@@ -56,9 +53,9 @@ open class ParseTreeToASTTransformer
                 .map { node ->
                     if (source is ParserRuleContext) {
                         if (node.origin == null) {
-                            node.withParseTreeNode(source, this.source)
+                            node.withParseTreeNode(source, context.source)
                         } else if (node.position != null && node.source == null) {
-                            node.position!!.source = this.source
+                            node.position!!.source = context.source
                         }
                     }
                     return listOf(node)
@@ -73,7 +70,15 @@ open class ParseTreeToASTTransformer
             return if (origin is ParseTreeOrigin) origin.parseTree else source
         }
 
-        override fun asOrigin(source: Any): Origin? = if (source is ParseTree) ParseTreeOrigin(source) else null
+        override fun asOrigin(
+            source: Any,
+            context: TransformationContext,
+        ): Origin? =
+            if (source is ParseTree) {
+                ParseTreeOrigin(source, context.source)
+            } else {
+                null
+            }
 
         override fun asString(source: Any): String? =
             if (source is ParseTree) {

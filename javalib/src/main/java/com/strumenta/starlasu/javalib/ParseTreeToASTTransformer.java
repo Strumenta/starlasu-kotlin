@@ -21,12 +21,12 @@ public class ParseTreeToASTTransformer extends com.strumenta.starlasu.mapping.Pa
         super();
     }
 
-    public ParseTreeToASTTransformer(@Nullable Source source) {
-        super(source);
+    public ParseTreeToASTTransformer(boolean throwOnUnmappedNode) {
+        super(throwOnUnmappedNode);
     }
 
-    public ParseTreeToASTTransformer(@Nullable Source source, boolean throwOnUnmappedNode) {
-        super(source, throwOnUnmappedNode);
+    public ParseTreeToASTTransformer(boolean throwOnUnmappedNode, boolean faultTolerant) {
+        super(throwOnUnmappedNode, faultTolerant);
     }
     
     protected <S, T extends ASTNode> @NotNull Transform<S, T> registerNodeFactory(Class<S> source, Class<T> target) {
