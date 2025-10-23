@@ -6,6 +6,8 @@ import com.strumenta.starlasu.model.PropertyDescription
 import com.strumenta.starlasu.model.Source
 import com.strumenta.starlasu.model.assignParents
 import com.strumenta.starlasu.model.processProperties
+import com.strumenta.starlasu.transformation.ASTTransformer
+import com.strumenta.starlasu.transformation.TransformationContext
 import com.strumenta.starlasu.traversing.walk
 import com.strumenta.starlasu.validation.Issue
 import com.strumenta.starlasu.validation.IssueType
@@ -164,14 +166,26 @@ abstract class KolasuParser<R : Node, P : Parser, C : ParserRuleContext, T : Kol
     }
 
     /**
-     * Transforms a parse tree into an AST (second parsing stage).
+     * Transforms a parse tree into an AST (second parsing stage). By default, it uses the AST transformer obtained by
+     * calling [setupASTTransformer]. However, if you want to use a different transformation strategy, you can override
+     * this method. In that case, remember to ensure that the resulting AST has parent nodes properly set, or call
+     * [assignParents] on it.
      */
-    protected abstract fun parseTreeToAst(
+    protected open fun parseTreeToAst(
         parseTreeRoot: C,
         considerPosition: Boolean = true,
         issues: MutableList<Issue>,
         source: Source? = null,
-    ): R?
+    ): R? {
+        val transformer = setupASTTransformer()
+        if (transformer == null) {
+            throw IllegalStateException("No AST transformer available, and parseTreeToAst not overridden.")
+        } else {
+            return transformer.transform(parseTreeRoot, TransformationContext(issues = issues)) as R?
+        }
+    }
+
+    protected open fun setupASTTransformer(): ASTTransformer? = null
 
     protected open fun attachListeners(
         parser: P,
@@ -312,7 +326,6 @@ abstract class KolasuParser<R : Node, P : Parser, C : ParserRuleContext, T : Kol
         val firstStage = parseFirstStage(inputStream, measureLexingTime)
         val myIssues = firstStage.issues.toMutableList()
         var ast = parseTreeToAst(firstStage.root!!, considerPosition, myIssues, source)
-        assignParents(ast)
         ast = if (ast == null) null else postProcessAst(ast, myIssues)
         if (ast != null && !considerPosition) {
             // Remove parseTreeNodes because they cause the position to be computed
