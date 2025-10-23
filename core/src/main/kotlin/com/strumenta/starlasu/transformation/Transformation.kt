@@ -373,13 +373,32 @@ open class ASTTransformer
                     node.parent = parent
                 }
             } else {
-                if (defaultTransformation != null) {
-                    nodes = defaultTransformation.invoke(source, context, expectedType, this)
-                } else if (expectedType.isDirectlyOrIndirectlyInstantiable() && !throwOnUnmappedNode) {
+                if (defaultTransformation == null && throwOnUnmappedNode) {
+                    throw IllegalStateException(
+                        "Unable to translate node $source (class ${source::class.qualifiedName})",
+                    )
+                }
+                nodes = defaultNodes(source, context, expectedType)
+                nodes.filter { it.origin == null }.forEach { node ->
+                    node.origin = MissingASTTransformation(asOrigin(source), source, expectedType)
+                }
+            }
+            return nodes
+        }
+
+        protected fun defaultNodes(
+            source: Any,
+            context: TransformationContext,
+            expectedType: KClass<out ASTNode>,
+            nullable: Boolean = false,
+        ): List<ASTNode> =
+            defaultTransformation?.invoke(source, context, expectedType, this)
+                ?: if (nullable) {
+                    listOf()
+                } else if (expectedType.isDirectlyOrIndirectlyInstantiable()) {
                     try {
                         val node = expectedType.dummyInstance()
-                        node.origin = MissingASTTransformation(asOrigin(source), source, expectedType)
-                        nodes = listOf(node)
+                        listOf(node)
                     } catch (e: Exception) {
                         throw IllegalStateException(
                             "Unable to instantiate desired node type ${expectedType.qualifiedName}",
@@ -391,9 +410,6 @@ open class ASTTransformer
                         "Unable to translate node $source (class ${source::class.qualifiedName})",
                     )
                 }
-            }
-            return nodes
-        }
 
         protected open fun setChildren(
             transform: Transform<Any, ASTNode>,

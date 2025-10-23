@@ -7,6 +7,7 @@ import com.strumenta.starlasu.model.Source
 import com.strumenta.starlasu.parsing.ParseTreeOrigin
 import com.strumenta.starlasu.parsing.withParseTreeNode
 import com.strumenta.starlasu.transformation.ASTTransformer
+import com.strumenta.starlasu.transformation.FailingASTTransformation
 import com.strumenta.starlasu.transformation.Transform
 import com.strumenta.starlasu.transformation.TransformationContext
 import org.antlr.v4.runtime.ParserRuleContext
@@ -34,6 +35,22 @@ open class ParseTreeToASTTransformer
             context: TransformationContext,
             expectedType: KClass<out ASTNode>,
         ): List<ASTNode> {
+            if (source is ParserRuleContext && source.exception != null) {
+                val origin =
+                    if (faultTolerant) {
+                        FailingASTTransformation(
+                            asOrigin(source),
+                            "Failed to transform $source into $expectedType because of an error (${source.exception.message})",
+                        )
+                    } else {
+                        throw RuntimeException("Failed to transform $source into $expectedType", source.exception)
+                    }
+                val nodes = defaultNodes(source, context, expectedType)
+                nodes.forEach { node ->
+                    node.origin = origin
+                }
+                return nodes
+            }
             val transformed = super.transformIntoNodes(source, context, expectedType)
             return transformed
                 .map { node ->
