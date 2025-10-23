@@ -3,6 +3,7 @@ package com.strumenta.starlasu.mapping
 import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.parsing.getOriginalText
 import com.strumenta.starlasu.transformation.ASTTransformer
+import com.strumenta.starlasu.transformation.TransformationContext
 import org.antlr.v4.runtime.ParserRuleContext
 
 /**
@@ -13,8 +14,11 @@ import org.antlr.v4.runtime.ParserRuleContext
  * JPostIncrementExpr(translateCasted<JExpression>(expression().first()))
  * ```
  */
-inline fun <reified T : ASTNode> ASTTransformer.translateCasted(original: Any): T {
-    val result = transform(original, expectedType = T::class)
+inline fun <reified T : ASTNode> ASTTransformer.translateCasted(
+    original: Any,
+    context: TransformationContext,
+): T {
+    val result = transform(original, context, expectedType = T::class)
     if (result is Nothing) {
         throw IllegalStateException("Transformation produced Nothing")
     }
@@ -30,8 +34,11 @@ inline fun <reified T : ASTNode> ASTTransformer.translateCasted(original: Any): 
  * JExtendsType(translateCasted(pt.typeType()), translateList(pt.annotation()))
  * ```
  */
-inline fun <reified T : ASTNode> ASTTransformer.translateList(original: Collection<out Any>?): MutableList<T> =
-    original?.map { transformIntoNodes(it, expectedType = T::class) as List<T> }?.flatten()?.toMutableList()
+inline fun <reified T : ASTNode> ASTTransformer.translateList(
+    original: Collection<out Any>?,
+    context: TransformationContext,
+): MutableList<T> =
+    original?.map { transformIntoNodes(it, context, expectedType = T::class) as List<T> }?.flatten()?.toMutableList()
         ?: mutableListOf()
 
 /**
@@ -47,9 +54,12 @@ inline fun <reified T : ASTNode> ASTTransformer.translateList(original: Collecti
  *  )
  *  ```
  */
-inline fun <reified T : ASTNode> ASTTransformer.translateOptional(original: Any?): T? {
+inline fun <reified T : ASTNode> ASTTransformer.translateOptional(
+    original: Any?,
+    context: TransformationContext,
+): T? {
     return original?.let {
-        val transformed = transform(it, expectedType = T::class)
+        val transformed = transform(it, context, expectedType = T::class)
         if (transformed == null) {
             return null
         } else {
@@ -69,7 +79,10 @@ inline fun <reified T : ASTNode> ASTTransformer.translateOptional(original: Any?
  * }
  * ```
  */
-fun <T> ParseTreeToASTTransformer.translateOnlyChild(parent: ParserRuleContext): T = translateCasted(parent.onlyChild)
+fun <T> ParseTreeToASTTransformer.translateOnlyChild(
+    parent: ParserRuleContext,
+    context: TransformationContext,
+): T = translateCasted(parent.onlyChild, context)
 
 /**
  * It returns the only child (of type ParseRuleContext). If there is no children or more than

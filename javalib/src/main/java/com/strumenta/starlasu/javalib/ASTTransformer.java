@@ -2,10 +2,12 @@ package com.strumenta.starlasu.javalib;
 
 import com.strumenta.starlasu.model.ASTNode;
 import com.strumenta.starlasu.transformation.Transform;
+import com.strumenta.starlasu.transformation.TransformationContext;
 import com.strumenta.starlasu.validation.Issue;
 import kotlin.Unit;
 import kotlin.jvm.functions.Function1;
 import kotlin.jvm.functions.Function2;
+import kotlin.jvm.functions.Function3;
 import kotlin.jvm.functions.Function4;
 import kotlin.reflect.KClass;
 import org.jetbrains.annotations.NotNull;
@@ -17,20 +19,20 @@ import java.util.function.BiConsumer;
 import static kotlin.jvm.JvmClassMappingKt.getKotlinClass;
 
 public class ASTTransformer extends com.strumenta.starlasu.transformation.ASTTransformer {
-    public ASTTransformer(@NotNull List<Issue> issues) {
-        super(issues);
+    public ASTTransformer() {
+        super();
     }
 
-    public ASTTransformer(@NotNull List<Issue> issues, boolean throwOnUnmappedNode) {
-        super(issues, throwOnUnmappedNode);
+    public ASTTransformer(boolean throwOnUnmappedNode) {
+        super(throwOnUnmappedNode);
     }
 
-    public ASTTransformer(@NotNull List<Issue> issues, boolean throwOnUnmappedNode, boolean faultTolerant) {
-        super(issues, throwOnUnmappedNode, faultTolerant);
+    public ASTTransformer(boolean throwOnUnmappedNode, boolean faultTolerant) {
+        super(throwOnUnmappedNode, faultTolerant);
     }
 
-    public ASTTransformer(@NotNull List<Issue> issues, boolean throwOnUnmappedNode, boolean faultTolerant, @Nullable Function4<Object, ? super ASTNode, ? super KClass<? extends ASTNode>, ? super com.strumenta.starlasu.transformation.ASTTransformer, ? extends List<? extends ASTNode>> defaultTransformation) {
-        super(issues, throwOnUnmappedNode, faultTolerant, defaultTransformation);
+    public ASTTransformer(boolean throwOnUnmappedNode, boolean faultTolerant, @Nullable Function4<Object, TransformationContext, ? super KClass<? extends ASTNode>, ? super com.strumenta.starlasu.transformation.ASTTransformer, ? extends List<? extends ASTNode>> defaultTransformation) {
+        super(throwOnUnmappedNode, faultTolerant, defaultTransformation);
     }
 
     protected <S, T extends ASTNode> @NotNull Transform<S, T> registerNodeFactory(Class<S> source, Class<T> target) {
@@ -47,7 +49,10 @@ public class ASTTransformer extends com.strumenta.starlasu.transformation.ASTTra
         return registerTransform(getKotlinClass(source), (s, t) -> function.invoke(s));
     }
 
-    protected <S, T extends ASTNode> Transform<S, T> registerNodeFactory(Class<S> source, Function2<S, ? super com.strumenta.starlasu.transformation.ASTTransformer, T> function) {
+    protected <S, T extends ASTNode> Transform<S, T> registerNodeFactory(
+            Class<S> source, 
+            Function3<S, TransformationContext, ? super com.strumenta.starlasu.transformation.ASTTransformer, T> function
+    ) {
         return registerTransform(getKotlinClass(source), function);
     }
 

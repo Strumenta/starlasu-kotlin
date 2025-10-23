@@ -21,7 +21,6 @@ import com.strumenta.starlasu.transformation.TrivialFactoryOfParseTreeToASTTrans
 import com.strumenta.starlasu.transformation.registerTrivialPTtoASTConversion
 import com.strumenta.starlasu.transformation.unwrap
 import com.strumenta.starlasu.traversing.walk
-import com.strumenta.starlasu.validation.Issue
 import org.antlr.v4.runtime.ANTLRErrorListener
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
@@ -328,7 +327,7 @@ class ParseTreeToASTTransformerTest {
 
     @Test
     fun testSimpleEntitiesTransformer() {
-        val transformer = ParseTreeToASTTransformer(allowGenericNode = false)
+        val transformer = ParseTreeToASTTransformer()
         transformer.registerTrivialPTtoASTConversion<AntlrEntityParser.ModuleContext, EModule>()
         transformer.registerTrivialPTtoASTConversion<AntlrEntityParser.EntityContext, EEntity>()
         val expectedAST =
@@ -355,7 +354,7 @@ class ParseTreeToASTTransformerTest {
 
     @Test
     fun testEntitiesWithFeaturesTransformer() {
-        val transformer = ParseTreeToASTTransformer(allowGenericNode = false)
+        val transformer = ParseTreeToASTTransformer()
         transformer.registerTrivialPTtoASTConversion<AntlrEntityParser.ModuleContext, EModule>()
         transformer.registerTrivialPTtoASTConversion<AntlrEntityParser.EntityContext, EEntity>()
         transformer.registerTrivialPTtoASTConversion<AntlrEntityParser.FeatureContext, EFeature>()
@@ -405,7 +404,7 @@ class ParseTreeToASTTransformerTest {
 
     @Test
     fun testScriptTransformer() {
-        val transformer = ParseTreeToASTTransformer(allowGenericNode = false)
+        val transformer = ParseTreeToASTTransformer()
         transformer.registerTrivialPTtoASTConversion<AntlrScriptParser.ScriptContext, SScript>()
         transformer.registerTrivialPTtoASTConversion<AntlrScriptParser.Create_statementContext, SCreateStatement>(
             AntlrScriptParser.Create_statementContext::var_name to SCreateStatement::name,
@@ -420,7 +419,7 @@ class ParseTreeToASTTransformerTest {
         transformer.registerTransform(AntlrScriptParser.String_literal_expressionContext::class) { pt, t ->
             SStringLiteral(pt.text.removePrefix("'").removeSuffix("'"))
         }
-        transformer.registerTransform(AntlrScriptParser.Div_mult_expressionContext::class) { pt, t ->
+        transformer.registerTransform(AntlrScriptParser.Div_mult_expressionContext::class) { pt, c, t ->
             when (pt.op.text) {
                 "/" -> {
                     TrivialFactoryOfParseTreeToASTTransform.trivialTransform<
@@ -429,6 +428,7 @@ class ParseTreeToASTTransformerTest {
                         SDivision,
                     >()(
                         pt,
+                        c,
                         t,
                     )
                 }
@@ -440,6 +440,7 @@ class ParseTreeToASTTransformerTest {
                         SMultiplication,
                     >()(
                         pt,
+                        c,
                         t,
                     )
                 }
@@ -447,7 +448,7 @@ class ParseTreeToASTTransformerTest {
                 else -> TODO()
             }
         }
-        transformer.registerTransform(AntlrScriptParser.Sum_sub_expressionContext::class) { pt, t ->
+        transformer.registerTransform(AntlrScriptParser.Sum_sub_expressionContext::class) { pt, c, t ->
             when (pt.op.text) {
                 "+" -> {
                     TrivialFactoryOfParseTreeToASTTransform.trivialTransform<
@@ -456,6 +457,7 @@ class ParseTreeToASTTransformerTest {
                         SSum,
                     >()(
                         pt,
+                        c,
                         t,
                     )
                 }
@@ -467,6 +469,7 @@ class ParseTreeToASTTransformerTest {
                         SSubtraction,
                     >()(
                         pt,
+                        c,
                         t,
                     )
                 }
@@ -554,9 +557,7 @@ class ParseTreeToASTTransformerTest {
     }
 }
 
-class EntTransformer(
-    issues: MutableList<Issue> = mutableListOf(),
-) : ParseTreeToASTTransformer(issues, allowGenericNode = false) {
+class EntTransformer : ParseTreeToASTTransformer() {
     init {
         registerTransform(EntCtx::class) { ctx -> Ent(ctx.name) }
             .withChild(Ent::features, EntCtx::features)

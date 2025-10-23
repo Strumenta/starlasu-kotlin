@@ -21,7 +21,6 @@ import kotlin.reflect.full.primaryConstructor
 object TrivialFactoryOfParseTreeToASTTransform {
     fun convertString(
         text: String,
-        astTransformer: ASTTransformer,
         expectedType: KType,
     ): Any? =
         when (expectedType.classifier) {
@@ -45,15 +44,16 @@ object TrivialFactoryOfParseTreeToASTTransform {
     fun convert(
         value: Any?,
         astTransformer: ASTTransformer,
+        context: TransformationContext,
         expectedType: KType,
     ): Any? {
         when (value) {
             is Token -> {
-                return convertString(value.text, astTransformer, expectedType)
+                return convertString(value.text, expectedType)
             }
 
             is List<*> -> {
-                return value.map { convert(it, astTransformer, expectedType.arguments[0].type!!) }
+                return value.map { convert(it, astTransformer, context, expectedType.arguments[0].type!!) }
             }
 
             is ParserRuleContext -> {
@@ -63,7 +63,7 @@ object TrivialFactoryOfParseTreeToASTTransform {
                     }
 
                     else -> {
-                        astTransformer.transform(value)
+                        astTransformer.transform(value, context)
                     }
                 }
             }
@@ -73,7 +73,7 @@ object TrivialFactoryOfParseTreeToASTTransform {
             }
 
             is TerminalNode -> {
-                return convertString(value.text, astTransformer, expectedType)
+                return convertString(value.text, expectedType)
             }
 
             else -> TODO("value $value (${value.javaClass})")
@@ -84,9 +84,10 @@ object TrivialFactoryOfParseTreeToASTTransform {
         vararg nameConversions: Pair<String, String>,
     ): (
         S,
+        TransformationContext,
         ASTTransformer,
     ) -> T? =
-        { parseTreeNode, astTransformer ->
+        { parseTreeNode, context, astTransformer ->
             val constructor = T::class.preferredConstructor()
             val args: Array<Any?> =
                 constructor.parameters
@@ -108,11 +109,11 @@ object TrivialFactoryOfParseTreeToASTTransform {
                                 )
                             } else {
                                 val value = method.call(parseTreeNode)
-                                convert(value, astTransformer, it.type)
+                                convert(value, astTransformer, context, it.type)
                             }
                         } else {
                             val value = parseTreeMember.get(parseTreeNode)
-                            convert(value, astTransformer, it.type)
+                            convert(value, astTransformer, context, it.type)
                         }
                     }.toTypedArray()
             try {
@@ -147,9 +148,9 @@ inline fun <reified S : RuleContext, reified T : Node> ParseTreeToASTTransformer
 )
 
 inline fun <reified S : RuleContext, reified T : Node> ParseTreeToASTTransformer.unwrap(wrappingMember: KCallable<*>) {
-    this.registerTransform(S::class) { parseTreeNode, astTransformer ->
+    this.registerTransform(S::class) { parseTreeNode, context ->
         val wrapped = wrappingMember.call(parseTreeNode)
-        astTransformer.transform(wrapped) as T?
+        transform(wrapped, context) as T?
     }
 }
 

@@ -12,12 +12,12 @@ import kotlin.reflect.jvm.javaType
 
 val IDENTTITY_TRANSFORMATION: (
     source: Any?,
-    parent: ASTNode?,
+    context: TransformationContext,
     expectedType: KClass<out ASTNode>,
     astTransformer: ASTTransformer,
 ) -> List<ASTNode> = {
     source: Any?,
-    parent: ASTNode?,
+    context: TransformationContext,
     expectedType: KClass<out ASTNode>,
     astTransformer: ASTTransformer,
     ->
@@ -47,13 +47,14 @@ val IDENTTITY_TRANSFORMATION: (
                 // mt is ParameterizedType && mt.rawType == List::class.java -> mutableListOf<Any>()
                 when {
                     (parameter.type.classifier as KClass<*>).isSubclassOf(ASTNode::class) -> {
-                        params[parameter] = astTransformer.transform(originalValue)
+                        params[parameter] = astTransformer.transform(originalValue, context)
                     }
 
                     mt is ParameterizedType &&
                         mt.rawType == List::class.java &&
                         (mt.actualTypeArguments.first() as? Class<*>)?.kotlin?.isSubclassOf(ASTNode::class) == true -> {
-                        params[parameter] = astTransformer.translateList<ASTNode>(originalValue as List<ASTNode>)
+                        params[parameter] =
+                            astTransformer.translateList<ASTNode>(originalValue as List<ASTNode>, context)
                     }
 
                     else -> params[parameter] = originalValue
@@ -61,7 +62,7 @@ val IDENTTITY_TRANSFORMATION: (
             }
 
             val newInstance = primaryConstructor.callBy(params) as ASTNode
-            newInstance.parent = parent
+            newInstance.parent = context.parent
             newInstance.origin = source
             listOf(newInstance)
         }

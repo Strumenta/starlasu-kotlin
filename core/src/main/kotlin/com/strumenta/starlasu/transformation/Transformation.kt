@@ -25,22 +25,22 @@ import kotlin.reflect.full.superclasses
  * Factory that, given a tree node, will instantiate the corresponding transformed node.
  */
 class Transform<Source, Output : ASTNode>(
-    val constructor: (Source, ASTTransformer, Transform<Source, Output>) -> List<Output>,
+    val constructor: (Source, TransformationContext, ASTTransformer, Transform<Source, Output>) -> List<Output>,
     var children: MutableMap<String, ChildTransform<Source, *, *>?> = mutableMapOf(),
-    var finalizer: (Output) -> Unit = {},
+    var finalizer: (Output, TransformationContext) -> Unit = { _, _ -> },
     var skipChildren: Boolean = false,
     var childrenSetAtConstruction: Boolean = false,
 ) {
     companion object {
         fun <Source, Output : ASTNode> single(
-            singleConstructor: (Source, ASTTransformer, Transform<Source, Output>) -> Output?,
+            singleConstructor: (Source, TransformationContext, ASTTransformer, Transform<Source, Output>) -> Output?,
             children: MutableMap<String, ChildTransform<Source, *, *>?> = mutableMapOf(),
-            finalizer: (Output) -> Unit = {},
+            finalizer: (Output, TransformationContext) -> Unit = { _, _ -> },
             skipChildren: Boolean = false,
             childrenSetAtConstruction: Boolean = false,
         ): Transform<Source, Output> =
-            Transform({ source, at, nf ->
-                val result = singleConstructor(source, at, nf)
+            Transform({ source, ctx, at, nf ->
+                val result = singleConstructor(source, ctx, at, nf)
                 if (result == null) emptyList() else listOf(result)
             }, children, finalizer, skipChildren, childrenSetAtConstruction)
     }
@@ -167,8 +167,13 @@ class Transform<Source, Output : ASTNode>(
         return this
     }
 
-    fun withFinalizer(finalizer: (Output) -> Unit): Transform<Source, Output> {
+    fun withFinalizer(finalizer: (Output, TransformationContext) -> Unit): Transform<Source, Output> {
         this.finalizer = finalizer
+        return this
+    }
+
+    fun withFinalizer(finalizer: (Output) -> Unit): Transform<Source, Output> {
+        this.finalizer = { n, _ -> finalizer(n) }
         return this
     }
 
@@ -258,6 +263,26 @@ data class ChildTransform<Source, Target, Child : Any>(
  */
 private val NO_CHILD_NODE = ChildTransform<Any, Any, Any>("", { x -> x }, { _, _ -> }, ASTNode::class)
 
+open class TransformationContext
+    @JvmOverloads
+    constructor(
+        /**
+         * Additional issues found during the transformation process.
+         */
+        val issues: MutableList<Issue> = mutableListOf(),
+        var parent: ASTNode? = null,
+    ) {
+        fun addIssue(
+            message: String,
+            severity: IssueSeverity = IssueSeverity.ERROR,
+            position: Position? = null,
+        ): Issue {
+            val issue = Issue.semantic(message, severity, position)
+            issues.add(issue)
+            return issue
+        }
+    }
+
 /**
  * Implementation of a tree-to-tree transformation. For each source node type, we can register a factory that knows how
  * to create a transformed node. Then, this transformer can read metadata in the transformed node to recursively
@@ -268,10 +293,6 @@ private val NO_CHILD_NODE = ChildTransform<Any, Any, Any>("", { x -> x }, { _, _
 open class ASTTransformer
     @JvmOverloads
     constructor(
-        /**
-         * Additional issues found during the transformation process.
-         */
-        val issues: MutableList<Issue> = mutableListOf(),
         val throwOnUnmappedNode: Boolean = false,
         /**
          * When the fault-tolerant flag is set, in case a transformation fails we will add a node
@@ -282,7 +303,7 @@ open class ASTTransformer
         val defaultTransformation: (
             (
                 source: Any?,
-                parent: ASTNode?,
+                context: TransformationContext,
                 expectedType: KClass<out ASTNode>,
                 astTransformer: ASTTransformer,
             ) -> List<ASTNode>
@@ -302,10 +323,10 @@ open class ASTTransformer
         @JvmOverloads
         fun transform(
             source: Any?,
-            parent: ASTNode? = null,
+            context: TransformationContext = TransformationContext(),
             expectedType: KClass<out ASTNode> = ASTNode::class,
         ): ASTNode? {
-            val result = transformIntoNodes(source, parent, expectedType)
+            val result = transformIntoNodes(source, context, expectedType)
             return when (result.size) {
                 0 -> null
                 1 -> {
@@ -326,7 +347,7 @@ open class ASTTransformer
         @JvmOverloads
         open fun transformIntoNodes(
             source: Any?,
-            parent: ASTNode? = null,
+            context: TransformationContext,
             expectedType: KClass<out ASTNode> = ASTNode::class,
         ): List<ASTNode> {
             if (source == null) {
@@ -338,17 +359,22 @@ open class ASTTransformer
             val transform = getTransform<Any, ASTNode>(source::class as KClass<Any>)
             val nodes: List<ASTNode>
             if (transform != null) {
-                nodes = makeNodes(transform, source)
+                nodes = makeNodes(transform, source, context)
+                val parent = context.parent
                 if (!transform.skipChildren && !transform.childrenSetAtConstruction) {
-                    nodes.forEach { node -> setChildren(transform, source, node) }
+                    nodes.forEach { node ->
+                        context.parent = node
+                        setChildren(transform, source, context)
+                    }
                 }
+                context.parent = parent
                 nodes.forEach { node ->
-                    transform.finalizer(node)
+                    transform.finalizer(node, context)
                     node.parent = parent
                 }
             } else {
                 if (defaultTransformation != null) {
-                    nodes = defaultTransformation.invoke(source, parent, expectedType, this)
+                    nodes = defaultTransformation.invoke(source, context, expectedType, this)
                 } else if (expectedType.isDirectlyOrIndirectlyInstantiable() && !throwOnUnmappedNode) {
                     try {
                         val node = expectedType.dummyInstance()
@@ -372,13 +398,14 @@ open class ASTTransformer
         protected open fun setChildren(
             transform: Transform<Any, ASTNode>,
             source: Any,
-            node: ASTNode,
+            context: TransformationContext,
         ) {
+            val node = context.parent!!
             node.processProperties { pd ->
                 val childTransform = transform.getChildTransform<Any, ASTNode, Any>(node, pd.name)
                 if (childTransform != null) {
                     if (childTransform != NO_CHILD_NODE) {
-                        setChild(childTransform, source, node, pd)
+                        setChild(childTransform, source, context, pd)
                     }
                 } else {
                     transform.children[getChildKey(node.nodeType, pd.name)] = NO_CHILD_NODE
@@ -391,19 +418,20 @@ open class ASTTransformer
         protected open fun setChild(
             childTransform: ChildTransform<*, *, *>,
             source: Any,
-            node: ASTNode,
+            context: TransformationContext,
             pd: PropertyDescription,
         ) {
+            val node = context.parent!!
             val childFactory = childTransform as ChildTransform<Any, Any, Any>
             val childrenSource = childFactory.get(getSource(node, source))
             val child: Any? =
                 if (pd.multiple) {
                     (childrenSource as List<*>?)
                         ?.map {
-                            transformIntoNodes(it, node, childFactory.type)
+                            transformIntoNodes(it, context, childFactory.type)
                         }?.flatten() ?: listOf<ASTNode>()
                 } else {
-                    transform(childrenSource, node)
+                    transform(childrenSource, context)
                 }
             try {
                 childTransform.set(node, child)
@@ -420,8 +448,9 @@ open class ASTTransformer
         protected open fun <S : Any, T : ASTNode> makeNodes(
             transform: Transform<S, T>,
             source: S,
+            context: TransformationContext,
         ): List<ASTNode> {
-            val nodes = transform.constructor(source, this, transform)
+            val nodes = transform.constructor(source, context, this, transform)
             nodes.forEach { node ->
                 if (node.origin == null) {
                     node.withOrigin(asOrigin(source))
@@ -450,7 +479,7 @@ open class ASTTransformer
 
         fun <S : Any, T : ASTNode> registerTransform(
             kclass: KClass<S>,
-            factory: (S, ASTTransformer, Transform<S, T>) -> T?,
+            factory: (S, TransformationContext, ASTTransformer, Transform<S, T>) -> T?,
         ): Transform<S, T> {
             val transform = Transform.single(factory)
             transforms[kclass] = transform
@@ -459,7 +488,7 @@ open class ASTTransformer
 
         fun <S : Any, T : ASTNode> registerMultipleTransform(
             kclass: KClass<S>,
-            factory: (S, ASTTransformer, Transform<S, T>) -> List<T>,
+            factory: (S, TransformationContext, ASTTransformer, Transform<S, T>) -> List<T>,
         ): Transform<S, T> {
             val transform = Transform(factory)
             transforms[kclass] = transform
@@ -468,12 +497,18 @@ open class ASTTransformer
 
         fun <S : Any, T : ASTNode> registerTransform(
             kclass: KClass<S>,
-            factory: (S, ASTTransformer) -> T?,
-        ): Transform<S, T> = registerTransform(kclass) { source, transformer, _ -> factory(source, transformer) }
+            factory: (S, TransformationContext, ASTTransformer) -> T?,
+        ): Transform<S, T> =
+            registerTransform(kclass) { source, context, transformer, _ -> factory(source, context, transformer) }
+
+        fun <S : Any, T : ASTNode> registerTransform(
+            kclass: KClass<S>,
+            factory: (S, TransformationContext) -> T?,
+        ): Transform<S, T> = registerTransform(kclass) { source, context, _, _ -> factory(source, context) }
 
         inline fun <reified S : Any, T : ASTNode> registerTransform(
-            crossinline factory: S.(ASTTransformer) -> T?,
-        ): Transform<S, T> = registerTransform(S::class) { source, transformer, _ -> source.factory(transformer) }
+            crossinline factory: S.(TransformationContext) -> T?,
+        ): Transform<S, T> = registerTransform(S::class) { source, context, _, _ -> source.factory(context) }
 
         /**
          * We need T to be reified because we may need to install dummy classes of T.
@@ -482,7 +517,7 @@ open class ASTTransformer
             kclass: KClass<S>,
             crossinline factory: (S) -> T?,
         ): Transform<S, T> =
-            registerTransform(kclass) { input, _, _ ->
+            registerTransform(kclass) { input, _, _, _ ->
                 try {
                     factory(input)
                 } catch (t: NotImplementedError) {
@@ -516,7 +551,7 @@ open class ASTTransformer
         fun <S : Any, T : ASTNode> registerMultipleTransform(
             kclass: KClass<S>,
             factory: (S) -> List<T>,
-        ): Transform<S, T> = registerMultipleTransform(kclass) { input, _, _ -> factory(input) }
+        ): Transform<S, T> = registerMultipleTransform(kclass) { input, _, _, _ -> factory(input) }
 
         inline fun <reified S : Any, reified T : ASTNode> registerTransform(): Transform<S, T> =
             registerTransform(S::class, T::class)
@@ -534,6 +569,7 @@ open class ASTTransformer
             kParameter: KParameter,
             source: S,
             childTransform: ChildTransform<Any, T, Any>,
+            context: TransformationContext,
         ): ParameterValue =
             when (val childSource = childTransform.get.invoke(source)) {
                 null -> {
@@ -543,7 +579,7 @@ open class ASTTransformer
                 is List<*> -> {
                     PresentParameterValue(
                         childSource
-                            .map { transformIntoNodes(it) }
+                            .map { transformIntoNodes(it, context) }
                             .flatten()
                             .toMutableList(),
                     )
@@ -562,9 +598,9 @@ open class ASTTransformer
                             AbsentParameterValue
                         }
                     } else if ((kParameter.type.classifier as? KClass<*>)?.isSubclassOf(Collection::class) == true) {
-                        PresentParameterValue(transformIntoNodes(childSource))
+                        PresentParameterValue(transformIntoNodes(childSource, context))
                     } else {
-                        PresentParameterValue(transform(childSource))
+                        PresentParameterValue(transform(childSource, context))
                     }
                 }
             }
@@ -590,7 +626,7 @@ open class ASTTransformer
             val emptyLikeConstructor = target.constructors.find { it.parameters.all { param -> param.isOptional } }
             val transform =
                 Transform.single(
-                    { source: S, _, thisTransform ->
+                    { source: S, context, _, thisTransform ->
                         if (target.isSealed) {
                             throw IllegalStateException("Unable to instantiate sealed class $target")
                         }
@@ -610,7 +646,7 @@ open class ASTTransformer
                                         "We do not know how to produce parameter ${kParameter.name!!} for $target",
                                     )
                                 } else {
-                                    return parameterValue(kParameter, source, childTransform)
+                                    return parameterValue(kParameter, source, childTransform, context)
                                 }
                             } catch (t: Throwable) {
                                 throw RuntimeException(
@@ -694,16 +730,6 @@ open class ASTTransformer
                 }
             val set = _knownClasses.computeIfAbsent(packageName) { mutableSetOf() }
             set.add(target)
-        }
-
-        fun addIssue(
-            message: String,
-            severity: IssueSeverity = IssueSeverity.ERROR,
-            position: Position? = null,
-        ): Issue {
-            val issue = Issue.semantic(message, severity, position)
-            issues.add(issue)
-            return issue
         }
     }
 

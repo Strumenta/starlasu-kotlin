@@ -8,7 +8,7 @@ import com.strumenta.starlasu.parsing.ParseTreeOrigin
 import com.strumenta.starlasu.parsing.withParseTreeNode
 import com.strumenta.starlasu.transformation.ASTTransformer
 import com.strumenta.starlasu.transformation.Transform
-import com.strumenta.starlasu.validation.Issue
+import com.strumenta.starlasu.transformation.TransformationContext
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.ParseTree
 import kotlin.reflect.KClass
@@ -20,11 +20,10 @@ import kotlin.reflect.KClass
 open class ParseTreeToASTTransformer
     @JvmOverloads
     constructor(
-        issues: MutableList<Issue> = mutableListOf(),
         val source: Source? = null,
         throwOnUnmappedNode: Boolean = true,
         faultTolerant: Boolean = throwOnUnmappedNode,
-    ) : ASTTransformer(issues, throwOnUnmappedNode, faultTolerant) {
+    ) : ASTTransformer(throwOnUnmappedNode, faultTolerant) {
         /**
          * Performs the transformation of a node and, recursively, its descendants. In addition to the overridden method,
          * it also assigns the parseTreeNode to the AST node so that it can keep track of its position.
@@ -32,10 +31,10 @@ open class ParseTreeToASTTransformer
          */
         override fun transformIntoNodes(
             source: Any?,
-            parent: ASTNode?,
+            context: TransformationContext,
             expectedType: KClass<out ASTNode>,
         ): List<ASTNode> {
-            val transformed = super.transformIntoNodes(source, parent, expectedType)
+            val transformed = super.transformIntoNodes(source, context, expectedType)
             return transformed
                 .map { node ->
                     if (source is ParserRuleContext) {
@@ -72,13 +71,13 @@ open class ParseTreeToASTTransformer
          * that child and return that result.
          */
         fun <P : ParserRuleContext> registerTransformUnwrappingChild(kclass: KClass<P>): Transform<P, Node> =
-            registerTransform(kclass) { source, transformer, _ ->
+            registerTransform(kclass) { source, context, _ ->
                 val nodeChildren = source.children.filterIsInstance<ParserRuleContext>()
                 require(nodeChildren.size == 1) {
                     "Node $source (${source.javaClass}) has ${nodeChildren.size} " +
                         "node children: $nodeChildren"
                 }
-                transformer.transform(nodeChildren[0]) as Node
+                transform(nodeChildren[0], context) as Node
             }
 
         /**

@@ -222,11 +222,11 @@ class ASTTransformerTest {
     fun computeTypes() {
         val myTransformer =
             ASTTransformer().apply {
-                registerIdentityTransformation(TypedSum::class).withFinalizer {
+                registerIdentityTransformation(TypedSum::class).withFinalizer { it, c ->
                     if (it.left.type == Type.INT && it.right.type == Type.INT) {
                         it.type = Type.INT
                     } else {
-                        addIssue(
+                        c.addIssue(
                             "Illegal types for sum operation. Only integer values are allowed. " +
                                 "Found: (${it.left.type?.name ?: "null"}, ${it.right.type?.name ?: "null"})",
                             IssueSeverity.ERROR,
@@ -234,11 +234,11 @@ class ASTTransformerTest {
                         )
                     }
                 }
-                registerIdentityTransformation(TypedConcat::class).withFinalizer {
+                registerIdentityTransformation(TypedConcat::class).withFinalizer { it, c ->
                     if (it.left.type == Type.STR && it.right.type == Type.STR) {
                         it.type = Type.STR
                     } else {
-                        addIssue(
+                        c.addIssue(
                             "Illegal types for concat operation. Only string values are allowed. " +
                                 "Found: (${it.left.type?.name ?: "null"}, ${it.right.type?.name ?: "null"})",
                             IssueSeverity.ERROR,
@@ -249,6 +249,7 @@ class ASTTransformerTest {
                 registerIdentityTransformation(TypedLiteral::class)
             }
         // sum - legal
+        val context = TransformationContext()
         assertASTsAreEqual(
             TypedSum(
                 TypedLiteral("1", Type.INT),
@@ -260,9 +261,10 @@ class ASTTransformerTest {
                     TypedLiteral("1", Type.INT),
                     TypedLiteral("1", Type.INT),
                 ),
+                context,
             )!!,
         )
-        assertEquals(0, myTransformer.issues.size)
+        assertEquals(0, context.issues.size)
         // concat - legal
         assertASTsAreEqual(
             TypedConcat(
@@ -275,9 +277,10 @@ class ASTTransformerTest {
                     TypedLiteral("test", Type.STR),
                     TypedLiteral("test", Type.STR),
                 ),
+                context,
             )!!,
         )
-        assertEquals(0, myTransformer.issues.size)
+        assertEquals(0, context.issues.size)
         // sum - error
         assertASTsAreEqual(
             TypedSum(
@@ -290,15 +293,16 @@ class ASTTransformerTest {
                     TypedLiteral("1", Type.INT),
                     TypedLiteral("test", Type.STR),
                 ),
+                context,
             )!!,
         )
-        assertEquals(1, myTransformer.issues.size)
+        assertEquals(1, context.issues.size)
         assertEquals(
             Issue.semantic(
                 "Illegal types for sum operation. Only integer values are allowed. Found: (INT, STR)",
                 IssueSeverity.ERROR,
             ),
-            myTransformer.issues[0],
+            context.issues[0],
         )
         // concat - error
         assertASTsAreEqual(
@@ -312,15 +316,16 @@ class ASTTransformerTest {
                     TypedLiteral("1", Type.INT),
                     TypedLiteral("test", Type.STR),
                 ),
+                context,
             )!!,
         )
-        assertEquals(2, myTransformer.issues.size)
+        assertEquals(2, context.issues.size)
         assertEquals(
             Issue.semantic(
                 "Illegal types for concat operation. Only string values are allowed. Found: (INT, STR)",
                 IssueSeverity.ERROR,
             ),
-            myTransformer.issues[1],
+            context.issues[1],
         )
     }
 
@@ -456,10 +461,10 @@ class ASTTransformerTest {
     @Test
     fun testPartialIdentityTransformation() {
         val transformer1 = ASTTransformer(defaultTransformation = IDENTTITY_TRANSFORMATION)
-        transformer1.registerTransform(BarRoot::class) { original: BarRoot, astTransformer: ASTTransformer, _ ->
+        transformer1.registerTransform(BarRoot::class) { original: BarRoot, c ->
             FooRoot(
                 desc = "#children = ${original.children.size}",
-                stmts = astTransformer.translateList(original.stmts),
+                stmts = transformer1.translateList(original.stmts, c),
             )
         }
         val original =
@@ -486,10 +491,10 @@ class ASTTransformerTest {
     @Test
     fun testIdentityTransformationOfIntermediateNodes() {
         val transformer1 = ASTTransformer(defaultTransformation = IDENTTITY_TRANSFORMATION)
-        transformer1.registerTransform(BarRoot::class) { original: BarRoot, astTransformer: ASTTransformer, _ ->
+        transformer1.registerTransform(BarRoot::class) { original: BarRoot, c ->
             FooRoot(
                 desc = "#children = ${original.children.size}",
-                stmts = astTransformer.translateList(original.stmts),
+                stmts = transformer1.translateList(original.stmts, c),
             )
         }
         val original =
@@ -532,8 +537,8 @@ class ASTTransformerTest {
             transformer1.transform(original) as AA,
         )
         // All identity besides AA
-        transformer1.registerTransform(AA::class) { original, t, _ ->
-            BA("your_" + original.a.removePrefix("my_"), t.translateCasted(original.child))
+        transformer1.registerTransform(AA::class) { original, c ->
+            BA("your_" + original.a.removePrefix("my_"), transformer1.translateCasted(original.child, c))
         }
         assertASTsAreEqual(
             BA(
@@ -556,8 +561,8 @@ class ASTTransformerTest {
             transformer1.transform(original) as AA,
         )
         // All identity besides AA and AB
-        transformer1.registerTransform(AB::class) { original, t, _ ->
-            BB("your_" + original.b.removePrefix("my_"), t.translateCasted(original.child))
+        transformer1.registerTransform(AB::class) { original, c, _ ->
+            BB("your_" + original.b.removePrefix("my_"), transformer1.translateCasted(original.child, c))
         }
         assertASTsAreEqual(
             BA(
@@ -580,7 +585,7 @@ class ASTTransformerTest {
             transformer1.transform(original) as AA,
         )
         // All identity besides AA and AB and AD
-        transformer1.registerTransform(AD::class) { original, t, _ ->
+        transformer1.registerTransform(AD::class) { original ->
             BD("your_" + original.d.removePrefix("my_"))
         }
         assertASTsAreEqual(
@@ -608,8 +613,8 @@ class ASTTransformerTest {
     @Test
     fun testIdentityTransformationOfIntermediateNodesWithOrigin() {
         val transformer1 = ASTTransformer(defaultTransformation = IDENTTITY_TRANSFORMATION)
-        transformer1.registerTransform(AA::class) { original, t, _ ->
-            BA("your_" + original.a.removePrefix("my_"), t.translateCasted(original.child))
+        transformer1.registerTransform(AA::class) { original, c ->
+            BA("your_" + original.a.removePrefix("my_"), transformer1.translateCasted(original.child, c))
         }
         val original =
             AA(
