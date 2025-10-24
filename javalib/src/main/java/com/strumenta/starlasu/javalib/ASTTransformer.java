@@ -3,7 +3,6 @@ package com.strumenta.starlasu.javalib;
 import com.strumenta.starlasu.model.ASTNode;
 import com.strumenta.starlasu.transformation.Transform;
 import com.strumenta.starlasu.transformation.TransformationContext;
-import com.strumenta.starlasu.validation.Issue;
 import kotlin.Unit;
 import kotlin.jvm.functions.Function1;
 import kotlin.jvm.functions.Function2;

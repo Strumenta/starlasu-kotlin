@@ -188,7 +188,7 @@ class ASTTransformerTest {
                         transform(source.right) as BLangExpression,
                     )
                 }
-                registerTransform(ALangMult::class) { source: ALangMult ->
+                registerTransform(ALangMult::class) { source ->
                     BLangMult(
                         transform(source.left) as BLangExpression,
                         transform(source.right) as BLangExpression,
@@ -644,6 +644,49 @@ class ASTTransformerTest {
         assertEquals(
             transformedAST.walkDescendants(AC::class).first().origin,
             original.walkDescendants(AC::class).first(),
+        )
+    }
+
+    @Test
+    fun `exception handling, root`() {
+        val transformer = ASTTransformer()
+        transformer.registerTransform(AA::class) { aa ->
+            // if (false) needed to detect the target type as AA
+            if (false) aa else throw Exception("Something went wrong")
+        }
+        val original = AA(a = "my_a", child = AB(b = "my_b", child = AC(c = "my_c", children = mutableListOf())))
+        val transformedAST = transformer.transform(original)!!
+        assertIs<AA>(transformedAST)
+        // verify that the origin is set correctly
+        assertIs<FailingASTTransformation>(transformedAST.origin)
+        assertEquals(original, (transformedAST.origin as FailingASTTransformation).origin)
+        assertEquals(
+            "Failed to transform com.strumenta.starlasu.transformation.AA(a=my_a, " +
+                "child=com.strumenta.starlasu.transformation.AB(...)) into class " +
+                "com.strumenta.starlasu.transformation.AA because of an error (Something went wrong)",
+            (transformedAST.origin as FailingASTTransformation).message,
+        )
+    }
+
+    @Test
+    fun `exception handling, internal node`() {
+        val transformer = ASTTransformer(defaultTransformation = IDENTTITY_TRANSFORMATION)
+        transformer.registerTransform(AB::class) { ab ->
+            // if (false) needed to detect the target type as AA
+            if (false) ab else throw Exception("Something went wrong")
+        }
+        val original = AA(a = "my_a", child = AB(b = "my_b", child = AC(c = "my_c", children = mutableListOf())))
+        val transformedAST = transformer.transform(original)!!
+        assertIs<AA>(transformedAST)
+        // verify that the origin is set correctly
+        assertIs<AA>(transformedAST.origin)
+        assertIs<FailingASTTransformation>(transformedAST.child.origin)
+        assertEquals(original.child, (transformedAST.child.origin as FailingASTTransformation).origin)
+        assertEquals(
+            "Failed to transform com.strumenta.starlasu.transformation.AB(b=my_b, " +
+                "child=com.strumenta.starlasu.transformation.AC(...)) into class " +
+                "com.strumenta.starlasu.transformation.AB because of an error (Something went wrong)",
+            (transformedAST.child.origin as FailingASTTransformation).message,
         )
     }
 }
