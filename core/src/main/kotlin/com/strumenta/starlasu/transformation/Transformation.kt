@@ -22,6 +22,15 @@ import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.superclasses
 
+class ConfigurationException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+enum class ChildrenPolicy {
+    SET_AT_CONSTRUCTION,
+    SET_AFTER_STANDARD_CONSTRUCTION,
+    SET_AFTER_CUSTOM_CONSTRUCTION,
+    SKIP,
+}
+
 /**
  * Factory that, given a tree node, will instantiate the corresponding transformed node.
  */
@@ -29,21 +38,19 @@ class Transform<Source, Output : ASTNode>(
     val constructor: (Source, TransformationContext, ASTTransformer, Transform<Source, Output>) -> List<Output>,
     var children: MutableMap<String, ChildTransform<Source, *, *>?> = mutableMapOf(),
     var finalizer: (Output, TransformationContext) -> Unit = { _, _ -> },
-    var skipChildren: Boolean = false,
-    var childrenSetAtConstruction: Boolean = false,
+    var childrenPolicy: ChildrenPolicy = ChildrenPolicy.SET_AFTER_STANDARD_CONSTRUCTION,
 ) {
     companion object {
         fun <Source, Output : ASTNode> single(
             singleConstructor: (Source, TransformationContext, ASTTransformer, Transform<Source, Output>) -> Output?,
             children: MutableMap<String, ChildTransform<Source, *, *>?> = mutableMapOf(),
             finalizer: (Output, TransformationContext) -> Unit = { _, _ -> },
-            skipChildren: Boolean = false,
-            childrenSetAtConstruction: Boolean = false,
+            childrenPolicy: ChildrenPolicy = ChildrenPolicy.SET_AFTER_STANDARD_CONSTRUCTION,
         ): Transform<Source, Output> =
             Transform({ source, ctx, at, nf ->
                 val result = singleConstructor(source, ctx, at, nf)
                 if (result == null) emptyList() else listOf(result)
-            }, children, finalizer, skipChildren, childrenSetAtConstruction)
+            }, children, finalizer, childrenPolicy)
     }
 
     /**
@@ -158,10 +165,17 @@ class Transform<Source, Output : ASTNode>(
         scopedToType: KClass<*>? = null,
         childType: KClass<out ASTNode> = ASTNode::class,
     ): Transform<Source, Output> {
+        if (childrenPolicy == ChildrenPolicy.SKIP) {
+            throw ConfigurationException("Children are configured to be skipped, calling withChild is illegal")
+        }
         val prefix = if (scopedToType != null) scopedToType.qualifiedName + "#" else ""
         if (set == null) {
-            // given we have no setter we MUST set the children at construction
-            childrenSetAtConstruction = true
+            if (childrenPolicy == ChildrenPolicy.SET_AFTER_STANDARD_CONSTRUCTION) {
+                // given we have no setter we MUST set the children at construction
+                childrenPolicy = ChildrenPolicy.SET_AT_CONSTRUCTION
+            } else if (childrenPolicy == ChildrenPolicy.SET_AFTER_CUSTOM_CONSTRUCTION) {
+                throw ConfigurationException("A custom constructor was provided, but child $name has no setter")
+            }
         }
 
         children[prefix + name] = ChildTransform(prefix + name, get, set, childType)
@@ -195,7 +209,7 @@ class Transform<Source, Output : ASTNode>(
      * fail – or worse, it will map an unrelated node.
      */
     fun skipChildren(skip: Boolean = true): Transform<Source, Output> {
-        this.skipChildren = skip
+        childrenPolicy = if (skip) ChildrenPolicy.SKIP else childrenPolicy
         return this
     }
 
@@ -380,7 +394,8 @@ open class ASTTransformer
             if (transform != null) {
                 nodes = makeNodes(transform, source, context)
                 val parent = context.parent
-                if (!transform.skipChildren && !transform.childrenSetAtConstruction) {
+                if (transform.childrenPolicy == ChildrenPolicy.SET_AFTER_STANDARD_CONSTRUCTION || 
+                    transform.childrenPolicy == ChildrenPolicy.SET_AFTER_CUSTOM_CONSTRUCTION) {
                     nodes.forEach { node ->
                         context.parent = node
                         setChildren(transform, source, context)
@@ -520,6 +535,7 @@ open class ASTTransformer
             factory: (S, TransformationContext, ASTTransformer, Transform<S, T>) -> T?,
         ): Transform<S, T> {
             val transform = Transform.single(factory)
+            transform.childrenPolicy = ChildrenPolicy.SET_AFTER_CUSTOM_CONSTRUCTION
             transforms[kclass] = transform
             return transform
         }
@@ -529,6 +545,7 @@ open class ASTTransformer
             factory: (S, TransformationContext, ASTTransformer, Transform<S, T>) -> List<T>,
         ): Transform<S, T> {
             val transform = Transform(factory)
+            transform.childrenPolicy = ChildrenPolicy.SET_AFTER_CUSTOM_CONSTRUCTION
             transforms[kclass] = transform
             return transform
         }
@@ -593,6 +610,7 @@ open class ASTTransformer
 
         inline fun <reified S : Any, reified T : ASTNode> registerTransform(): Transform<S, T> =
             registerTransform(S::class, T::class)
+                .apply { childrenPolicy = ChildrenPolicy.SET_AFTER_STANDARD_CONSTRUCTION }
 
         inline fun <reified S : Any> notTranslateDirectly(): Transform<S, ASTNode> =
             registerTransform<S, ASTNode> {
@@ -699,7 +717,7 @@ open class ASTTransformer
                         // so we should really check the value that `childrenSetAtConstruction` time has when we actually invoke
                         // the factory.
                         val instance =
-                            if (thisTransform.childrenSetAtConstruction) {
+                            if (thisTransform.childrenPolicy == ChildrenPolicy.SET_AT_CONSTRUCTION) {
                                 val constructor = target.preferredConstructor()
                                 val constructorParamValues =
                                     constructor.parameters
@@ -740,7 +758,12 @@ open class ASTTransformer
                     // If I do not have an emptyLikeConstructor, then I am forced to invoke a constructor with parameters and
                     // therefore setting the children at construction time.
                     // Note that we are assuming that either we set no children at construction time or we set all of them
-                    childrenSetAtConstruction = emptyLikeConstructor == null,
+                    childrenPolicy =
+                        if (emptyLikeConstructor == null) {
+                            ChildrenPolicy.SET_AT_CONSTRUCTION
+                        } else {
+                            ChildrenPolicy.SET_AFTER_STANDARD_CONSTRUCTION
+                        },
                 )
             transforms[source] = transform
             return transform

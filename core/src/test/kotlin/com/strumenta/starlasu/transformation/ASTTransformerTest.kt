@@ -11,6 +11,7 @@ import com.strumenta.starlasu.testing.assertASTsAreEqual
 import com.strumenta.starlasu.traversing.walkDescendants
 import com.strumenta.starlasu.validation.Issue
 import com.strumenta.starlasu.validation.IssueSeverity
+import org.junit.Assert.assertThrows
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -137,7 +138,7 @@ class ASTTransformerTest {
         val transformedCU = transformer.transform(cu)!!
         assertASTsAreEqual(cu, transformedCU, considerPosition = true)
         assertTrue { transformedCU.hasValidParents() }
-        assertEquals(transformedCU.origin, cu)
+        assertEquals( cu, transformedCU.origin)
     }
 
     /**
@@ -374,7 +375,7 @@ class ASTTransformerTest {
             )
         val transformedCU = transformer.transform(cu)!! as CU
         assertTrue { transformedCU.hasValidParents() }
-        assertEquals(transformedCU.origin, cu)
+        assertEquals( cu, transformedCU.origin)
         assertIs<GenericNode>(transformedCU.statements[0].origin)
     }
 
@@ -689,6 +690,15 @@ class ASTTransformerTest {
             (transformedAST.child.origin as FailingASTTransformation).message,
         )
     }
+
+    @Test
+    fun `children set at construction with lambda`() {
+        val transformer = ASTTransformer()
+        assertThrows(ConfigurationException::class.java) {
+            transformer.registerTransform(NoSetter::class) { _ -> NoSetter() }
+                .withChild(NoSetter::child, NoSetter::child)
+        }
+    }
 }
 
 data class BazRoot(
@@ -744,3 +754,5 @@ class BB(
 class BD(
     d: String,
 ) : AD(d)
+
+class NoSetter(val child: NoSetter? = null) : BaseASTNode()
