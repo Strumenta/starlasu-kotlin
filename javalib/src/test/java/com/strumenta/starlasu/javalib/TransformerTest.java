@@ -1,6 +1,7 @@
 package com.strumenta.starlasu.javalib;
 
 import com.strumenta.starlasu.model.*;
+import com.strumenta.starlasu.transformation.FaultTolerance;
 import com.strumenta.starlasu.transformation.TransformationContext;
 import com.strumenta.starlasu.validation.Issue;
 import org.junit.Test;
@@ -15,7 +16,7 @@ public class TransformerTest {
     @Test
     public void testJavaNodes() {
         ArrayList<Issue> issues = new ArrayList<>();
-        ASTTransformer t = new ASTTransformer( false);
+        ASTTransformer t = new ASTTransformer( FaultTolerance.STRICT);
         t.registerNodeFactory(Node1.class, Node1.class)
                 .withChild(Node1::getNode2, setter(Node1::setNode2), "node2");
         t.registerNodeFactory(Node2.class, Node2.class);

@@ -1,6 +1,7 @@
 package com.strumenta.starlasu.javalib;
 
 import com.strumenta.starlasu.model.ASTNode;
+import com.strumenta.starlasu.transformation.FaultTolerance;
 import com.strumenta.starlasu.transformation.Transform;
 import com.strumenta.starlasu.transformation.TransformationContext;
 import kotlin.Unit;
@@ -22,16 +23,12 @@ public class ASTTransformer extends com.strumenta.starlasu.transformation.ASTTra
         super();
     }
 
-    public ASTTransformer(boolean throwOnUnmappedNode) {
-        super(throwOnUnmappedNode);
+    public ASTTransformer(FaultTolerance faultTolerance) {
+        super(faultTolerance);
     }
 
-    public ASTTransformer(boolean throwOnUnmappedNode, boolean faultTolerant) {
-        super(throwOnUnmappedNode, faultTolerant);
-    }
-
-    public ASTTransformer(boolean throwOnUnmappedNode, boolean faultTolerant, @Nullable Function4<Object, TransformationContext, ? super KClass<? extends ASTNode>, ? super com.strumenta.starlasu.transformation.ASTTransformer, ? extends List<? extends ASTNode>> defaultTransformation) {
-        super(throwOnUnmappedNode, faultTolerant, defaultTransformation);
+    public ASTTransformer(FaultTolerance faultTolerance, @Nullable Function4<Object, TransformationContext, ? super KClass<? extends ASTNode>, ? super com.strumenta.starlasu.transformation.ASTTransformer, ? extends List<? extends ASTNode>> defaultTransformation) {
+        super(faultTolerance, defaultTransformation);
     }
 
     protected <S, T extends ASTNode> @NotNull Transform<S, T> registerNodeFactory(Class<S> source, Class<T> target) {

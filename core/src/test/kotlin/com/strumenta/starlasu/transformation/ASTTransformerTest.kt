@@ -138,7 +138,7 @@ class ASTTransformerTest {
         val transformedCU = transformer.transform(cu)!!
         assertASTsAreEqual(cu, transformedCU, considerPosition = true)
         assertTrue { transformedCU.hasValidParents() }
-        assertEquals( cu, transformedCU.origin)
+        assertEquals(cu, transformedCU.origin)
     }
 
     /**
@@ -375,7 +375,7 @@ class ASTTransformerTest {
             )
         val transformedCU = transformer.transform(cu)!! as CU
         assertTrue { transformedCU.hasValidParents() }
-        assertEquals( cu, transformedCU.origin)
+        assertEquals(cu, transformedCU.origin)
         assertIs<GenericNode>(transformedCU.statements[0].origin)
     }
 
@@ -695,7 +695,8 @@ class ASTTransformerTest {
     fun `children set at construction with lambda`() {
         val transformer = ASTTransformer()
         assertThrows(ConfigurationException::class.java) {
-            transformer.registerTransform(NoSetter::class) { _ -> NoSetter() }
+            transformer
+                .registerTransform(NoSetter::class) { _ -> NoSetter() }
                 .withChild(NoSetter::child, NoSetter::child)
         }
     }
@@ -755,4 +756,6 @@ class BD(
     d: String,
 ) : AD(d)
 
-class NoSetter(val child: NoSetter? = null) : BaseASTNode()
+class NoSetter(
+    val child: NoSetter? = null,
+) : BaseASTNode()

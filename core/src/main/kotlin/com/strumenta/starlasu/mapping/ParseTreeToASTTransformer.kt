@@ -7,6 +7,7 @@ import com.strumenta.starlasu.parsing.ParseTreeOrigin
 import com.strumenta.starlasu.parsing.withParseTreeNode
 import com.strumenta.starlasu.transformation.ASTTransformer
 import com.strumenta.starlasu.transformation.FailingASTTransformation
+import com.strumenta.starlasu.transformation.FaultTolerance
 import com.strumenta.starlasu.transformation.Transform
 import com.strumenta.starlasu.transformation.TransformationContext
 import org.antlr.v4.runtime.ParserRuleContext
@@ -20,9 +21,8 @@ import kotlin.reflect.KClass
 open class ParseTreeToASTTransformer
     @JvmOverloads
     constructor(
-        throwOnUnmappedNode: Boolean = true,
-        faultTolerant: Boolean = throwOnUnmappedNode,
-    ) : ASTTransformer(throwOnUnmappedNode, faultTolerant) {
+        faultTolerance: FaultTolerance = FaultTolerance.THROW_ONLY_ON_UNMAPPED,
+    ) : ASTTransformer(faultTolerance) {
         /**
          * Performs the transformation of a node and, recursively, its descendants. In addition to the overridden method,
          * it also assigns the parseTreeNode to the AST node so that it can keep track of its position.
@@ -34,7 +34,7 @@ open class ParseTreeToASTTransformer
             expectedType: KClass<out ASTNode>,
         ): List<ASTNode> {
             if (source is ParserRuleContext && source.exception != null) {
-                if (!faultTolerant) {
+                if (faultTolerance == FaultTolerance.STRICT) {
                     throw RuntimeException("Failed to transform $source into $expectedType", source.exception)
                 }
                 val origin =

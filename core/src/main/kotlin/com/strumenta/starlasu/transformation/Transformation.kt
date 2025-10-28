@@ -22,7 +22,10 @@ import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.superclasses
 
-class ConfigurationException(message: String, cause: Throwable? = null) : Exception(message, cause)
+class ConfigurationException(
+    message: String,
+    cause: Throwable? = null,
+) : Exception(message, cause)
 
 enum class ChildrenPolicy {
     SET_AT_CONSTRUCTION,
@@ -316,6 +319,23 @@ open class TransformationContext
         }
     }
 
+enum class FaultTolerance {
+    /**
+     * If a transformation fails, we'll throw an exception.
+     */
+    STRICT,
+
+    /**
+     * Same as [STRICT] when the failure is due to a node not being mapped; otherwise, same as [LOOSE].
+     */
+    THROW_ONLY_ON_UNMAPPED,
+
+    /**
+     * In case a transformation fails, we will add a node with the origin FailingASTTransformation.
+     */
+    LOOSE,
+}
+
 /**
  * Implementation of a tree-to-tree transformation. For each source node type, we can register a factory that knows how
  * to create a transformed node. Then, this transformer can read metadata in the transformed node to recursively
@@ -326,13 +346,7 @@ open class TransformationContext
 open class ASTTransformer
     @JvmOverloads
     constructor(
-        val throwOnUnmappedNode: Boolean = false,
-        /**
-         * When the fault-tolerant flag is set, in case a transformation fails, we will add a node
-         * with the origin FailingASTTransformation. If the flag is not set, then the transformation will just
-         * fail.
-         */
-        val faultTolerant: Boolean = !throwOnUnmappedNode,
+        val faultTolerance: FaultTolerance = FaultTolerance.LOOSE,
         val defaultTransformation: (
             (
                 source: Any?,
@@ -394,8 +408,9 @@ open class ASTTransformer
             if (transform != null) {
                 nodes = makeNodes(transform, source, context)
                 val parent = context.parent
-                if (transform.childrenPolicy == ChildrenPolicy.SET_AFTER_STANDARD_CONSTRUCTION || 
-                    transform.childrenPolicy == ChildrenPolicy.SET_AFTER_CUSTOM_CONSTRUCTION) {
+                if (transform.childrenPolicy == ChildrenPolicy.SET_AFTER_STANDARD_CONSTRUCTION ||
+                    transform.childrenPolicy == ChildrenPolicy.SET_AFTER_CUSTOM_CONSTRUCTION
+                ) {
                     nodes.forEach { node ->
                         context.parent = node
                         setChildren(transform, source, context)
@@ -407,7 +422,7 @@ open class ASTTransformer
                     node.parent = parent
                 }
             } else {
-                if (defaultTransformation == null && throwOnUnmappedNode) {
+                if (defaultTransformation == null && faultTolerance != FaultTolerance.LOOSE) {
                     throw IllegalStateException(
                         "Unable to translate node $source (class ${source::class.qualifiedName})",
                     )
@@ -576,7 +591,7 @@ open class ASTTransformer
                 try {
                     factory(input)
                 } catch (t: NotImplementedError) {
-                    if (faultTolerant) {
+                    if (faultTolerance != FaultTolerance.STRICT) {
                         val node = T::class.dummyInstance()
                         node.origin =
                             FailingASTTransformation(
@@ -589,7 +604,7 @@ open class ASTTransformer
                         throw RuntimeException("Failed to transform $input into $kclass", t)
                     }
                 } catch (e: Exception) {
-                    if (faultTolerant) {
+                    if (faultTolerance != FaultTolerance.STRICT) {
                         val node = T::class.dummyInstance()
                         node.origin =
                             FailingASTTransformation(

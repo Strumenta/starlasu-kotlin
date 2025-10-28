@@ -2,6 +2,7 @@ package com.strumenta.starlasu.javalib;
 
 import com.strumenta.starlasu.model.ASTNode;
 import com.strumenta.starlasu.transformation.ASTTransformer;
+import com.strumenta.starlasu.transformation.FaultTolerance;
 import com.strumenta.starlasu.transformation.Transform;
 import com.strumenta.starlasu.transformation.TransformationContext;
 import kotlin.jvm.functions.Function1;
@@ -15,12 +16,8 @@ public class ParseTreeToASTTransformer extends com.strumenta.starlasu.mapping.Pa
         super();
     }
 
-    public ParseTreeToASTTransformer(boolean throwOnUnmappedNode) {
-        super(throwOnUnmappedNode);
-    }
-
-    public ParseTreeToASTTransformer(boolean throwOnUnmappedNode, boolean faultTolerant) {
-        super(throwOnUnmappedNode, faultTolerant);
+    public ParseTreeToASTTransformer(FaultTolerance faultTolerance) {
+        super(faultTolerance);
     }
     
     protected <S, T extends ASTNode> @NotNull Transform<S, T> registerNodeFactory(Class<S> source, Class<T> target) {
