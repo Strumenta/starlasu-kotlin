@@ -2,15 +2,11 @@ package com.strumenta.starlasu.transformation
 
 import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.Origin
-import com.strumenta.starlasu.model.Position
 import com.strumenta.starlasu.model.PropertyDescription
-import com.strumenta.starlasu.model.Source
 import com.strumenta.starlasu.model.asContainment
 import com.strumenta.starlasu.model.children
 import com.strumenta.starlasu.model.processProperties
 import com.strumenta.starlasu.model.withOrigin
-import com.strumenta.starlasu.validation.Issue
-import com.strumenta.starlasu.validation.IssueSeverity
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KParameter
@@ -27,28 +23,43 @@ class ConfigurationException(
     cause: Throwable? = null,
 ) : Exception(message, cause)
 
+/**
+ * Policy to adopt for handling child nodes in an AST transformer.
+ */
 enum class ChildrenPolicy {
+    /**
+     * Child nodes of an AST node are set upon creation, as constructor parameters.
+     */
     SET_AT_CONSTRUCTION,
-    SET_AFTER_STANDARD_CONSTRUCTION,
-    SET_AFTER_CUSTOM_CONSTRUCTION,
+
+    /**
+     * Child nodes of an AST node are set after the creation of the parent node, using a setter method. The parent node
+     * is either instantiated automatically by the AST transformer, or by user code.
+     */
+    SET_AFTER_CONSTRUCTION,
+
+    /**
+     * Child nodes of an AST node are not set by the AST transformer.
+     */
     SKIP,
 }
 
 /**
- * Factory that, given a tree node, will instantiate the corresponding transformed node.
+ * Strategy to instantiate the corresponding transformed AST node given the source node.
  */
 class Transform<Source, Output : ASTNode>(
     val constructor: (Source, TransformationContext, ASTTransformer, Transform<Source, Output>) -> List<Output>,
     var children: MutableMap<String, ChildTransform<Source, *, *>?> = mutableMapOf(),
     var finalizer: (Output, TransformationContext) -> Unit = { _, _ -> },
-    var childrenPolicy: ChildrenPolicy = ChildrenPolicy.SET_AFTER_STANDARD_CONSTRUCTION,
+    var childrenPolicy: ChildrenPolicy = ChildrenPolicy.SET_AFTER_CONSTRUCTION,
+    var customConstructor: Boolean = true,
 ) {
     companion object {
         fun <Source, Output : ASTNode> single(
             singleConstructor: (Source, TransformationContext, ASTTransformer, Transform<Source, Output>) -> Output?,
             children: MutableMap<String, ChildTransform<Source, *, *>?> = mutableMapOf(),
             finalizer: (Output, TransformationContext) -> Unit = { _, _ -> },
-            childrenPolicy: ChildrenPolicy = ChildrenPolicy.SET_AFTER_STANDARD_CONSTRUCTION,
+            childrenPolicy: ChildrenPolicy = ChildrenPolicy.SET_AFTER_CONSTRUCTION,
         ): Transform<Source, Output> =
             Transform({ source, ctx, at, nf ->
                 val result = singleConstructor(source, ctx, at, nf)
@@ -173,11 +184,11 @@ class Transform<Source, Output : ASTNode>(
         }
         val prefix = if (scopedToType != null) scopedToType.qualifiedName + "#" else ""
         if (set == null) {
-            if (childrenPolicy == ChildrenPolicy.SET_AFTER_STANDARD_CONSTRUCTION) {
+            if (customConstructor) {
+                throw ConfigurationException("A custom constructor was provided, but child $name has no setter")
+            } else {
                 // given we have no setter we MUST set the children at construction
                 childrenPolicy = ChildrenPolicy.SET_AT_CONSTRUCTION
-            } else if (childrenPolicy == ChildrenPolicy.SET_AFTER_CUSTOM_CONSTRUCTION) {
-                throw ConfigurationException("A custom constructor was provided, but child $name has no setter")
             }
         }
 
@@ -212,7 +223,11 @@ class Transform<Source, Output : ASTNode>(
      * fail – or worse, it will map an unrelated node.
      */
     fun skipChildren(skip: Boolean = true): Transform<Source, Output> {
-        childrenPolicy = if (skip) ChildrenPolicy.SKIP else childrenPolicy
+        if (skip) {
+            childrenPolicy = ChildrenPolicy.SKIP
+        } else if (childrenPolicy == ChildrenPolicy.SKIP) {
+            childrenPolicy = ChildrenPolicy.SET_AFTER_CONSTRUCTION
+        }
         return this
     }
 
@@ -280,44 +295,6 @@ data class ChildTransform<Source, Target, Child : Any>(
  * Sentinel value used to represent the information that a given property is not a child node.
  */
 private val NO_CHILD_NODE = ChildTransform<Any, Any, Any>("", { x -> x }, { _, _ -> }, ASTNode::class)
-
-/**
- * A context holding metadata relevant to the transformation process, such as parent node reference, associated source,
- * and issues discovered during transformation.
- *
- * This is an open class so that specialized AST transformers can extend it to track additional information.
- *
- * @constructor Creates an instance of the transformation context.
- * @param issues A mutable list of issues encountered during the transformation.
- *               Defaults to an empty list if not provided.
- * @param parent The parent [ASTNode] in the hierarchy, if available. Defaults to null.
- * @param source The [Source] object associated with this context, if any. Defaults to null.
- */
-open class TransformationContext
-    @JvmOverloads
-    constructor(
-        /**
-         * Additional issues found during the transformation process.
-         */
-        val issues: MutableList<Issue> = mutableListOf(),
-        var parent: ASTNode? = null,
-        var source: Source? = null,
-    ) {
-        fun addIssue(
-            message: String,
-            severity: IssueSeverity = IssueSeverity.ERROR,
-            position: Position? = null,
-        ): Issue {
-            val issue =
-                Issue.semantic(
-                    message,
-                    severity,
-                    position?.apply { source = this@TransformationContext.source },
-                )
-            issues.add(issue)
-            return issue
-        }
-    }
 
 enum class FaultTolerance {
     /**
@@ -408,9 +385,7 @@ open class ASTTransformer
             if (transform != null) {
                 nodes = makeNodes(transform, source, context)
                 val parent = context.parent
-                if (transform.childrenPolicy == ChildrenPolicy.SET_AFTER_STANDARD_CONSTRUCTION ||
-                    transform.childrenPolicy == ChildrenPolicy.SET_AFTER_CUSTOM_CONSTRUCTION
-                ) {
+                if (transform.childrenPolicy == ChildrenPolicy.SET_AFTER_CONSTRUCTION) {
                     nodes.forEach { node ->
                         context.parent = node
                         setChildren(transform, source, context)
@@ -550,7 +525,6 @@ open class ASTTransformer
             factory: (S, TransformationContext, ASTTransformer, Transform<S, T>) -> T?,
         ): Transform<S, T> {
             val transform = Transform.single(factory)
-            transform.childrenPolicy = ChildrenPolicy.SET_AFTER_CUSTOM_CONSTRUCTION
             transforms[kclass] = transform
             return transform
         }
@@ -560,7 +534,6 @@ open class ASTTransformer
             factory: (S, TransformationContext, ASTTransformer, Transform<S, T>) -> List<T>,
         ): Transform<S, T> {
             val transform = Transform(factory)
-            transform.childrenPolicy = ChildrenPolicy.SET_AFTER_CUSTOM_CONSTRUCTION
             transforms[kclass] = transform
             return transform
         }
@@ -625,7 +598,7 @@ open class ASTTransformer
 
         inline fun <reified S : Any, reified T : ASTNode> registerTransform(): Transform<S, T> =
             registerTransform(S::class, T::class)
-                .apply { childrenPolicy = ChildrenPolicy.SET_AFTER_STANDARD_CONSTRUCTION }
+                .apply { customConstructor = false }
 
         inline fun <reified S : Any> notTranslateDirectly(): Transform<S, ASTNode> =
             registerTransform<S, ASTNode> {
@@ -777,9 +750,10 @@ open class ASTTransformer
                         if (emptyLikeConstructor == null) {
                             ChildrenPolicy.SET_AT_CONSTRUCTION
                         } else {
-                            ChildrenPolicy.SET_AFTER_STANDARD_CONSTRUCTION
+                            ChildrenPolicy.SET_AFTER_CONSTRUCTION
                         },
                 )
+            transform.customConstructor = false
             transforms[source] = transform
             return transform
         }
