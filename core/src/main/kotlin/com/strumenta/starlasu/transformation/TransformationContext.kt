@@ -12,8 +12,8 @@ import com.strumenta.starlasu.validation.IssueSeverity
  *
  * This is an open class so that specialized AST transformers can extend it to track additional information. However,
  * to keep type signatures reasonably simple, AST transformers are not generic on the context class. This is also
- * because we expect that only few, if any, AST transformation rules ([Transform] instances) will require a custom
- * context; those few can just cast the context to the desired subclass.
+ * because we expect that only few, if any, AST transformation rules ([TransformationRule] instances) will require a
+ * custom context; those few can just cast the context to the desired subclass.
  *
  * @constructor Creates an instance of the transformation context.
  * @param issues A mutable list of issues encountered during the transformation.

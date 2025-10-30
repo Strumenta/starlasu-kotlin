@@ -47,21 +47,31 @@ enum class ChildrenPolicy {
 /**
  * Strategy to instantiate the corresponding transformed AST node given the source node.
  */
-class Transform<Source, Output : ASTNode>(
-    val constructor: (Source, TransformationContext, ASTTransformer, Transform<Source, Output>) -> List<Output>,
-    var children: MutableMap<String, ChildTransform<Source, *, *>?> = mutableMapOf(),
+class TransformationRule<Source, Output : ASTNode>(
+    val constructor: (
+        Source,
+        TransformationContext,
+        ASTTransformer,
+        TransformationRule<Source, Output>,
+    ) -> List<Output>,
+    var children: MutableMap<String, ChildTransformationRule<Source, *, *>?> = mutableMapOf(),
     var finalizer: (Output, TransformationContext) -> Unit = { _, _ -> },
     var childrenPolicy: ChildrenPolicy = ChildrenPolicy.SET_AFTER_CONSTRUCTION,
     var customConstructor: Boolean = true,
 ) {
     companion object {
         fun <Source, Output : ASTNode> single(
-            singleConstructor: (Source, TransformationContext, ASTTransformer, Transform<Source, Output>) -> Output?,
-            children: MutableMap<String, ChildTransform<Source, *, *>?> = mutableMapOf(),
+            singleConstructor: (
+                Source,
+                TransformationContext,
+                ASTTransformer,
+                TransformationRule<Source, Output>,
+            ) -> Output?,
+            children: MutableMap<String, ChildTransformationRule<Source, *, *>?> = mutableMapOf(),
             finalizer: (Output, TransformationContext) -> Unit = { _, _ -> },
             childrenPolicy: ChildrenPolicy = ChildrenPolicy.SET_AFTER_CONSTRUCTION,
-        ): Transform<Source, Output> =
-            Transform({ source, ctx, at, nf ->
+        ): TransformationRule<Source, Output> =
+            TransformationRule({ source, ctx, at, nf ->
                 val result = singleConstructor(source, ctx, at, nf)
                 if (result == null) emptyList() else listOf(result)
             }, children, finalizer, childrenPolicy)
@@ -74,7 +84,7 @@ class Transform<Source, Output : ASTNode>(
      *
      * Example using the scopedToType parameter:
      * ```
-     *     on.registerTransform(SASParser.DatasetOptionContext::class) { ctx ->
+     *     on.registerRule(SASParser.DatasetOptionContext::class) { ctx ->
      *         when {
      *             ...
      *         }
@@ -93,7 +103,7 @@ class Transform<Source, Output : ASTNode>(
         targetProperty: KMutableProperty1<*, *>,
         sourceAccessor: Source.() -> Any?,
         scopedToType: KClass<*>,
-    ): Transform<Source, Output> =
+    ): TransformationRule<Source, Output> =
         withChild(
             get = { source -> source.sourceAccessor() },
             set = (targetProperty as KMutableProperty1<Any, Any?>)::set,
@@ -119,7 +129,7 @@ class Transform<Source, Output : ASTNode>(
     fun withChild(
         targetProperty: KMutableProperty1<out Any, *>,
         sourceAccessor: Source.() -> Any?,
-    ): Transform<Source, Output> =
+    ): TransformationRule<Source, Output> =
         withChild(
             get = { source -> source.sourceAccessor() },
             set = (targetProperty as KMutableProperty1<Any, Any?>)::set,
@@ -136,7 +146,7 @@ class Transform<Source, Output : ASTNode>(
     fun withChild(
         targetProperty: KProperty1<out Any, *>,
         sourceAccessor: Source.() -> Any?,
-    ): Transform<Source, Output> =
+    ): TransformationRule<Source, Output> =
         withChild<Output, Any>(
             get = { source -> source.sourceAccessor() },
             null,
@@ -157,7 +167,7 @@ class Transform<Source, Output : ASTNode>(
         targetProperty: KProperty1<out Any, *>,
         sourceAccessor: Source.() -> Any?,
         scopedToType: KClass<*>,
-    ): Transform<Source, Output> =
+    ): TransformationRule<Source, Output> =
         withChild<Output, ASTNode>(
             get = { source -> source.sourceAccessor() },
             null,
@@ -178,7 +188,7 @@ class Transform<Source, Output : ASTNode>(
         name: String,
         scopedToType: KClass<*>? = null,
         childType: KClass<out ASTNode> = ASTNode::class,
-    ): Transform<Source, Output> {
+    ): TransformationRule<Source, Output> {
         if (childrenPolicy == ChildrenPolicy.SKIP) {
             throw ConfigurationException("Children are configured to be skipped, calling withChild is illegal")
         }
@@ -192,16 +202,16 @@ class Transform<Source, Output : ASTNode>(
             }
         }
 
-        children[prefix + name] = ChildTransform(prefix + name, get, set, childType)
+        children[prefix + name] = ChildTransformationRule(prefix + name, get, set, childType)
         return this
     }
 
-    fun withFinalizer(finalizer: (Output, TransformationContext) -> Unit): Transform<Source, Output> {
+    fun withFinalizer(finalizer: (Output, TransformationContext) -> Unit): TransformationRule<Source, Output> {
         this.finalizer = finalizer
         return this
     }
 
-    fun withFinalizer(finalizer: (Output) -> Unit): Transform<Source, Output> {
+    fun withFinalizer(finalizer: (Output) -> Unit): TransformationRule<Source, Output> {
         this.finalizer = { n, _ -> finalizer(n) }
         return this
     }
@@ -213,7 +223,7 @@ class Transform<Source, Output : ASTNode>(
      * we may configure the transformer as follows:
      *
      * ```kotlin
-     * transformer.registerTransform(XYZContext::class) { ctx -> transformer.transform(ctx.children[0]) }
+     * transformer.registerRule(XYZContext::class) { ctx -> transformer.transform(ctx.children[0]) }
      * ```
      *
      * However, if the result of `transformer.transform(ctx.children[0])` is an instance of a ASTNode with a child
@@ -222,7 +232,7 @@ class Transform<Source, Output : ASTNode>(
      * be an instance of `XYZContext` that may not have a child with a corresponding name, and the transformation will
      * fail – or worse, it will map an unrelated node.
      */
-    fun skipChildren(skip: Boolean = true): Transform<Source, Output> {
+    fun skipChildren(skip: Boolean = true): TransformationRule<Source, Output> {
         if (skip) {
             childrenPolicy = ChildrenPolicy.SKIP
         } else if (childrenPolicy == ChildrenPolicy.SKIP) {
@@ -270,7 +280,7 @@ class Transform<Source, Output : ASTNode>(
  *
  * @param type the property type if single, the collection's element type if multiple
  */
-data class ChildTransform<Source, Target, Child : Any>(
+data class ChildTransformationRule<Source, Target, Child : Any>(
     val name: String,
     val get: (Source) -> Any?,
     val setter: ((Target, Child?) -> Unit)?,
@@ -294,7 +304,7 @@ data class ChildTransform<Source, Target, Child : Any>(
 /**
  * Sentinel value used to represent the information that a given property is not a child node.
  */
-private val NO_CHILD_NODE = ChildTransform<Any, Any, Any>("", { x -> x }, { _, _ -> }, ASTNode::class)
+private val NO_CHILD_NODE = ChildTransformationRule<Any, Any, Any>("", { x -> x }, { _, _ -> }, ASTNode::class)
 
 enum class FaultTolerance {
     /**
@@ -336,7 +346,7 @@ open class ASTTransformer
         /**
          * Factories that map from source tree node to target tree node.
          */
-        val transforms = mutableMapOf<KClass<*>, Transform<*, *>>()
+        val rules = mutableMapOf<KClass<*>, TransformationRule<*, *>>()
 
         private val _knownClasses = mutableMapOf<String, MutableSet<KClass<*>>>()
         val knownClasses: Map<String, Set<KClass<*>>> = _knownClasses
@@ -380,7 +390,7 @@ open class ASTTransformer
             if (source is Collection<*>) {
                 throw Error("Mapping error: received collection when value was expected")
             }
-            val transform = getTransform<Any, ASTNode>(source::class as KClass<Any>)
+            val transform = getTransformationRule<Any, ASTNode>(source::class as KClass<Any>)
             val nodes: List<ASTNode>
             if (transform != null) {
                 nodes = makeNodes(transform, source, context)
@@ -436,19 +446,19 @@ open class ASTTransformer
                 }
 
         protected open fun setChildren(
-            transform: Transform<Any, ASTNode>,
+            rule: TransformationRule<Any, ASTNode>,
             source: Any,
             context: TransformationContext,
         ) {
             val node = context.parent!!
             node.processProperties { pd ->
-                val childTransform = transform.getChildTransform<Any, ASTNode, Any>(node, pd.name)
+                val childTransform = rule.getChildTransformationRule<Any, ASTNode, Any>(node, pd.name)
                 if (childTransform != null) {
                     if (childTransform != NO_CHILD_NODE) {
                         setChild(childTransform, source, context, pd)
                     }
                 } else {
-                    transform.children[getChildKey(node.nodeType, pd.name)] = NO_CHILD_NODE
+                    rule.children[getChildKey(node.nodeType, pd.name)] = NO_CHILD_NODE
                 }
             }
         }
@@ -459,13 +469,13 @@ open class ASTTransformer
         ): Origin? = source as? Origin
 
         protected open fun setChild(
-            childTransform: ChildTransform<*, *, *>,
+            childTransformationRule: ChildTransformationRule<*, *, *>,
             source: Any,
             context: TransformationContext,
             pd: PropertyDescription,
         ) {
             val node = context.parent!!
-            val childFactory = childTransform as ChildTransform<Any, Any, Any>
+            val childFactory = childTransformationRule as ChildTransformationRule<Any, Any, Any>
             val childrenSource = childFactory.get(getSource(node, source))
             val child: Any? =
                 if (pd.multiple) {
@@ -477,9 +487,9 @@ open class ASTTransformer
                     transform(childrenSource, context)
                 }
             try {
-                childTransform.set(node, child)
+                childTransformationRule.set(node, child)
             } catch (e: IllegalArgumentException) {
-                throw Error("Could not set child $childTransform", e)
+                throw Error("Could not set child $childTransformationRule", e)
             }
         }
 
@@ -489,11 +499,11 @@ open class ASTTransformer
         ): Any = source
 
         protected open fun <S : Any, T : ASTNode> makeNodes(
-            transform: Transform<S, T>,
+            rule: TransformationRule<S, T>,
             source: S,
             context: TransformationContext,
         ): List<ASTNode> {
-            val nodes = transform.constructor(source, context, this, transform)
+            val nodes = rule.constructor(source, context, this, rule)
             nodes.forEach { node ->
                 if (node.origin == null) {
                     node.withOrigin(asOrigin(source, context))
@@ -502,65 +512,65 @@ open class ASTTransformer
             return nodes
         }
 
-        protected open fun <S : Any, T : ASTNode> getTransform(kClass: KClass<S>): Transform<S, T>? {
-            val transform = transforms[kClass]
-            if (transform != null) {
-                return transform as Transform<S, T>
+        protected open fun <S : Any, T : ASTNode> getTransformationRule(kClass: KClass<S>): TransformationRule<S, T>? {
+            val rule = rules[kClass]
+            if (rule != null) {
+                return rule as TransformationRule<S, T>
             } else {
                 if (kClass == Any::class) {
                     return null
                 }
                 for (superclass in kClass.superclasses) {
-                    val transform = getTransform<S, T>(superclass as KClass<S>)
-                    if (transform != null) {
-                        return transform
+                    val rule = getTransformationRule<S, T>(superclass as KClass<S>)
+                    if (rule != null) {
+                        return rule
                     }
                 }
             }
             return null
         }
 
-        fun <S : Any, T : ASTNode> registerTransform(
+        fun <S : Any, T : ASTNode> registerRule(
             kclass: KClass<S>,
-            factory: (S, TransformationContext, ASTTransformer, Transform<S, T>) -> T?,
-        ): Transform<S, T> {
-            val transform = Transform.single(factory)
-            transforms[kclass] = transform
-            return transform
+            factory: (S, TransformationContext, ASTTransformer, TransformationRule<S, T>) -> T?,
+        ): TransformationRule<S, T> {
+            val transformationRule = TransformationRule.single(factory)
+            rules[kclass] = transformationRule
+            return transformationRule
         }
 
         fun <S : Any, T : ASTNode> registerMultipleTransform(
             kclass: KClass<S>,
-            factory: (S, TransformationContext, ASTTransformer, Transform<S, T>) -> List<T>,
-        ): Transform<S, T> {
-            val transform = Transform(factory)
-            transforms[kclass] = transform
-            return transform
+            factory: (S, TransformationContext, ASTTransformer, TransformationRule<S, T>) -> List<T>,
+        ): TransformationRule<S, T> {
+            val transformationRule = TransformationRule(factory)
+            rules[kclass] = transformationRule
+            return transformationRule
         }
 
-        fun <S : Any, T : ASTNode> registerTransform(
+        fun <S : Any, T : ASTNode> registerRule(
             kclass: KClass<S>,
             factory: (S, TransformationContext, ASTTransformer) -> T?,
-        ): Transform<S, T> =
-            registerTransform(kclass) { source, context, transformer, _ -> factory(source, context, transformer) }
+        ): TransformationRule<S, T> =
+            registerRule(kclass) { source, context, transformer, _ -> factory(source, context, transformer) }
 
-        fun <S : Any, T : ASTNode> registerTransform(
+        fun <S : Any, T : ASTNode> registerRule(
             kclass: KClass<S>,
             factory: (S, TransformationContext) -> T?,
-        ): Transform<S, T> = registerTransform(kclass) { source, context, _, _ -> factory(source, context) }
+        ): TransformationRule<S, T> = registerRule(kclass) { source, context, _, _ -> factory(source, context) }
 
-        inline fun <reified S : Any, T : ASTNode> registerTransform(
+        inline fun <reified S : Any, T : ASTNode> registerRule(
             crossinline factory: S.(TransformationContext) -> T?,
-        ): Transform<S, T> = registerTransform(S::class) { source, context, _, _ -> source.factory(context) }
+        ): TransformationRule<S, T> = registerRule(S::class) { source, context, _, _ -> source.factory(context) }
 
         /**
          * We need T to be reified because we may need to install dummy classes of T.
          */
-        inline fun <S : Any, reified T : ASTNode> registerTransform(
+        inline fun <S : Any, reified T : ASTNode> registerRule(
             kclass: KClass<S>,
             crossinline factory: (S) -> T?,
-        ): Transform<S, T> =
-            registerTransform(kclass) { input, context ->
+        ): TransformationRule<S, T> =
+            registerRule(kclass) { input, context ->
                 try {
                     factory(input)
                 } catch (t: NotImplementedError) {
@@ -594,14 +604,14 @@ open class ASTTransformer
         fun <S : Any, T : ASTNode> registerMultipleTransform(
             kclass: KClass<S>,
             factory: (S) -> List<T>,
-        ): Transform<S, T> = registerMultipleTransform(kclass) { input, _, _, _ -> factory(input) }
+        ): TransformationRule<S, T> = registerMultipleTransform(kclass) { input, _, _, _ -> factory(input) }
 
-        inline fun <reified S : Any, reified T : ASTNode> registerTransform(): Transform<S, T> =
-            registerTransform(S::class, T::class)
+        inline fun <reified S : Any, reified T : ASTNode> registerRule(): TransformationRule<S, T> =
+            registerRule(S::class, T::class)
                 .apply { customConstructor = false }
 
-        inline fun <reified S : Any> notTranslateDirectly(): Transform<S, ASTNode> =
-            registerTransform<S, ASTNode> {
+        inline fun <reified S : Any> notTranslateDirectly(): TransformationRule<S, ASTNode> =
+            registerRule<S, ASTNode> {
                 throw java.lang.IllegalStateException(
                     "A ASTNode of this type (${this.javaClass.canonicalName}) should never be translated directly. " +
                         "It is expected that the container will not delegate the translation of this node but it " +
@@ -612,10 +622,10 @@ open class ASTTransformer
         private fun <S : Any, T : ASTNode> parameterValue(
             kParameter: KParameter,
             source: S,
-            childTransform: ChildTransform<Any, T, Any>,
+            childTransformationRule: ChildTransformationRule<Any, T, Any>,
             context: TransformationContext,
         ): ParameterValue =
-            when (val childSource = childTransform.get.invoke(source)) {
+            when (val childSource = childTransformationRule.get.invoke(source)) {
                 null -> {
                     AbsentParameterValue
                 }
@@ -659,17 +669,17 @@ open class ASTTransformer
          * @param nodeType the [ASTNode.nodeType] of the target node. Normally, the node type is the same as the class name,
          * however, [ASTNode] subclasses may want to override it, and in that case, the parameter must be provided explicitly.
          */
-        fun <S : Any, T : ASTNode> registerTransform(
+        fun <S : Any, T : ASTNode> registerRule(
             source: KClass<S>,
             target: KClass<T>,
             nodeType: String = target.qualifiedName!!,
-        ): Transform<S, T> {
+        ): TransformationRule<S, T> {
             registerKnownClass(target)
             // We are looking for any constructor with does not take parameters or have default
             // values for all its parameters
             val emptyLikeConstructor = target.constructors.find { it.parameters.all { param -> param.isOptional } }
-            val transform =
-                Transform.single(
+            val transformationRule =
+                TransformationRule.single(
                     { source: S, context, _, thisTransform ->
                         if (target.isSealed) {
                             throw IllegalStateException("Unable to instantiate sealed class $target")
@@ -678,7 +688,7 @@ open class ASTTransformer
                         fun getConstructorParameterValue(kParameter: KParameter): ParameterValue {
                             try {
                                 val childTransform =
-                                    thisTransform.getChildTransform<Any, T, Any>(
+                                    thisTransform.getChildTransformationRule<Any, T, Any>(
                                         nodeType,
                                         kParameter.name!!,
                                     )
@@ -753,17 +763,17 @@ open class ASTTransformer
                             ChildrenPolicy.SET_AFTER_CONSTRUCTION
                         },
                 )
-            transform.customConstructor = false
-            transforms[source] = transform
-            return transform
+            transformationRule.customConstructor = false
+            rules[source] = transformationRule
+            return transformationRule
         }
 
         /**
          * Here the method needs to be inlined and the type parameter reified as in the invoked
-         * registerTransform we need to access the nodeClass
+         * registerRule we need to access the nodeClass
          */
         inline fun <reified T : ASTNode> registerIdentityTransformation(nodeClass: KClass<T>) =
-            registerTransform(nodeClass) { node -> node }.skipChildren()
+            registerRule(nodeClass) { node -> node }.skipChildren()
 
         private fun registerKnownClass(target: KClass<*>) {
             val qualifiedName = target.qualifiedName
@@ -783,21 +793,21 @@ open class ASTTransformer
         }
     }
 
-private fun <Source : Any, Target : ASTNode, Child : Any> Transform<*, *>.getChildTransform(
+private fun <Source : Any, Target : ASTNode, Child : Any> TransformationRule<*, *>.getChildTransformationRule(
     node: Target,
     parameterName: String,
-): ChildTransform<Source, Target, Child>? = getChildTransform(node.nodeType, parameterName)
+): ChildTransformationRule<Source, Target, Child>? = getChildTransformationRule(node.nodeType, parameterName)
 
-private fun <Source : Any, Target : ASTNode, Child : Any> Transform<*, *>.getChildTransform(
+private fun <Source : Any, Target : ASTNode, Child : Any> TransformationRule<*, *>.getChildTransformationRule(
     nodeType: String,
     parameterName: String,
-): ChildTransform<Source, Target, Child>? {
+): ChildTransformationRule<Source, Target, Child>? {
     val childKey = getChildKey(nodeType, parameterName)
-    var childTransform = this.children[childKey]
-    if (childTransform == null) {
-        childTransform = this.children[parameterName]
+    var childRule = this.children[childKey]
+    if (childRule == null) {
+        childRule = this.children[parameterName]
     }
-    return childTransform as ChildTransform<Source, Target, Child>?
+    return childRule as ChildTransformationRule<Source, Target, Child>?
 }
 
 private fun <Target : Any> getChildKey(

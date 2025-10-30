@@ -8,8 +8,8 @@ import com.strumenta.starlasu.parsing.withParseTreeNode
 import com.strumenta.starlasu.transformation.ASTTransformer
 import com.strumenta.starlasu.transformation.FailingASTTransformation
 import com.strumenta.starlasu.transformation.FaultTolerance
-import com.strumenta.starlasu.transformation.Transform
 import com.strumenta.starlasu.transformation.TransformationContext
+import com.strumenta.starlasu.transformation.TransformationRule
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.ParseTree
 import kotlin.reflect.KClass
@@ -92,7 +92,7 @@ open class ParseTreeToASTTransformer
          * wrapper. When there is only a ParserRuleContext child we can transform
          * that child and return that result.
          */
-        fun <P : ParserRuleContext> registerTransformUnwrappingChild(kclass: KClass<P>): Transform<P, Node> =
+        fun <P : ParserRuleContext> registerTransformUnwrappingChild(kclass: KClass<P>): TransformationRule<P, Node> =
             registerTransform(kclass) { source, context, _ ->
                 val nodeChildren = source.children.filterIsInstance<ParserRuleContext>()
                 require(nodeChildren.size == 1) {
@@ -105,6 +105,6 @@ open class ParseTreeToASTTransformer
         /**
          * Alternative to registerNodeFactoryUnwrappingChild(KClass) which is slightly more concise.
          */
-        inline fun <reified P : ParserRuleContext> registerTransformUnwrappingChild(): Transform<P, Node> =
+        inline fun <reified P : ParserRuleContext> registerTransformUnwrappingChild(): TransformationRule<P, Node> =
             registerTransformUnwrappingChild(P::class)
     }
