@@ -50,7 +50,7 @@ Extend your AST classes from `Node` to automatically gain:
 
 - **Navigation:** Traverse, search, and modify the AST with utility methods.
 - **Printing:** Output ASTs as XML, JSON, or parse trees.
-- **LionWev Interoperability:** Export ASTs and languages (i.e., metamodels) to LionWeb.
+- **LionWeb Interoperability:** Export ASTs and languages (i.e., metamodels) to LionWeb.
 - **Name Resolution:** Built-in utilities for named elements and reference resolution.
 - **Automatic Structure Discovery:** Starlasu introspects your AST — all properties and tree structure are detected automatically.
 
