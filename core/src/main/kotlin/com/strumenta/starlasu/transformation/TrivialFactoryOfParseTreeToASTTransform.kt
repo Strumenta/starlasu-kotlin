@@ -133,7 +133,7 @@ object TrivialFactoryOfParseTreeToASTTransform {
 inline fun <reified S : RuleContext, reified T : Node> ASTTransformer.registerTrivialPTtoASTConversion(
     vararg nameConversions: Pair<String, String>,
 ) {
-    this.registerTransform(
+    this.registerRule(
         S::class,
         TrivialFactoryOfParseTreeToASTTransform.trivialTransform<S, T>(*nameConversions),
     )
@@ -148,7 +148,7 @@ inline fun <reified S : RuleContext, reified T : Node> ParseTreeToASTTransformer
 )
 
 inline fun <reified S : RuleContext, reified T : Node> ParseTreeToASTTransformer.unwrap(wrappingMember: KCallable<*>) {
-    this.registerTransform(S::class) { parseTreeNode, context ->
+    this.registerRule(S::class) { parseTreeNode, context ->
         val wrapped = wrappingMember.call(parseTreeNode)
         transform(wrapped, context) as T?
     }

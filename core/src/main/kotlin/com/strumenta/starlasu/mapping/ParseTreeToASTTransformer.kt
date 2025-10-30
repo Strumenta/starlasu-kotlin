@@ -92,8 +92,8 @@ open class ParseTreeToASTTransformer
          * wrapper. When there is only a ParserRuleContext child we can transform
          * that child and return that result.
          */
-        fun <P : ParserRuleContext> registerTransformUnwrappingChild(kclass: KClass<P>): TransformationRule<P, Node> =
-            registerTransform(kclass) { source, context, _ ->
+        fun <P : ParserRuleContext> registerRuleUnwrappingChild(kclass: KClass<P>): TransformationRule<P, Node> =
+            registerRule(kclass) { source, context, _ ->
                 val nodeChildren = source.children.filterIsInstance<ParserRuleContext>()
                 require(nodeChildren.size == 1) {
                     "Node $source (${source.javaClass}) has ${nodeChildren.size} " +
@@ -105,6 +105,6 @@ open class ParseTreeToASTTransformer
         /**
          * Alternative to registerNodeFactoryUnwrappingChild(KClass) which is slightly more concise.
          */
-        inline fun <reified P : ParserRuleContext> registerTransformUnwrappingChild(): TransformationRule<P, Node> =
-            registerTransformUnwrappingChild(P::class)
+        inline fun <reified P : ParserRuleContext> registerRuleUnwrappingChild(): TransformationRule<P, Node> =
+            registerRuleUnwrappingChild(P::class)
     }

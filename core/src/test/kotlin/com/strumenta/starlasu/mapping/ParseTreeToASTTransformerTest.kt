@@ -223,9 +223,9 @@ class ParseTreeToASTTransformerTest {
 
     private fun configure(transformer: ASTTransformer) {
         transformer
-            .registerTransform(SimpleLangParser.CompilationUnitContext::class, CU::class)
+            .registerRule(SimpleLangParser.CompilationUnitContext::class, CU::class)
             .withChild(CU::statements, SimpleLangParser.CompilationUnitContext::statement)
-        transformer.registerTransform(SimpleLangParser.DisplayStmtContext::class) { ctx ->
+        transformer.registerRule(SimpleLangParser.DisplayStmtContext::class) { ctx ->
             if (ctx.exception != null || ctx.expression().exception != null) {
                 // We throw a custom error so that we can check that it's recorded in the AST
                 throw IllegalStateException("Parse error")
@@ -239,7 +239,7 @@ class ParseTreeToASTTransformerTest {
                         .toInt(),
             )
         }
-        transformer.registerTransform(SimpleLangParser.SetStmtContext::class) { ctx ->
+        transformer.registerRule(SimpleLangParser.SetStmtContext::class) { ctx ->
             if (ctx.exception != null || ctx.expression().exception != null) {
                 // We throw a custom error so that we can check that it's recorded in the AST
                 throw IllegalStateException("Parse error")
@@ -416,10 +416,10 @@ class ParseTreeToASTTransformerTest {
         transformer.registerTrivialPTtoASTConversion<AntlrScriptParser.Int_literal_expressionContext, SIntegerLiteral>(
             AntlrScriptParser.Int_literal_expressionContext::INT_VALUE to SIntegerLiteral::value,
         )
-        transformer.registerTransform(AntlrScriptParser.String_literal_expressionContext::class) { pt, t ->
+        transformer.registerRule(AntlrScriptParser.String_literal_expressionContext::class) { pt, t ->
             SStringLiteral(pt.text.removePrefix("'").removeSuffix("'"))
         }
-        transformer.registerTransform(AntlrScriptParser.Div_mult_expressionContext::class) { pt, c, t ->
+        transformer.registerRule(AntlrScriptParser.Div_mult_expressionContext::class) { pt, c, t ->
             when (pt.op.text) {
                 "/" -> {
                     TrivialFactoryOfParseTreeToASTTransform.trivialTransform<
@@ -448,7 +448,7 @@ class ParseTreeToASTTransformerTest {
                 else -> TODO()
             }
         }
-        transformer.registerTransform(AntlrScriptParser.Sum_sub_expressionContext::class) { pt, c, t ->
+        transformer.registerRule(AntlrScriptParser.Sum_sub_expressionContext::class) { pt, c, t ->
             when (pt.op.text) {
                 "+" -> {
                     TrivialFactoryOfParseTreeToASTTransform.trivialTransform<
@@ -559,11 +559,11 @@ class ParseTreeToASTTransformerTest {
 
 class EntTransformer : ParseTreeToASTTransformer() {
     init {
-        registerTransform(EntCtx::class) { ctx -> Ent(ctx.name) }
+        registerRule(EntCtx::class) { ctx -> Ent(ctx.name) }
             .withChild(Ent::features, EntCtx::features)
-        registerTransform(EntCtxFeature::class) { ctx -> EntFeature(name = ctx.name) }
+        registerRule(EntCtxFeature::class) { ctx -> EntFeature(name = ctx.name) }
             .withChild(EntFeature::type, EntCtxFeature::type)
-        this.registerTransform(EntCtxStringType::class, EntStringType::class)
+        this.registerRule(EntCtxStringType::class, EntStringType::class)
     }
 }
 

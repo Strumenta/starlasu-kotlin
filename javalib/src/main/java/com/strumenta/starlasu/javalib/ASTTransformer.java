@@ -38,18 +38,18 @@ public class ASTTransformer extends com.strumenta.starlasu.transformation.ASTTra
     protected <S, T extends ASTNode> @NotNull TransformationRule<S, T> registerNodeFactory(
             Class<S> source, Class<T> target, String nodeType
     ) {
-        return registerTransform(getKotlinClass(source), getKotlinClass(target), nodeType);
+        return registerRule(getKotlinClass(source), getKotlinClass(target), nodeType);
     }
 
     protected <S, T extends ASTNode> TransformationRule<S, T> registerNodeFactory(Class<S> source, Function1<S, T> function) {
-        return registerTransform(getKotlinClass(source), (s, t) -> function.invoke(s));
+        return registerRule(getKotlinClass(source), (s, t) -> function.invoke(s));
     }
 
     protected <S, T extends ASTNode> TransformationRule<S, T> registerNodeFactory(
             Class<S> source, 
             Function3<S, TransformationContext, ? super com.strumenta.starlasu.transformation.ASTTransformer, T> function
     ) {
-        return registerTransform(getKotlinClass(source), function);
+        return registerRule(getKotlinClass(source), function);
     }
 
     /**
