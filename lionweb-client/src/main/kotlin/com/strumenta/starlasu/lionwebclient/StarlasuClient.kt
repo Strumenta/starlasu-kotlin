@@ -5,7 +5,7 @@ import com.strumenta.starlasu.ids.NodeIdProvider
 import com.strumenta.starlasu.ids.caching
 import com.strumenta.starlasu.language.KolasuLanguage
 import com.strumenta.starlasu.lionweb.SNode
-import com.strumenta.starlasu.lionweb.LIONWEB_VERSION_USED_BY_KOLASU
+import com.strumenta.starlasu.lionweb.LIONWEB_VERSION_USED_BY_STARLASU
 import com.strumenta.starlasu.lionweb.LWLanguage
 import com.strumenta.starlasu.lionweb.LWNode
 import com.strumenta.starlasu.lionweb.LionWebModelConverter
@@ -52,7 +52,7 @@ import kotlin.reflect.KProperty1
  * For a node to be IIN it should either (i) be a partition, (ii) being reported as being a source base node type,
  * or (iii) implement IDLogic.
  */
-class KolasuClient(
+class StarlasuClient(
     hostname: String = "localhost",
     port: Int = 3005,
     repository: String = "default",
@@ -88,7 +88,7 @@ class KolasuClient(
             connectTimeOutInSeconds = connectTimeOutInSeconds,
             callTimeoutInSeconds = callTimeoutInSeconds,
             authorizationToken = authorizationToken,
-            lionWebVersion = LIONWEB_VERSION_USED_BY_KOLASU,
+            lionWebVersion = LIONWEB_VERSION_USED_BY_STARLASU,
         )
     /**
      * Exposed for testing purposes
@@ -435,7 +435,7 @@ class KolasuClient(
                 } else {
                     val lionWebClassifier = lionWebLanguage.elements.find { it.key == entry.key.classifierKey }
                     if (lionWebClassifier is Concept) {
-                        val kolasuClass = nodeConverter.getClassifiersToKolasuClassesMapping()[lionWebClassifier]
+                        val kolasuClass = nodeConverter.getClassifiersToStarlasuClassesMapping()[lionWebClassifier]
                         if (kolasuClass == null) {
                             null
                         } else {

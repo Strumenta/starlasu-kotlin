@@ -41,7 +41,7 @@ import kotlin.reflect.full.createType
 import com.strumenta.starlasu.base.v2.ASTLanguageV2 as ASTLanguage
 
 /**
- * This class is able to convert between Kolasu and LionWeb languages, tracking the mapping.
+ * This class is able to convert between Starlasu and LionWeb languages, tracking the mapping.
  */
 class LionWebLanguageConverter {
     private val astClassesAndClassifiers = BiMap<KClass<*>, Classifier<*>>()
@@ -53,8 +53,8 @@ class LionWebLanguageConverter {
         val starLasuKLanguage = KolasuLanguage(ASTLanguage.getLanguage().name!!)
         languages.associate(starLasuKLanguage, ASTLanguage.getLanguage())
         registerMapping(Node::class, ASTLanguage.getASTNode())
-        registerMapping(Named::class, LionCoreBuiltins.getINamed(LIONWEB_VERSION_USED_BY_KOLASU))
-        registerMapping(PossiblyNamed::class, LionCoreBuiltins.getINamed(LIONWEB_VERSION_USED_BY_KOLASU))
+        registerMapping(Named::class, LionCoreBuiltins.getINamed(LIONWEB_VERSION_USED_BY_STARLASU))
+        registerMapping(PossiblyNamed::class, LionCoreBuiltins.getINamed(LIONWEB_VERSION_USED_BY_STARLASU))
         registerMapping(CommonElement::class, ASTLanguage.getCommonElement())
         registerMapping(BehaviorDeclaration::class, ASTLanguage.getBehaviorDeclaration())
         registerMapping(Documentation::class, ASTLanguage.getDocumentation())
@@ -79,7 +79,7 @@ class LionWebLanguageConverter {
     }
 
     fun exportToLionWeb(kolasuLanguage: KolasuLanguage): LWLanguage {
-        val lionwebLanguage = LWLanguage(LIONWEB_VERSION_USED_BY_KOLASU)
+        val lionwebLanguage = LWLanguage(LIONWEB_VERSION_USED_BY_STARLASU)
         lionwebLanguage.version = "1"
         lionwebLanguage.name = kolasuLanguage.qualifiedName
         lionwebLanguage.key = kolasuLanguage.qualifiedName.replace('.', '-')
@@ -250,17 +250,17 @@ class LionWebLanguageConverter {
         languages.byB(lwLanguage)
             ?: throw java.lang.IllegalArgumentException("Unknown LionWeb Language $lwLanguage")
 
-    fun getKolasuClassesToClassifiersMapping(): Map<KClass<*>, Classifier<*>> = astClassesAndClassifiers.asToBsMap
+    fun getStarlasuClassesToClassifiersMapping(): Map<KClass<*>, Classifier<*>> = astClassesAndClassifiers.asToBsMap
 
-    fun getClassifiersToKolasuClassesMapping(): Map<Classifier<*>, KClass<*>> = astClassesAndClassifiers.bsToAsMap
+    fun getClassifiersToStarlasuClassesMapping(): Map<Classifier<*>, KClass<*>> = astClassesAndClassifiers.bsToAsMap
 
-    fun getEnumerationsToKolasuClassesMapping(): Map<Enumeration, EnumKClass> = classesAndEnumerations.bsToAsMap
+    fun getEnumerationsToStarlasuClassesMapping(): Map<Enumeration, EnumKClass> = classesAndEnumerations.bsToAsMap
 
-    fun getPrimitiveTypesToKolasuClassesMapping(): Map<PrimitiveType, KClass<*>> = classesAndPrimitiveTypes.bsToAsMap
+    fun getPrimitiveTypesToStarlasuClassesMapping(): Map<PrimitiveType, KClass<*>> = classesAndPrimitiveTypes.bsToAsMap
 
-    fun getKolasuClassesToEnumerationsMapping(): Map<EnumKClass, Enumeration> = classesAndEnumerations.asToBsMap
+    fun getStarlasuClassesToEnumerationsMapping(): Map<EnumKClass, Enumeration> = classesAndEnumerations.asToBsMap
 
-    fun getKolasuClassesToPrimitiveTypesMapping(): Map<KClass<*>, PrimitiveType> = classesAndPrimitiveTypes.asToBsMap
+    fun getStarlasuClassesToPrimitiveTypesMapping(): Map<KClass<*>, PrimitiveType> = classesAndPrimitiveTypes.asToBsMap
 
     fun correspondingInterface(kClass: KClass<*>): Interface = toLWClassifier(kClass) as Interface
 
@@ -268,7 +268,7 @@ class LionWebLanguageConverter {
 
     fun correspondingConcept(nodeType: String): Concept = toLWClassifier(nodeType) as Concept
 
-    fun correspondingKolasuClass(classifier: Classifier<*>): KClass<*>? =
+    fun correspondingStartlasuClass(classifier: Classifier<*>): KClass<*>? =
         this.astClassesAndClassifiers.bsToAsMap.entries
             .find {
                 it.key.key == classifier.key &&
@@ -277,10 +277,10 @@ class LionWebLanguageConverter {
             }?.value
 
     private fun registerMapping(
-        kolasuClass: KClass<*>,
+        starlasuClass: KClass<*>,
         featuresContainer: Classifier<*>,
     ) {
-        astClassesAndClassifiers.associate(kolasuClass, featuresContainer)
+        astClassesAndClassifiers.associate(starlasuClass, featuresContainer)
     }
 
     private fun toLWClassifier(kClass: KClass<*>): Classifier<*> =
@@ -333,10 +333,10 @@ class LionWebLanguageConverter {
         lionwebLanguage: LWLanguage,
     ): DataType<*> {
         return when (kType) {
-            Int::class.createType() -> LionCoreBuiltins.getInteger(LIONWEB_VERSION_USED_BY_KOLASU)
-            Long::class.createType() -> LionCoreBuiltins.getInteger(LIONWEB_VERSION_USED_BY_KOLASU)
-            String::class.createType() -> LionCoreBuiltins.getString(LIONWEB_VERSION_USED_BY_KOLASU)
-            Boolean::class.createType() -> LionCoreBuiltins.getBoolean(LIONWEB_VERSION_USED_BY_KOLASU)
+            Int::class.createType() -> LionCoreBuiltins.getInteger(LIONWEB_VERSION_USED_BY_STARLASU)
+            Long::class.createType() -> LionCoreBuiltins.getInteger(LIONWEB_VERSION_USED_BY_STARLASU)
+            String::class.createType() -> LionCoreBuiltins.getString(LIONWEB_VERSION_USED_BY_STARLASU)
+            Boolean::class.createType() -> LionCoreBuiltins.getBoolean(LIONWEB_VERSION_USED_BY_STARLASU)
             Char::class.createType() -> ASTLanguage.getChar()
             else -> {
                 val kClass = kType.classifier as KClass<*>

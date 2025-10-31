@@ -17,8 +17,8 @@ import com.strumenta.starlasu.model.assignParents
 import com.strumenta.starlasu.model.pos
 import com.strumenta.starlasu.model.withDroppedDestination
 import com.strumenta.starlasu.model.withPosition
-import com.strumenta.starlasu.parsing.KolasuToken
 import com.strumenta.starlasu.parsing.ParsingResult
+import com.strumenta.starlasu.parsing.StarlasuToken
 import com.strumenta.starlasu.parsing.TokenCategory
 import com.strumenta.starlasu.testing.assertASTsAreEqual
 import com.strumenta.starlasu.transformation.FailingASTTransformation
@@ -347,7 +347,7 @@ class LionWebModelConverterTest {
         assertEquals("A1", refValue3[0].resolveInfo)
         assertSame(child1, refValue3[0].referred)
 
-        val js = SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
+        val js = SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_STARLASU)
         assertJSONsAreEqual(serialized, js.serializeTreeToJsonString(lwAST))
     }
 
@@ -382,7 +382,7 @@ class LionWebModelConverterTest {
     }
 
     @Test
-    fun kolasuNodesExtendsLionWebASTNode() {
+    fun starlasuNodesExtendsLionWebASTNode() {
         val mConverter = LionWebModelConverter()
         val kLanguage =
             KolasuLanguage("com.strumenta.SimpleLang").apply {
@@ -497,7 +497,7 @@ class LionWebModelConverterTest {
         assertEquals("ZUM", (exportedN3.getPropertyValueByName("e") as EnumerationValue).enumerationLiteral.name)
         assertEquals(null, exportedN4.getPropertyValueByName("e"))
 
-        val jsonSerialization = SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
+        val jsonSerialization = SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_STARLASU)
         converter.prepareSerialization(jsonSerialization)
         jsonSerialization.serializeTreesToJsonString(exportedN1)
     }
@@ -649,7 +649,7 @@ class LionWebModelConverterTest {
                 .withPosition(Position(Point(3, 5), Point(27, 200)))
                 .setSourceForTree(LionWebSource("MySource"))
         val lwNode = mc.exportModelToLionWeb(n1)
-        val jsonSerialization = SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
+        val jsonSerialization = SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_STARLASU)
         mc.prepareSerialization(jsonSerialization)
         val serializationBlock = jsonSerialization.serializeNodesToSerializationChunk(lwNode)
         assertEquals(
@@ -675,7 +675,7 @@ class LionWebModelConverterTest {
                 .withPosition(Position(Point(3, 5), Point(27, 200)))
                 .setSourceForTree(LionWebSource("MySource"))
         val lwNode = mc.exportModelToLionWeb(n1)
-        val jsonSerialization = SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
+        val jsonSerialization = SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_STARLASU)
         jsonSerialization.enableDynamicNodes()
         mc.prepareSerialization(jsonSerialization)
         val json = jsonSerialization.serializeNodesToJsonString(lwNode)
@@ -905,8 +905,8 @@ class LionWebModelConverterTest {
             converter.exportParsingResultToLionweb(
                 parsingResult,
                 listOf(
-                    KolasuToken(TokenCategory.STRING_LITERAL, pos(1, 2, 3, 4)),
-                    KolasuToken(TokenCategory.PLAIN_TEXT, pos(3, 5, 6, 7)),
+                    StarlasuToken(TokenCategory.STRING_LITERAL, pos(1, 2, 3, 4)),
+                    StarlasuToken(TokenCategory.PLAIN_TEXT, pos(3, 5, 6, 7)),
                 ),
             )
         val reimported = converter.importModelFromLionWeb(exported) as ParsingResultWithTokens<*>

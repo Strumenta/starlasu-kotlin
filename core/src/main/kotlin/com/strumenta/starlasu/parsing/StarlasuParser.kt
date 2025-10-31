@@ -32,16 +32,16 @@ import java.util.LinkedList
 import kotlin.reflect.full.memberFunctions
 import kotlin.system.measureTimeMillis
 
-interface TokenFactory<T : KolasuToken> {
+interface TokenFactory<T : StarlasuToken> {
     fun categoryOf(t: Token): TokenCategory = TokenCategory.PLAIN_TEXT
 
     fun convertToken(t: Token): T
 }
 
-open class ANTLRTokenFactory : TokenFactory<KolasuANTLRToken> {
-    override fun convertToken(t: Token): KolasuANTLRToken = KolasuANTLRToken(categoryOf(t), t)
+open class ANTLRTokenFactory : TokenFactory<StarlasuANTLRToken> {
+    override fun convertToken(t: Token): StarlasuANTLRToken = StarlasuANTLRToken(categoryOf(t), t)
 
-    fun extractTokens(result: ParsingResult<*>): LexingResult<KolasuANTLRToken>? {
+    fun extractTokens(result: ParsingResult<*>): LexingResult<StarlasuANTLRToken>? {
         val antlrTerminals = mutableListOf<TerminalNode>()
 
         fun extractTokensFromParseTree(pt: ParseTree?) {
@@ -70,12 +70,12 @@ open class ANTLRTokenFactory : TokenFactory<KolasuANTLRToken> {
         }
     }
 
-    private fun convertToken(terminalNode: TerminalNode): KolasuANTLRToken = convertToken(terminalNode.symbol)
+    private fun convertToken(terminalNode: TerminalNode): StarlasuANTLRToken = convertToken(terminalNode.symbol)
 }
 
-abstract class KolasuANTLRLexer<T : KolasuToken>(
+abstract class StarlasuANTLRLexer<T : StarlasuToken>(
     val tokenFactory: TokenFactory<T>,
-) : KolasuLexer<T> {
+) : StarlasuLexer<T> {
     /**
      * Creates the lexer.
      */
@@ -139,12 +139,12 @@ abstract class KolasuANTLRLexer<T : KolasuToken>(
  *
  * You should extend this class to implement the parts that are specific to your language.
  *
- * Note: instances of this class are thread-safe and they're meant to be reused. Do not create a new KolasuParser
+ * Note: instances of this class are thread-safe and they're meant to be reused. Do not create a new StarlasuParser
  * instance every time you need to parse some source code, or performance may suffer.
  */
-abstract class KolasuParser<R : Node, P : Parser, C : ParserRuleContext, T : KolasuToken>(
+abstract class StarlasuParser<R : Node, P : Parser, C : ParserRuleContext, T : StarlasuToken>(
     tokenFactory: TokenFactory<T>,
-) : KolasuANTLRLexer<T>(tokenFactory),
+) : StarlasuANTLRLexer<T>(tokenFactory),
     ASTParser<R> {
     protected var predictionContextCache = PredictionContextCache()
 

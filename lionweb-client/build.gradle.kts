@@ -77,7 +77,7 @@ val lionwebRepositoryCommitID = extra["lionwebRepositoryCommitID"]
 
 buildConfig {
     sourceSets.getByName("functionalTest") {
-        packageName("com.strumenta.kolasu.lionwebclient")
+        packageName("com.strumenta.starlasu.lionwebclient")
         buildConfigField("String", "LIONWEB_REPOSITORY_COMMIT_ID", "\"${lionwebRepositoryCommitID}\"")
         useKotlinOutput()
     }

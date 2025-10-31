@@ -16,7 +16,7 @@ import kotlin.reflect.full.primaryConstructor
 
 /**
  * Sets or corrects the parent of all AST nodes.
- * Kolasu does not see set/add/delete operations on the AST nodes,
+ * Starlasu Kotlin does not see set/add/delete operations on the AST nodes,
  * so this function should be called manually after modifying the AST.
  */
 fun ASTNode.assignParents() {

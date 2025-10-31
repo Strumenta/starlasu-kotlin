@@ -2,7 +2,7 @@ package com.strumenta.starlasu.lionweb
 
 import com.strumenta.starlasu.model.Point
 import com.strumenta.starlasu.model.Position
-import com.strumenta.starlasu.parsing.KolasuToken
+import com.strumenta.starlasu.parsing.StarlasuToken
 import com.strumenta.starlasu.parsing.TokenCategory
 import io.lionweb.kotlin.DefaultMetamodelRegistry
 import io.lionweb.kotlin.MetamodelRegistry
@@ -27,7 +27,7 @@ fun registerSerializersAndDeserializersInMetamodelRegistry(
 }
 
 class TokensList(
-    val tokens: List<KolasuToken>,
+    val tokens: List<StarlasuToken>,
 )
 
 //
@@ -119,7 +119,7 @@ val tokensListPrimitiveDeserializer =
                         require(parts.size == 2)
                         val category = parts[0]
                         val position = positionDeserializer.deserialize(parts[1])
-                        KolasuToken(TokenCategory(category), position)
+                        StarlasuToken(TokenCategory(category), position)
                     }.toMutableList()
             }
         TokensList(tokens)

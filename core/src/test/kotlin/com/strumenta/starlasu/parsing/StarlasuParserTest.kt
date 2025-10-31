@@ -14,12 +14,12 @@ import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-open class SimpleLangKolasuParser :
-    KolasuParser<
+open class SimpleLangStarlasuParser :
+    StarlasuParser<
         Node,
         SimpleLangParser,
         SimpleLangParser.CompilationUnitContext,
-        KolasuANTLRToken,
+        StarlasuANTLRToken,
     >(ANTLRTokenFactory()) {
     override fun createANTLRLexer(charStream: CharStream): Lexer = SimpleLangLexer(charStream)
 
@@ -40,10 +40,10 @@ open class SimpleLangKolasuParser :
     public var cachesCounter = 0
 }
 
-class KolasuParserTest {
+class StarlasuParserTest {
     @Test
     fun testLexing() {
-        val parser = SimpleLangKolasuParser()
+        val parser = SimpleLangStarlasuParser()
         val result =
             parser.parse(
                 """set a = 10
@@ -61,7 +61,7 @@ class KolasuParserTest {
 
     @Test
     fun clearCache() {
-        val parser = SimpleLangKolasuParser()
+        val parser = SimpleLangStarlasuParser()
         parser.parse(
             """set a = 10
             |set b = ""
@@ -81,7 +81,7 @@ class KolasuParserTest {
 
     @Test
     fun issuesAreCapitalized() {
-        val parser = SimpleLangKolasuParser()
+        val parser = SimpleLangStarlasuParser()
         val result =
             parser.parse(
                 """set set a = 10
@@ -95,7 +95,7 @@ class KolasuParserTest {
 
     @Test
     fun issuesHaveNotFlatPosition() {
-        val parser = SimpleLangKolasuParser()
+        val parser = SimpleLangStarlasuParser()
         val result =
             parser.parse(
                 """set set a = 10
