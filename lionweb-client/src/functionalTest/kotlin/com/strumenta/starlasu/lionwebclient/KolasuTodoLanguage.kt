@@ -2,7 +2,7 @@ package com.strumenta.starlasu.lionwebclient
 
 import com.strumenta.starlasu.ids.NodeIdProvider
 import com.strumenta.starlasu.language.KolasuLanguage
-import com.strumenta.starlasu.lionweb.LIONWEB_VERSION_USED_BY_KOLASU
+import com.strumenta.starlasu.lionweb.LIONWEB_VERSION_USED_BY_STARLASU
 import com.strumenta.starlasu.model.ASTRoot
 import com.strumenta.starlasu.model.Named
 import com.strumenta.starlasu.model.Node
@@ -20,7 +20,7 @@ import io.lionweb.language.LionCoreBuiltins
 import io.lionweb.model.impl.DynamicNode
 
 val todoAccountLanguage =
-    lwLanguage("todoAccountLanguage", lionWebVersion = LIONWEB_VERSION_USED_BY_KOLASU).apply {
+    lwLanguage("todoAccountLanguage", lionWebVersion = LIONWEB_VERSION_USED_BY_STARLASU).apply {
         createConcept("TodoAccount").apply {
             createContainment("projects", LionCoreBuiltins.getNode(), Multiplicity.ZERO_TO_MANY)
         }

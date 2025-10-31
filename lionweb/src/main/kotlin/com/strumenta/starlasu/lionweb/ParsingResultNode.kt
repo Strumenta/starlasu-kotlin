@@ -9,7 +9,7 @@ import com.strumenta.starlasu.base.v2.ASTLanguageV2 as ASTLanguage
 
 class ParsingResultNode(
     val source: Source?,
-) : BaseNode(LIONWEB_VERSION_USED_BY_KOLASU) {
+) : BaseNode(LIONWEB_VERSION_USED_BY_STARLASU) {
     override fun calculateID(): String? =
         try {
             SimpleSourceIdProvider().sourceId(source) + "_ParsingResult"

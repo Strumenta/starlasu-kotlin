@@ -3,14 +3,14 @@ package com.strumenta.starlasu.lionweb
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.Source
 import com.strumenta.starlasu.parsing.FirstStageParsingResult
-import com.strumenta.starlasu.parsing.KolasuToken
 import com.strumenta.starlasu.parsing.ParsingResult
+import com.strumenta.starlasu.parsing.StarlasuToken
 import com.strumenta.starlasu.validation.Issue
 
 class ParsingResultWithTokens<RootNode : SNode>(
     issues: List<Issue>,
     root: RootNode?,
-    val tokens: List<KolasuToken>,
+    val tokens: List<StarlasuToken>,
     code: String? = null,
     incompleteNode: Node? = null,
     firstStage: FirstStageParsingResult<*>? = null,

@@ -26,11 +26,11 @@ fun HasSettableParent.setParentID(parentID: String?) {
     this.setParent(parent)
 }
 
-fun KolasuClient.getASTRoots(aLWNode: LWNode): Sequence<SNode> {
+fun StarlasuClient.getASTRoots(aLWNode: LWNode): Sequence<SNode> {
     val res = mutableListOf<SNode>()
 
     fun exploreForASTs(aLWNode: LWNode) {
-        val isKNode: Boolean = isKolasuConcept(aLWNode.classifier)
+        val isKNode: Boolean = isStarlasuConcept(aLWNode.classifier)
         if (isKNode) {
             res.add(toKolasuNode(aLWNode))
         } else {
@@ -42,6 +42,6 @@ fun KolasuClient.getASTRoots(aLWNode: LWNode): Sequence<SNode> {
     return res.asSequence()
 }
 
-fun isKolasuConcept(concept: Concept): Boolean {
+fun isStarlasuConcept(concept: Concept): Boolean {
     return concept.allAncestors().contains(ASTLanguage.getASTNode())
 }

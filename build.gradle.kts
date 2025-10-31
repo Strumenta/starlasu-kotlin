@@ -33,7 +33,7 @@ subprojects {
     tasks.withType<DokkaTask>().configureEach {
         dokkaSourceSets.named("main") {
             includeNonPublic.set(true)
-            moduleName.set("kolasu-" + moduleName.get())
+            moduleName.set("starlasu-" + moduleName.get())
             includes.from("README.md")
         }
     }

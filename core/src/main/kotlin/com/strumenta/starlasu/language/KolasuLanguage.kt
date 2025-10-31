@@ -19,7 +19,7 @@ import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.superclasses
 
 /**
- * There is no explicit Language defined in Kolasu, it is just a bunch of AST classes.
+ * There is no explicit Language defined in Starlasu, it is just a bunch of AST classes.
  * We create this Class to represent that collection of AST classes.
  */
 @Deprecated("Use LionWeb's Language")

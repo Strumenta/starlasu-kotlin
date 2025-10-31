@@ -2,16 +2,16 @@ package com.strumenta.starlasu.testing
 
 import com.strumenta.starlasu.model.START_POINT
 import com.strumenta.starlasu.model.codeAtPosition
-import com.strumenta.starlasu.parsing.KolasuLexer
-import com.strumenta.starlasu.parsing.KolasuToken
+import com.strumenta.starlasu.parsing.StarlasuLexer
+import com.strumenta.starlasu.parsing.StarlasuToken
 import java.io.File
 import java.io.InputStream
 import java.nio.charset.Charset
 import kotlin.test.assertEquals
 
-fun <T : KolasuToken> checkFileTokenization(
+fun <T : StarlasuToken> checkFileTokenization(
     file: File,
-    lexer: KolasuLexer<T>,
+    lexer: StarlasuLexer<T>,
     charset: Charset = Charsets.UTF_8,
 ): List<T> {
     require(file.exists())
@@ -21,18 +21,18 @@ fun <T : KolasuToken> checkFileTokenization(
     return checkTokenization(code, lexer)
 }
 
-fun <T : KolasuToken> checkTokenization(
+fun <T : StarlasuToken> checkTokenization(
     inputStream: InputStream,
-    lexer: KolasuLexer<T>,
+    lexer: StarlasuLexer<T>,
     charset: Charset = Charsets.UTF_8,
 ): List<T> {
     val code = inputStream.bufferedReader(charset = charset).use { it.readText() }
     return checkTokenization(code, lexer)
 }
 
-fun <T : KolasuToken> checkTokenization(
+fun <T : StarlasuToken> checkTokenization(
     code: String,
-    lexer: KolasuLexer<T>,
+    lexer: StarlasuLexer<T>,
 ): List<T> {
     val lexingResult = lexer.lex(code, onlyFromDefaultChannel = false)
     require(lexingResult.issues.isEmpty()) {
@@ -42,7 +42,7 @@ fun <T : KolasuToken> checkTokenization(
     return lexingResult.tokens
 }
 
-fun <T : KolasuToken> checkTokensAreCoveringText(
+fun <T : StarlasuToken> checkTokensAreCoveringText(
     code: String,
     tokens: List<T>,
 ) {
@@ -54,7 +54,7 @@ fun <T : KolasuToken> checkTokensAreCoveringText(
     // Tokens should be in order and they should cover without gaps or overlaps
     // the text from the very start to the very end of the code
 
-    var prevToken: KolasuToken? = null
+    var prevToken: StarlasuToken? = null
     tokens.forEach { token ->
         if (prevToken == null) {
             // This is the first token, so we should start at the very beginning

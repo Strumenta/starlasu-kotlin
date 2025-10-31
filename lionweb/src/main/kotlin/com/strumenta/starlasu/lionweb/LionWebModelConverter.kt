@@ -19,8 +19,8 @@ import com.strumenta.starlasu.model.isContainment
 import com.strumenta.starlasu.model.isReference
 import com.strumenta.starlasu.model.nodeOriginalProperties
 import com.strumenta.starlasu.model.withDestination
-import com.strumenta.starlasu.parsing.KolasuToken
 import com.strumenta.starlasu.parsing.ParsingResult
+import com.strumenta.starlasu.parsing.StarlasuToken
 import com.strumenta.starlasu.transformation.FailingASTTransformation
 import com.strumenta.starlasu.transformation.MissingASTTransformation
 import com.strumenta.starlasu.transformation.PlaceholderASTTransformation
@@ -89,11 +89,11 @@ private val PlaceholderNodeTypeProperty = PlaceholderNode.getPropertyByName("typ
 private val PlaceholderNodeType = ASTLanguage.getLanguage().getEnumerationByName("PlaceholderNodeType")!!
 
 /**
- * This class is able to convert between Kolasu and LionWeb models, tracking the mapping.
+ * This class is able to convert between Starlasu and LionWeb models, tracking the mapping.
  *
  * This class is thread-safe.
  *
- * @param nodeIdProvider logic to be used to associate IDs to Kolasu nodes when exporting them to LionWeb
+ * @param nodeIdProvider logic to be used to associate IDs to Starlasu nodes when exporting them to LionWeb
  *                       it will be used to assign an ID to those elements which already do not have one
  *                       (through the HasID.id field).
  */
@@ -119,7 +119,7 @@ class LionWebModelConverter(
     private val languageConverter = initialLanguageConverter
 
     /**
-     * We mostly map Kolasu Nodes to LionWeb Nodes, but we may also map things that are not Kolasu Nodes but are nodes
+     * We mostly map Starlasu Nodes to LionWeb Nodes, but we may also map things that are not Starlasu Nodes but are nodes
      * for LionWeb. For example, we could do that for Issues and Parsing Results.
      *
      * In the future we could rely on the HasID.id field to consider removing this field, which can grow significantly
@@ -165,7 +165,7 @@ class LionWebModelConverter(
     }
 
     fun exportModelToLionWeb(
-        kolasuTree: ASTNode,
+        starlasuTree: ASTNode,
         nodeIdProvider: NodeIdProvider = this.nodeIdProvider,
         considerParent: Boolean = true,
     ): LWNode {
@@ -190,8 +190,8 @@ class LionWebModelConverter(
                 override fun toString(): String = "Caching ID Manager in front of $nodeIdProvider"
             }
 
-        if (!nodesMapping.containsA(kolasuTree)) {
-            starlasuTreeWalker.walk(kolasuTree).forEach { kNode ->
+        if (!nodesMapping.containsA(starlasuTree)) {
+            starlasuTreeWalker.walk(starlasuTree).forEach { kNode ->
                 if (!nodesMapping.containsA(kNode)) {
                     val nodeID = kNode.id ?: myIDManager.nodeId(kNode)
                     if (!CommonChecks.isValidID(nodeID)) {
@@ -203,7 +203,7 @@ class LionWebModelConverter(
                     associateNodes(kNode, lwNode)
                 }
             }
-            starlasuTreeWalker.walk(kolasuTree).forEach { kNode ->
+            starlasuTreeWalker.walk(starlasuTree).forEach { kNode ->
                 val lwNode = nodesMapping.byA(kNode)!!
                 kNode.annotations.forEach { annotationInstance ->
                     lwNode.addAnnotation(annotationInstance!!)
@@ -211,7 +211,7 @@ class LionWebModelConverter(
                 if (!CommonChecks.isValidID(lwNode.id)) {
                     throw RuntimeException(
                         "Cannot export AST to LionWeb as we got an invalid Node ID: ${lwNode.id}. " +
-                            "It was produced while exporting this Kolasu Node: $kNode",
+                            "It was produced while exporting this Starlasu Node: $kNode",
                     )
                 }
                 val kFeatures =
@@ -351,7 +351,7 @@ class LionWebModelConverter(
                                                             "retrieved but referred is empty",
                                                     )
                                                 ) as SNode
-                                            // We may have a reference to a Kolasu Node that we are not exporting, and for
+                                            // We may have a reference to a Starlasu Node that we are not exporting, and for
                                             // which we have therefore no LionWeb node. In that case, if we have the
                                             // identifier, we can produce a ProxyNode instead
                                             val lwReferred: Node =
@@ -386,14 +386,14 @@ class LionWebModelConverter(
             }
         }
 
-        val result = nodesMapping.byA(kolasuTree)!!
-        if (considerParent && kolasuTree.parent != null) {
+        val result = nodesMapping.byA(starlasuTree)!!
+        if (considerParent && starlasuTree.parent != null) {
             val parentNodeId =
                 try {
-                    nodeIdProvider.id(kolasuTree.parent!!)
+                    nodeIdProvider.id(starlasuTree.parent!!)
                 } catch (e: IDGenerationException) {
                     throw IDGenerationException(
-                        "Cannot produce an ID for ${kolasuTree.parent}, which was needed to " +
+                        "Cannot produce an ID for ${starlasuTree.parent}, which was needed to " +
                             "create a ProxyNode",
                         e,
                     )
@@ -410,7 +410,7 @@ class LionWebModelConverter(
     ) {
         val kClass: EnumKClass = kValue::class
         val enumeration =
-            languageConverter.getKolasuClassesToEnumerationsMapping()[kClass]
+            languageConverter.getStarlasuClassesToEnumerationsMapping()[kClass]
                 ?: throw IllegalStateException("No enumeration for enum class $kClass")
         val enumerationLiteral =
             enumeration.literals.find { it.name == kValue.name }
@@ -461,7 +461,7 @@ class LionWebModelConverter(
         lionWebTreeWalker.thisAndAllDescendants(lwTree).toList().myReversed().forEach { lwNode ->
             val kClass =
                 synchronized(languageConverter) {
-                    languageConverter.correspondingKolasuClass(lwNode.classifier)
+                    languageConverter.correspondingStartlasuClass(lwNode.classifier)
                 }
                     ?: throw RuntimeException(
                         "We do not have Starlasu AST class for LionWeb Concept " +
@@ -560,7 +560,7 @@ class LionWebModelConverter(
 
     fun prepareSerialization(
         serialization: AbstractSerialization =
-            SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU),
+            SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_STARLASU),
     ): AbstractSerialization {
         registerSerializersAndDeserializersInMetamodelRegistry(metamodelRegistry)
         metamodelRegistry.prepareSerialization(serialization)
@@ -574,7 +574,7 @@ class LionWebModelConverter(
                     if (primitiveValueSerializations.containsKey(primitiveClass)) {
                         val lwPrimitiveType: PrimitiveType =
                             languageConverter
-                                .getKolasuClassesToPrimitiveTypesMapping()[primitiveClass]
+                                .getStarlasuClassesToPrimitiveTypesMapping()[primitiveClass]
                                 ?: throw IllegalStateException(
                                     "No Primitive Type found associated to primitive value class " +
                                         "${primitiveClass.qualifiedName}",
@@ -622,15 +622,15 @@ class LionWebModelConverter(
         }
     }
 
-    fun getKolasuClassesToClassifiersMapping(): Map<KClass<*>, Classifier<*>> {
+    fun getStarlasuClassesToClassifiersMapping(): Map<KClass<*>, Classifier<*>> {
         synchronized(languageConverter) {
-            return languageConverter.getKolasuClassesToClassifiersMapping()
+            return languageConverter.getStarlasuClassesToClassifiersMapping()
         }
     }
 
-    fun getClassifiersToKolasuClassesMapping(): Map<Classifier<*>, KClass<*>> {
+    fun getClassifiersToStarlasuClassesMapping(): Map<Classifier<*>, KClass<*>> {
         synchronized(languageConverter) {
-            return languageConverter.getClassifiersToKolasuClassesMapping()
+            return languageConverter.getClassifiersToStarlasuClassesMapping()
         }
     }
 
@@ -734,7 +734,7 @@ class LionWebModelConverter(
         val enumKClass =
             synchronized(languageConverter) {
                 languageConverter
-                    .getEnumerationsToKolasuClassesMapping()
+                    .getEnumerationsToStarlasuClassesMapping()
                     .entries
                     .find {
                         it.key.id == enumerationLiteral.enumeration?.id
@@ -797,7 +797,7 @@ class LionWebModelConverter(
                 (
                     return nodesMapping.byB(lwChild)
                         ?: throw IllegalStateException(
-                            "Unable to find Kolasu Node corresponding to $lwChild",
+                            "Unable to find Starlasu Node corresponding to $lwChild",
                         )
                 )
             }
@@ -959,7 +959,7 @@ class LionWebModelConverter(
     }
 
     /**
-     * We treat some Kolasu classes that are not Nodes specially, such as Issue or ParsingResult.
+     * We treat some Starlasu classes that are not Nodes specially, such as Issue or ParsingResult.
      * This method checks if we are to instantiate one of those, and returns the instance with all properties filled;
      * or it returns null when it detects that we're going to instantiate a proper Node.
      */
@@ -1051,7 +1051,7 @@ class LionWebModelConverter(
 
     fun exportParsingResultToLionweb(
         pr: ParsingResult<*>,
-        tokens: List<KolasuToken> = listOf(),
+        tokens: List<StarlasuToken> = listOf(),
         nodeIdProvider: NodeIdProvider = this.nodeIdProvider,
         idCheck: Boolean = false,
     ): ParsingResultNode {
