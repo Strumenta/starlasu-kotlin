@@ -1,12 +1,13 @@
 package com.strumenta.starlasu.javalib;
 
 import com.strumenta.starlasu.model.ASTNode;
-import com.strumenta.starlasu.model.BaseASTNode;
-import com.strumenta.starlasu.transformation.NodeFactory;
-import com.strumenta.starlasu.validation.Issue;
+import com.strumenta.starlasu.transformation.FaultTolerance;
+import com.strumenta.starlasu.transformation.TransformationRule;
+import com.strumenta.starlasu.transformation.TransformationContext;
 import kotlin.Unit;
 import kotlin.jvm.functions.Function1;
 import kotlin.jvm.functions.Function2;
+import kotlin.jvm.functions.Function3;
 import kotlin.jvm.functions.Function4;
 import kotlin.reflect.KClass;
 import org.jetbrains.annotations.NotNull;
@@ -18,42 +19,37 @@ import java.util.function.BiConsumer;
 import static kotlin.jvm.JvmClassMappingKt.getKotlinClass;
 
 public class ASTTransformer extends com.strumenta.starlasu.transformation.ASTTransformer {
-    public ASTTransformer(@NotNull List<Issue> issues) {
-        super(issues);
+    public ASTTransformer() {
+        super();
     }
 
-    public ASTTransformer(@NotNull List<Issue> issues, boolean allowGenericNode) {
-        super(issues, allowGenericNode);
+    public ASTTransformer(FaultTolerance faultTolerance) {
+        super(faultTolerance);
     }
 
-    public ASTTransformer(@NotNull List<Issue> issues, boolean allowGenericNode, boolean throwOnUnmappedNode) {
-        super(issues, allowGenericNode, throwOnUnmappedNode);
+    public ASTTransformer(FaultTolerance faultTolerance, @Nullable Function4<Object, TransformationContext, ? super KClass<? extends ASTNode>, ? super com.strumenta.starlasu.transformation.ASTTransformer, ? extends List<? extends ASTNode>> defaultTransformation) {
+        super(faultTolerance, defaultTransformation);
     }
 
-    public ASTTransformer(@NotNull List<Issue> issues, boolean allowGenericNode, boolean throwOnUnmappedNode, boolean faultTollerant) {
-        super(issues, allowGenericNode, throwOnUnmappedNode, faultTollerant);
-    }
-
-    public ASTTransformer(@NotNull List<Issue> issues, boolean allowGenericNode, boolean throwOnUnmappedNode, boolean faultTollerant, @Nullable Function4<Object, ? super ASTNode, ? super KClass<? extends ASTNode>, ? super com.strumenta.starlasu.transformation.ASTTransformer, ? extends List<? extends ASTNode>> defaultTransformation) {
-        super(issues, allowGenericNode, throwOnUnmappedNode, faultTollerant, defaultTransformation);
-    }
-
-    protected <S, T extends ASTNode> @NotNull NodeFactory<S, T> registerNodeFactory(Class<S> source, Class<T> target) {
+    protected <S, T extends ASTNode> @NotNull TransformationRule<S, T> registerNodeFactory(Class<S> source, Class<T> target) {
         return registerNodeFactory(source, target, target.getName());
     }
 
-    protected <S, T extends ASTNode> @NotNull NodeFactory<S, T> registerNodeFactory(
+    protected <S, T extends ASTNode> @NotNull TransformationRule<S, T> registerNodeFactory(
             Class<S> source, Class<T> target, String nodeType
     ) {
-        return registerNodeFactory(getKotlinClass(source), getKotlinClass(target), nodeType);
+        return registerRule(getKotlinClass(source), getKotlinClass(target), nodeType);
     }
 
-    protected <S, T extends ASTNode> NodeFactory<S, T> registerNodeFactory(Class<S> source, Function1<S, T> function) {
-        return registerNodeFactory(getKotlinClass(source), (s, t) -> function.invoke(s));
+    protected <S, T extends ASTNode> TransformationRule<S, T> registerNodeFactory(Class<S> source, Function1<S, T> function) {
+        return registerRule(getKotlinClass(source), (s, t) -> function.invoke(s));
     }
 
-    protected <S, T extends ASTNode> NodeFactory<S, T> registerNodeFactory(Class<S> source, Function2<S, ? super com.strumenta.starlasu.transformation.ASTTransformer, T> function) {
-        return registerNodeFactory(getKotlinClass(source), function);
+    protected <S, T extends ASTNode> TransformationRule<S, T> registerNodeFactory(
+            Class<S> source, 
+            Function3<S, TransformationContext, ? super com.strumenta.starlasu.transformation.ASTTransformer, T> function
+    ) {
+        return registerRule(getKotlinClass(source), function);
     }
 
     /**

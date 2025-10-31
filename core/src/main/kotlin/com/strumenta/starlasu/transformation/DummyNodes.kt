@@ -1,6 +1,7 @@
 package com.strumenta.starlasu.transformation
 
 import com.strumenta.starlasu.model.ASTNode
+import com.strumenta.starlasu.model.GenericErrorNode
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.PossiblyNamed
 import com.strumenta.starlasu.model.ReferenceByName
@@ -15,7 +16,7 @@ import kotlin.reflect.full.primaryConstructor
 import kotlin.reflect.jvm.javaType
 
 /**
- * This logic instantiate a node of the given class with dummy values.
+ * This logic instantiates a node of the given class with dummy values.
  * This is useful because it permits to add an element that "fit" and make the typesystem happy.
  * Typically, the only goal of the element would be to hold some annotation that indicates that the element
  * is representing an error or a missing transformation or something of that sort.
@@ -87,12 +88,20 @@ private fun <T : Any> KClass<T>.toInstantiableType(levelOfDummyTree: Int = 0): K
             }
         }
 
+        this == ASTNode::class -> {
+            // This happens when the target type is not known, e.g.
+            // registerTransform(X::class) { TODO("X not yet mapped") }
+            GenericErrorNode::class as KClass<out T>
+        }
+
         this.isAbstract -> {
-            throw IllegalStateException("We cannot instantiate an abstract class (but we can handle sealed classes)")
+            throw IllegalStateException(
+                "We cannot instantiate the abstract class ${this.qualifiedName} (but we can handle sealed classes)",
+            )
         }
 
         this.java.isInterface -> {
-            throw IllegalStateException("We cannot instantiate an interface")
+            throw IllegalStateException("We cannot instantiate the interface ${this.qualifiedName}")
         }
 
         else -> {

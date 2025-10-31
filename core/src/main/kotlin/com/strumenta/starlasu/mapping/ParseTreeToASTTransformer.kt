@@ -3,12 +3,13 @@ package com.strumenta.starlasu.mapping
 import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.Origin
-import com.strumenta.starlasu.model.Source
 import com.strumenta.starlasu.parsing.ParseTreeOrigin
 import com.strumenta.starlasu.parsing.withParseTreeNode
 import com.strumenta.starlasu.transformation.ASTTransformer
-import com.strumenta.starlasu.transformation.NodeFactory
-import com.strumenta.starlasu.validation.Issue
+import com.strumenta.starlasu.transformation.FailingASTTransformation
+import com.strumenta.starlasu.transformation.FaultTolerance
+import com.strumenta.starlasu.transformation.TransformationContext
+import com.strumenta.starlasu.transformation.TransformationRule
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.ParseTree
 import kotlin.reflect.KClass
@@ -20,11 +21,8 @@ import kotlin.reflect.KClass
 open class ParseTreeToASTTransformer
     @JvmOverloads
     constructor(
-        issues: MutableList<Issue> = mutableListOf(),
-        allowGenericNode: Boolean = true,
-        val source: Source? = null,
-        throwOnUnmappedNode: Boolean = true,
-    ) : ASTTransformer(issues, allowGenericNode, throwOnUnmappedNode) {
+        faultTolerance: FaultTolerance = FaultTolerance.THROW_ONLY_ON_UNMAPPED,
+    ) : ASTTransformer(faultTolerance) {
         /**
          * Performs the transformation of a node and, recursively, its descendants. In addition to the overridden method,
          * it also assigns the parseTreeNode to the AST node so that it can keep track of its position.
@@ -32,17 +30,32 @@ open class ParseTreeToASTTransformer
          */
         override fun transformIntoNodes(
             source: Any?,
-            parent: ASTNode?,
+            context: TransformationContext,
             expectedType: KClass<out ASTNode>,
         ): List<ASTNode> {
-            val transformed = super.transformIntoNodes(source, parent, expectedType)
+            if (source is ParserRuleContext && source.exception != null) {
+                if (faultTolerance == FaultTolerance.STRICT) {
+                    throw RuntimeException("Failed to transform $source into $expectedType", source.exception)
+                }
+                val origin =
+                    FailingASTTransformation(
+                        asOrigin(source, context),
+                        "Failed to transform $source into $expectedType because of an error (${source.exception.message})",
+                    )
+                val nodes = defaultNodes(source, context, expectedType)
+                nodes.forEach { node ->
+                    node.origin = origin
+                }
+                return nodes
+            }
+            val transformed = super.transformIntoNodes(source, context, expectedType)
             return transformed
                 .map { node ->
                     if (source is ParserRuleContext) {
                         if (node.origin == null) {
-                            node.withParseTreeNode(source, this.source)
+                            node.withParseTreeNode(source, context.source)
                         } else if (node.position != null && node.source == null) {
-                            node.position!!.source = this.source
+                            node.position!!.source = context.source
                         }
                     }
                     return listOf(node)
@@ -57,7 +70,15 @@ open class ParseTreeToASTTransformer
             return if (origin is ParseTreeOrigin) origin.parseTree else source
         }
 
-        override fun asOrigin(source: Any): Origin? = if (source is ParseTree) ParseTreeOrigin(source) else null
+        override fun asOrigin(
+            source: Any,
+            context: TransformationContext,
+        ): Origin? =
+            if (source is ParseTree) {
+                ParseTreeOrigin(source, context.source)
+            } else {
+                null
+            }
 
         override fun asString(source: Any): String? =
             if (source is ParseTree) {
@@ -71,19 +92,19 @@ open class ParseTreeToASTTransformer
          * wrapper. When there is only a ParserRuleContext child we can transform
          * that child and return that result.
          */
-        fun <P : ParserRuleContext> registerNodeFactoryUnwrappingChild(kclass: KClass<P>): NodeFactory<P, Node> =
-            registerNodeFactory(kclass) { source, transformer, _ ->
+        fun <P : ParserRuleContext> registerRuleUnwrappingChild(kclass: KClass<P>): TransformationRule<P, Node> =
+            registerRule(kclass) { source, context, _ ->
                 val nodeChildren = source.children.filterIsInstance<ParserRuleContext>()
                 require(nodeChildren.size == 1) {
                     "Node $source (${source.javaClass}) has ${nodeChildren.size} " +
                         "node children: $nodeChildren"
                 }
-                transformer.transform(nodeChildren[0]) as Node
+                transform(nodeChildren[0], context) as Node
             }
 
         /**
          * Alternative to registerNodeFactoryUnwrappingChild(KClass) which is slightly more concise.
          */
-        inline fun <reified P : ParserRuleContext> registerNodeFactoryUnwrappingChild(): NodeFactory<P, Node> =
-            registerNodeFactoryUnwrappingChild(P::class)
+        inline fun <reified P : ParserRuleContext> registerRuleUnwrappingChild(): TransformationRule<P, Node> =
+            registerRuleUnwrappingChild(P::class)
     }

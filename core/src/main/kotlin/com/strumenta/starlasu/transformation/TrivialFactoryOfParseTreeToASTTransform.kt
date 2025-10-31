@@ -18,10 +18,9 @@ import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
 
-object TrivialFactoryOfParseTreeToASTNodeFactory {
+object TrivialFactoryOfParseTreeToASTTransform {
     fun convertString(
         text: String,
-        astTransformer: ASTTransformer,
         expectedType: KType,
     ): Any? =
         when (expectedType.classifier) {
@@ -45,15 +44,16 @@ object TrivialFactoryOfParseTreeToASTNodeFactory {
     fun convert(
         value: Any?,
         astTransformer: ASTTransformer,
+        context: TransformationContext,
         expectedType: KType,
     ): Any? {
         when (value) {
             is Token -> {
-                return convertString(value.text, astTransformer, expectedType)
+                return convertString(value.text, expectedType)
             }
 
             is List<*> -> {
-                return value.map { convert(it, astTransformer, expectedType.arguments[0].type!!) }
+                return value.map { convert(it, astTransformer, context, expectedType.arguments[0].type!!) }
             }
 
             is ParserRuleContext -> {
@@ -63,7 +63,7 @@ object TrivialFactoryOfParseTreeToASTNodeFactory {
                     }
 
                     else -> {
-                        astTransformer.transform(value)
+                        astTransformer.transform(value, context)
                     }
                 }
             }
@@ -73,20 +73,21 @@ object TrivialFactoryOfParseTreeToASTNodeFactory {
             }
 
             is TerminalNode -> {
-                return convertString(value.text, astTransformer, expectedType)
+                return convertString(value.text, expectedType)
             }
 
             else -> TODO("value $value (${value.javaClass})")
         }
     }
 
-    inline fun <S : RuleContext, reified T : Node> trivialFactory(
+    inline fun <S : RuleContext, reified T : Node> trivialTransform(
         vararg nameConversions: Pair<String, String>,
     ): (
         S,
+        TransformationContext,
         ASTTransformer,
     ) -> T? =
-        { parseTreeNode, astTransformer ->
+        { parseTreeNode, context, astTransformer ->
             val constructor = T::class.preferredConstructor()
             val args: Array<Any?> =
                 constructor.parameters
@@ -108,11 +109,11 @@ object TrivialFactoryOfParseTreeToASTNodeFactory {
                                 )
                             } else {
                                 val value = method.call(parseTreeNode)
-                                convert(value, astTransformer, it.type)
+                                convert(value, astTransformer, context, it.type)
                             }
                         } else {
                             val value = parseTreeMember.get(parseTreeNode)
-                            convert(value, astTransformer, it.type)
+                            convert(value, astTransformer, context, it.type)
                         }
                     }.toTypedArray()
             try {
@@ -132,9 +133,9 @@ object TrivialFactoryOfParseTreeToASTNodeFactory {
 inline fun <reified S : RuleContext, reified T : Node> ASTTransformer.registerTrivialPTtoASTConversion(
     vararg nameConversions: Pair<String, String>,
 ) {
-    this.registerNodeFactory(
+    this.registerRule(
         S::class,
-        TrivialFactoryOfParseTreeToASTNodeFactory.trivialFactory<S, T>(*nameConversions),
+        TrivialFactoryOfParseTreeToASTTransform.trivialTransform<S, T>(*nameConversions),
     )
 }
 
@@ -147,9 +148,9 @@ inline fun <reified S : RuleContext, reified T : Node> ParseTreeToASTTransformer
 )
 
 inline fun <reified S : RuleContext, reified T : Node> ParseTreeToASTTransformer.unwrap(wrappingMember: KCallable<*>) {
-    this.registerNodeFactory(S::class) { parseTreeNode, astTransformer ->
+    this.registerRule(S::class) { parseTreeNode, context ->
         val wrapped = wrappingMember.call(parseTreeNode)
-        astTransformer.transform(wrapped) as T?
+        transform(wrapped, context) as T?
     }
 }
 

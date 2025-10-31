@@ -6,7 +6,6 @@ import com.strumenta.simplelang.AntlrScriptLexer
 import com.strumenta.simplelang.AntlrScriptParser
 import com.strumenta.simplelang.SimpleLangLexer
 import com.strumenta.simplelang.SimpleLangParser
-import com.strumenta.starlasu.model.GenericErrorNode
 import com.strumenta.starlasu.model.Named
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.Position
@@ -18,12 +17,10 @@ import com.strumenta.starlasu.model.invalidPositions
 import com.strumenta.starlasu.parsing.withParseTreeNode
 import com.strumenta.starlasu.testing.assertASTsAreEqual
 import com.strumenta.starlasu.transformation.ASTTransformer
-import com.strumenta.starlasu.transformation.GenericNode
-import com.strumenta.starlasu.transformation.TrivialFactoryOfParseTreeToASTNodeFactory
+import com.strumenta.starlasu.transformation.TrivialFactoryOfParseTreeToASTTransform
 import com.strumenta.starlasu.transformation.registerTrivialPTtoASTConversion
 import com.strumenta.starlasu.transformation.unwrap
 import com.strumenta.starlasu.traversing.walk
-import com.strumenta.starlasu.validation.Issue
 import org.antlr.v4.runtime.ANTLRErrorListener
 import org.antlr.v4.runtime.CharStreams
 import org.antlr.v4.runtime.CommonTokenStream
@@ -189,35 +186,14 @@ class ParseTreeToASTTransformerTest {
             CU(
                 statements =
                     listOf(
-                        GenericErrorNode(
-                            message =
-                                "RuntimeException: Failed to transform [8] into " +
-                                    "class com.strumenta.simplelang.SimpleLangParser${'$'}SetStmtContext " +
-                                    "-> IllegalStateException: Parse error",
-                        ).withParseTreeNode(pt.statement(0)),
-                        GenericErrorNode(
-                            message =
-                                "RuntimeException: Failed to transform [8] into " +
-                                    "class com.strumenta.simplelang.SimpleLangParser${'$'}DisplayStmtContext " +
-                                    "-> IllegalStateException: Parse error",
-                        ).withParseTreeNode(pt.statement(1)),
+                        SetStatement(variable = "DUMMY").withParseTreeNode(pt.statement(0)),
+                        DisplayIntStatement(value = 0).withParseTreeNode(pt.statement(1)),
                     ),
             ).withParseTreeNode(pt)
         val transformedCU = transformer.transform(pt)!! as CU
         assertASTsAreEqual(cu, transformedCU, considerPosition = true)
         assertTrue { transformedCU.hasValidParents() }
         assertNull(transformedCU.invalidPositions().firstOrNull())
-    }
-
-    @Test
-    fun testGenericNode() {
-        val code = "set foo = 123\ndisplay 456"
-        val lexer = SimpleLangLexer(CharStreams.fromString(code))
-        val parser = SimpleLangParser(CommonTokenStream(lexer))
-        val pt = parser.compilationUnit()
-
-        val transformer = ParseTreeToASTTransformer()
-        assertASTsAreEqual(GenericNode(), transformer.transform(pt)!!)
     }
 
     @Test
@@ -247,9 +223,9 @@ class ParseTreeToASTTransformerTest {
 
     private fun configure(transformer: ASTTransformer) {
         transformer
-            .registerNodeFactory(SimpleLangParser.CompilationUnitContext::class, CU::class)
+            .registerRule(SimpleLangParser.CompilationUnitContext::class, CU::class)
             .withChild(CU::statements, SimpleLangParser.CompilationUnitContext::statement)
-        transformer.registerNodeFactory(SimpleLangParser.DisplayStmtContext::class) { ctx ->
+        transformer.registerRule(SimpleLangParser.DisplayStmtContext::class) { ctx ->
             if (ctx.exception != null || ctx.expression().exception != null) {
                 // We throw a custom error so that we can check that it's recorded in the AST
                 throw IllegalStateException("Parse error")
@@ -263,7 +239,7 @@ class ParseTreeToASTTransformerTest {
                         .toInt(),
             )
         }
-        transformer.registerNodeFactory(SimpleLangParser.SetStmtContext::class) { ctx ->
+        transformer.registerRule(SimpleLangParser.SetStmtContext::class) { ctx ->
             if (ctx.exception != null || ctx.expression().exception != null) {
                 // We throw a custom error so that we can check that it's recorded in the AST
                 throw IllegalStateException("Parse error")
@@ -351,7 +327,7 @@ class ParseTreeToASTTransformerTest {
 
     @Test
     fun testSimpleEntitiesTransformer() {
-        val transformer = ParseTreeToASTTransformer(allowGenericNode = false)
+        val transformer = ParseTreeToASTTransformer()
         transformer.registerTrivialPTtoASTConversion<AntlrEntityParser.ModuleContext, EModule>()
         transformer.registerTrivialPTtoASTConversion<AntlrEntityParser.EntityContext, EEntity>()
         val expectedAST =
@@ -378,7 +354,7 @@ class ParseTreeToASTTransformerTest {
 
     @Test
     fun testEntitiesWithFeaturesTransformer() {
-        val transformer = ParseTreeToASTTransformer(allowGenericNode = false)
+        val transformer = ParseTreeToASTTransformer()
         transformer.registerTrivialPTtoASTConversion<AntlrEntityParser.ModuleContext, EModule>()
         transformer.registerTrivialPTtoASTConversion<AntlrEntityParser.EntityContext, EEntity>()
         transformer.registerTrivialPTtoASTConversion<AntlrEntityParser.FeatureContext, EFeature>()
@@ -428,7 +404,7 @@ class ParseTreeToASTTransformerTest {
 
     @Test
     fun testScriptTransformer() {
-        val transformer = ParseTreeToASTTransformer(allowGenericNode = false)
+        val transformer = ParseTreeToASTTransformer()
         transformer.registerTrivialPTtoASTConversion<AntlrScriptParser.ScriptContext, SScript>()
         transformer.registerTrivialPTtoASTConversion<AntlrScriptParser.Create_statementContext, SCreateStatement>(
             AntlrScriptParser.Create_statementContext::var_name to SCreateStatement::name,
@@ -440,29 +416,31 @@ class ParseTreeToASTTransformerTest {
         transformer.registerTrivialPTtoASTConversion<AntlrScriptParser.Int_literal_expressionContext, SIntegerLiteral>(
             AntlrScriptParser.Int_literal_expressionContext::INT_VALUE to SIntegerLiteral::value,
         )
-        transformer.registerNodeFactory(AntlrScriptParser.String_literal_expressionContext::class) { pt, t ->
+        transformer.registerRule(AntlrScriptParser.String_literal_expressionContext::class) { pt, t ->
             SStringLiteral(pt.text.removePrefix("'").removeSuffix("'"))
         }
-        transformer.registerNodeFactory(AntlrScriptParser.Div_mult_expressionContext::class) { pt, t ->
+        transformer.registerRule(AntlrScriptParser.Div_mult_expressionContext::class) { pt, c, t ->
             when (pt.op.text) {
                 "/" -> {
-                    TrivialFactoryOfParseTreeToASTNodeFactory.trivialFactory<
+                    TrivialFactoryOfParseTreeToASTTransform.trivialTransform<
                         AntlrScriptParser
                             .Div_mult_expressionContext,
                         SDivision,
                     >()(
                         pt,
+                        c,
                         t,
                     )
                 }
 
                 "*" -> {
-                    TrivialFactoryOfParseTreeToASTNodeFactory.trivialFactory<
+                    TrivialFactoryOfParseTreeToASTTransform.trivialTransform<
                         AntlrScriptParser
                             .Div_mult_expressionContext,
                         SMultiplication,
                     >()(
                         pt,
+                        c,
                         t,
                     )
                 }
@@ -470,26 +448,28 @@ class ParseTreeToASTTransformerTest {
                 else -> TODO()
             }
         }
-        transformer.registerNodeFactory(AntlrScriptParser.Sum_sub_expressionContext::class) { pt, t ->
+        transformer.registerRule(AntlrScriptParser.Sum_sub_expressionContext::class) { pt, c, t ->
             when (pt.op.text) {
                 "+" -> {
-                    TrivialFactoryOfParseTreeToASTNodeFactory.trivialFactory<
+                    TrivialFactoryOfParseTreeToASTTransform.trivialTransform<
                         AntlrScriptParser
                             .Sum_sub_expressionContext,
                         SSum,
                     >()(
                         pt,
+                        c,
                         t,
                     )
                 }
 
                 "-" -> {
-                    TrivialFactoryOfParseTreeToASTNodeFactory.trivialFactory<
+                    TrivialFactoryOfParseTreeToASTTransform.trivialTransform<
                         AntlrScriptParser
                             .Sum_sub_expressionContext,
                         SSubtraction,
                     >()(
                         pt,
+                        c,
                         t,
                     )
                 }
@@ -577,15 +557,13 @@ class ParseTreeToASTTransformerTest {
     }
 }
 
-class EntTransformer(
-    issues: MutableList<Issue> = mutableListOf(),
-) : ParseTreeToASTTransformer(issues, allowGenericNode = false) {
+class EntTransformer : ParseTreeToASTTransformer() {
     init {
-        registerNodeFactory(EntCtx::class) { ctx -> Ent(ctx.name) }
+        registerRule(EntCtx::class) { ctx -> Ent(ctx.name) }
             .withChild(Ent::features, EntCtx::features)
-        registerNodeFactory(EntCtxFeature::class) { ctx -> EntFeature(name = ctx.name) }
+        registerRule(EntCtxFeature::class) { ctx -> EntFeature(name = ctx.name) }
             .withChild(EntFeature::type, EntCtxFeature::type)
-        this.registerNodeFactory(EntCtxStringType::class, EntStringType::class)
+        this.registerRule(EntCtxStringType::class, EntStringType::class)
     }
 }
 
