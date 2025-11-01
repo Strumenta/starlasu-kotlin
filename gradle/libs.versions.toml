@@ -1,6 +1,6 @@
 [versions]
 kotlin = "2.2.20"
-lwjava = "1.1.4"
+lwjava = "1.1.5-SNAPSHOT"
 lwkotlin = "0.6.2"
 kotest= "5.9.1"
 dokka = "2.1.0"
@@ -41,3 +41,4 @@ kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest"
 testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 testcontainers-junit5 = { module="org.testcontainers:junit-jupiter", version.ref="testcontainers" }
 testcontainers-pg = { module="org.testcontainers:postgresql", version.ref="testcontainers" }
+kotlinpoet = { module="com.squareup:kotlinpoet", version = "2.2.0" }
