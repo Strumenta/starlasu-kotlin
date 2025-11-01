@@ -1,4 +1,4 @@
-package com.strumenta.starlasu.nextgen.generators
+package com.strumenta.starlasu.lwstubs.generators
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.main
@@ -15,7 +15,19 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asClassName
 import com.strumenta.starlasu.base.v1.ASTLanguageV1
+import com.strumenta.starlasu.lwstubs.className
+import com.strumenta.starlasu.lwstubs.model.BehaviorDeclarationLW
+import com.strumenta.starlasu.lwstubs.model.DocumentationLW
+import com.strumenta.starlasu.lwstubs.model.EntityDeclarationLW
+import com.strumenta.starlasu.lwstubs.model.ExpressionLW
+import com.strumenta.starlasu.lwstubs.model.NamedLW
+import com.strumenta.starlasu.lwstubs.model.ParameterLW
+import com.strumenta.starlasu.lwstubs.model.PlaceholderElementLW
+import com.strumenta.starlasu.lwstubs.model.StarlasuLWBaseASTNode
+import com.strumenta.starlasu.lwstubs.model.StatementLW
+import com.strumenta.starlasu.lwstubs.model.TypeAnnotationLW
 import io.lionweb.LionWebVersion
 import io.lionweb.language.Classifier
 import io.lionweb.language.Concept
@@ -28,6 +40,7 @@ import io.lionweb.language.LionCoreBuiltins
 import io.lionweb.language.PrimitiveType
 import io.lionweb.language.Property
 import io.lionweb.language.Reference
+import io.lionweb.model.Node
 import io.lionweb.serialization.AbstractSerialization
 import io.lionweb.serialization.JsonSerialization
 import io.lionweb.serialization.ProtoBufSerialization
@@ -260,7 +273,7 @@ class ClassesGeneratorCommand : CliktCommand("classgen") {
                             LionCoreBuiltins.getINamed(
                                 LionWebVersion.v2023_1,
                             )
-                        -> ClassName("com.strumenta.starlasulw", "NamedLW")
+                        -> NamedLW::class.asClassName()
                         else -> TODO()
                     }
                 if (feature.isMultiple) {
@@ -305,10 +318,7 @@ class ClassesGeneratorCommand : CliktCommand("classgen") {
                     when {
                         featureType.language == container.language -> ClassName(packageName, featureType.name!!)
                         featureType == ASTLanguageV1.getASTNode() ->
-                            ClassName(
-                                "com.strumenta.starlasulw",
-                                "StarlasuLWBaseASTNode",
-                            )
+                            StarlasuLWBaseASTNode::class.asClassName()
                         else -> TODO()
                     }
                 if (feature.isMultiple) {
@@ -366,7 +376,7 @@ class ClassesGeneratorCommand : CliktCommand("classgen") {
                 superConcept == null -> conceptType.superclass(baseNode)
                 superConcept == ASTLanguageV1.getASTNode() ->
                     conceptType.superclass(
-                        ClassName("com.strumenta.starlasulw", "StarlasuLWBaseASTNode"),
+                        StarlasuLWBaseASTNode::class.asClassName(),
                     )
                 // else -> conceptType.superclass(dynamicNode)
                 concept.language == superConcept.language ->
@@ -384,40 +394,40 @@ class ClassesGeneratorCommand : CliktCommand("classgen") {
                     )
                 interf == ASTLanguageV1.getStatement() ->
                     conceptType.addSuperinterface(
-                        ClassName("com.strumenta.starlasulw", "StatementLW"),
+                        StatementLW::class.asClassName(),
                     )
                 interf == ASTLanguageV1.getExpression() ->
                     conceptType.addSuperinterface(
-                        ClassName("com.strumenta.starlasulw", "ExpressionLW"),
+                        ExpressionLW::class.asClassName(),
                     )
                 interf == ASTLanguageV1.getParameter() ->
                     conceptType.addSuperinterface(
-                        ClassName("com.strumenta.starlasulw", "ParameterLW"),
+                        ParameterLW::class.asClassName(),
                     )
                 interf == ASTLanguageV1.getBehaviorDeclaration() ->
                     conceptType.addSuperinterface(
-                        ClassName("com.strumenta.starlasulw", "BehaviorDeclarationLW"),
+                        BehaviorDeclarationLW::class.asClassName(),
                     )
                 interf == ASTLanguageV1.getPlaceholderElement() ->
                     conceptType.addSuperinterface(
-                        ClassName("com.strumenta.starlasulw", "PlaceholderElementLW"),
+                        PlaceholderElementLW::class.asClassName(),
                     )
                 interf == ASTLanguageV1.getEntityDeclaration() ->
                     conceptType.addSuperinterface(
-                        ClassName("com.strumenta.starlasulw", "EntityDeclarationLW"),
+                        EntityDeclarationLW::class.asClassName(),
                     )
                 interf == ASTLanguageV1.getDocumentation() ->
                     conceptType.addSuperinterface(
-                        ClassName("com.strumenta.starlasulw", "DocumentationLW"),
+                        DocumentationLW::class.asClassName(),
                     )
                 interf ==
                     LionCoreBuiltins.getINamed(
                         LionWebVersion.v2023_1,
                     )
-                -> conceptType.addSuperinterface(ClassName("com.strumenta.starlasulw", "NamedLW"))
+                -> conceptType.addSuperinterface(NamedLW::class.asClassName())
                 interf == ASTLanguageV1.getTypeAnnotation() ->
                     conceptType.addSuperinterface(
-                        ClassName("com.strumenta.starlasulw", "TypeAnnotationLW"),
+                        TypeAnnotationLW::class.asClassName(),
                     )
                 else -> TODO()
             }
@@ -430,7 +440,7 @@ class ClassesGeneratorCommand : CliktCommand("classgen") {
             FunSpec
                 .builder("getClassifier")
                 .addModifiers(KModifier.OVERRIDE)
-                .returns(ClassName("io.lionweb.language", "Concept")) // use the actual return type if known
+                .returns(Concept::class.className) // use the actual return type if known
                 .addCode("return %T.${concept.name!!.decapitalize()}\n", languageType)
                 .build()
         conceptType.addFunction(getClassifierFun)
@@ -459,46 +469,46 @@ class ClassesGeneratorCommand : CliktCommand("classgen") {
                     )
                 superInterf == ASTLanguageV1.getStatement() ->
                     interfaceType.addSuperinterface(
-                        ClassName("com.strumenta.starlasulw", "StatementLW"),
+                        StatementLW::class.className,
                     )
                 superInterf == ASTLanguageV1.getExpression() ->
                     interfaceType.addSuperinterface(
-                        ClassName("com.strumenta.starlasulw", "ExpressionLW"),
+                        ExpressionLW::class.className,
                     )
                 superInterf == ASTLanguageV1.getParameter() ->
                     interfaceType.addSuperinterface(
-                        ClassName("com.strumenta.starlasulw", "ParameterLW"),
+                        ParameterLW::class.className,
                     )
                 superInterf == ASTLanguageV1.getBehaviorDeclaration() ->
                     interfaceType.addSuperinterface(
-                        ClassName("com.strumenta.starlasulw", "BehaviorDeclarationLW"),
+                        BehaviorDeclarationLW::class.asClassName(),
                     )
                 superInterf == ASTLanguageV1.getPlaceholderElement() ->
                     interfaceType.addSuperinterface(
-                        ClassName("com.strumenta.starlasulw", "PlaceholderElementLW"),
+                        PlaceholderElementLW::class.asClassName(),
                     )
                 superInterf == ASTLanguageV1.getEntityDeclaration() ->
                     interfaceType.addSuperinterface(
-                        ClassName("com.strumenta.starlasulw", "EntityDeclarationLW"),
+                        EntityDeclarationLW::class.asClassName(),
                     )
                 superInterf == ASTLanguageV1.getDocumentation() ->
                     interfaceType.addSuperinterface(
-                        ClassName("com.strumenta.starlasulw", "DocumentationLW"),
+                        DocumentationLW::class.asClassName(),
                     )
                 superInterf ==
                     LionCoreBuiltins.getINamed(
                         LionWebVersion.v2023_1,
                     )
-                -> interfaceType.addSuperinterface(ClassName("com.strumenta.starlasulw", "NamedLW"))
+                -> interfaceType.addSuperinterface(NamedLW::class.asClassName())
                 superInterf == ASTLanguageV1.getTypeAnnotation() ->
                     interfaceType.addSuperinterface(
-                        ClassName("com.strumenta.starlasulw", "TypeAnnotationLW"),
+                        TypeAnnotationLW::class.asClassName(),
                     )
                 else -> TODO()
             }
         }
         if (interf.extendedInterfaces.isEmpty()) {
-            interfaceType.addSuperinterface(ClassName("io.lionweb.model", "Node"))
+            interfaceType.addSuperinterface(Node::class.className)
         }
 
         interf.features.forEach { feature ->

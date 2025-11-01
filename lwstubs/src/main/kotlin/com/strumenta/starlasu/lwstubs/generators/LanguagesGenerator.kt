@@ -1,4 +1,4 @@
-package com.strumenta.starlasu.nextgen.generators
+package com.strumenta.starlasu.lwstubs.generators
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.main
@@ -15,11 +15,13 @@ import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.strumenta.starlasu.base.v1.ASTLanguageV1
+import com.strumenta.starlasu.lwstubs.className
 import io.lionweb.LionWebVersion
 import io.lionweb.language.Classifier
 import io.lionweb.language.Concept
 import io.lionweb.language.Containment
 import io.lionweb.language.Enumeration
+import io.lionweb.language.EnumerationLiteral
 import io.lionweb.language.Interface
 import io.lionweb.language.Language
 import io.lionweb.language.LionCoreBuiltins
@@ -118,8 +120,8 @@ class LanguagesGeneratorCommand : CliktCommand("langgen") {
         val langClassBuilder =
             TypeSpec
                 .objectBuilder(langClassName)
-                .superclass(ClassName("io.lionweb.language", "Language"))
-                .addSuperclassConstructorParameter("%T.v2023_1", ClassName("io.lionweb", "LionWebVersion"))
+                .superclass(Language::class.className)
+                .addSuperclassConstructorParameter("%T.v2023_1", LionWebVersion::class.className)
 
         val dataTypeCreator = FunSpec.builder("createDataTypes").addModifiers(KModifier.PRIVATE)
         val dataTypeCreatorCode = CodeBlock.builder()
@@ -134,7 +136,7 @@ class LanguagesGeneratorCommand : CliktCommand("langgen") {
         dataTypeCreator.addCode(dataTypeCreatorCode.build())
         langClassBuilder.addFunction(dataTypeCreator.build())
 
-        val classifiers = language.elements.filterIsInstance(io.lionweb.language.Classifier::class.java)
+        val classifiers = language.elements.filterIsInstance(Classifier::class.java)
         createClassifiers(classifiers, langInit, langClassBuilder, packageName)
 
         val langClass =
@@ -157,7 +159,7 @@ class LanguagesGeneratorCommand : CliktCommand("langgen") {
         val varName = enumeration.name!!.decapitalize()
         langClassBuilder.addProperty(
             PropertySpec
-                .builder(varName, ClassName("io.lionweb.language", "Enumeration"), KModifier.LATEINIT)
+                .builder(varName, Enumeration::class.className, KModifier.LATEINIT)
                 .mutable(true)
                 .build(),
         )
@@ -169,7 +171,7 @@ class LanguagesGeneratorCommand : CliktCommand("langgen") {
             langInit.addStatement(
                 "%L.addLiteral(%T(%L, %S).setKey(%S))",
                 varName,
-                ClassName("io.lionweb.language", "EnumerationLiteral"),
+                EnumerationLiteral::class.className,
                 varName,
                 literal.name!!,
                 literal.key!!,
@@ -220,7 +222,7 @@ class LanguagesGeneratorCommand : CliktCommand("langgen") {
             val varName = classifier.name!!.decapitalize()
             when (classifier) {
                 is Concept -> {
-                    langClassBuilder.addProperty(varName, ClassName("io.lionweb.language", "Concept"))
+                    langClassBuilder.addProperty(varName, Concept::class.className)
                     langInit.addStatement("$varName = Concept()")
                     langInit.addStatement("$varName.setID(\"${classifier.id!!}\")")
                     langInit.addStatement("$varName.setKey(\"${classifier.key!!}\")")
@@ -228,7 +230,7 @@ class LanguagesGeneratorCommand : CliktCommand("langgen") {
                 }
 
                 is Interface -> {
-                    langClassBuilder.addProperty(varName, ClassName("io.lionweb.language", "Interface"))
+                    langClassBuilder.addProperty(varName, Interface::class.className)
                     langInit.addStatement("$varName = Interface()")
                     langInit.addStatement("$varName.setID(\"${classifier.id!!}\")")
                     langInit.addStatement("$varName.setKey(\"${classifier.key!!}\")")
@@ -263,7 +265,7 @@ class LanguagesGeneratorCommand : CliktCommand("langgen") {
                         if (classifier.extendedConcept == ASTLanguageV1.getASTNode()) {
                             populateMethodCode.addStatement(
                                 "$varName.extendedConcept = %T.getASTNode()",
-                                ClassName("com.strumenta.starlasu.base.v1", "ASTLanguageV1"),
+                                ASTLanguageV1::class.className,
                             )
                         } else if (classifier.language == classifier.extendedConcept!!.language) {
                             populateMethodCode.addStatement(
@@ -278,27 +280,27 @@ class LanguagesGeneratorCommand : CliktCommand("langgen") {
                         if (implementedClassifier == ASTLanguageV1.getExpression()) {
                             populateMethodCode.addStatement(
                                 "$varName.addImplementedInterface(%T.getExpression())",
-                                ClassName("com.strumenta.starlasu.base.v1", "ASTLanguageV1"),
+                                ASTLanguageV1::class.className,
                             )
                         } else if (implementedClassifier == ASTLanguageV1.getStatement()) {
                             populateMethodCode.addStatement(
                                 "$varName.addImplementedInterface(%T.getStatement())",
-                                ClassName("com.strumenta.starlasu.base.v1", "ASTLanguageV1"),
+                                ASTLanguageV1::class.className,
                             )
                         } else if (implementedClassifier.language == ASTLanguageV1.getLanguage()) {
                             populateMethodCode.addStatement(
                                 "$varName.addImplementedInterface(%T.get${implementedClassifier.name!!.capitalize()}())",
-                                ClassName("com.strumenta.starlasu.base.v1", "ASTLanguageV1"),
+                                ASTLanguageV1::class.className,
                             )
                         } else if (implementedClassifier == ASTLanguageV1.getDocumentation()) {
                             populateMethodCode.addStatement(
                                 "$varName.addImplementedInterface(%T.getDocumentation())",
-                                ClassName("com.strumenta.starlasu.base.v1", "ASTLanguageV1"),
+                                ASTLanguageV1::class.className,
                             )
                         } else if (implementedClassifier == LionCoreBuiltins.getINamed(LionWebVersion.v2023_1)) {
                             populateMethodCode.addStatement(
                                 "$varName.addImplementedInterface(%T.getINamed(LionWebVersion.v2023_1))",
-                                ClassName("io.lionweb.language", "LionCoreBuiltins"),
+                                LionCoreBuiltins::class.className,
                             )
                         } else if (implementedClassifier.language == classifier.language) {
                             populateMethodCode.addStatement(
@@ -315,7 +317,7 @@ class LanguagesGeneratorCommand : CliktCommand("langgen") {
                         if (it == LionCoreBuiltins.getINamed(LionWebVersion.v2023_1)) {
                             populateMethodCode.addStatement(
                                 "$varName.addExtendedInterface(%T.getINamed(LionWebVersion.v2023_1))",
-                                ClassName("io.lionweb.language", "LionCoreBuiltins"),
+                                LionCoreBuiltins::class.className,
                             )
                         } else {
                             TODO()
@@ -331,31 +333,31 @@ class LanguagesGeneratorCommand : CliktCommand("langgen") {
                             populateMethodCode.addStatement(
                                 "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setType(%T.getInstance(LionWebVersion.v2023_1).getPrimitiveTypeByName(%S)))",
                                 varName,
-                                ClassName("io.lionweb.language", "Property"),
+                                Property::class.className,
                                 feature.id,
                                 feature.key,
                                 feature.name!!,
                                 feature.isOptional,
-                                ClassName("io.lionweb.language", "LionCoreBuiltins"),
+                                ASTLanguageV1::class.className,
                                 feature.type!!.name!!,
                             )
                         } else if (feature.type!!.language == ASTLanguageV1.getLanguage()) {
                             populateMethodCode.addStatement(
                                 "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setType(%T.getLanguage().getPrimitiveTypeByName(%S)))",
                                 varName,
-                                ClassName("io.lionweb.language", "Property"),
+                                Property::class.className,
                                 feature.id,
                                 feature.key,
                                 feature.name!!,
                                 feature.isOptional,
-                                ClassName("com.strumenta.starlasu.base.v1", "ASTLanguageV1"),
+                                ASTLanguageV1::class.className,
                                 feature.type!!.name!!,
                             )
                         } else {
                             populateMethodCode.addStatement(
                                 "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setType(%L))",
                                 varName,
-                                ClassName("io.lionweb.language", "Property"),
+                                Property::class.className,
                                 feature.id,
                                 feature.key,
                                 feature.name!!,
@@ -373,26 +375,26 @@ class LanguagesGeneratorCommand : CliktCommand("langgen") {
                                 populateMethodCode.addStatement(
                                     "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%T.getLanguage().getConceptByName(%S)))",
                                     varName,
-                                    ClassName("io.lionweb.language", "Containment"),
+                                    Containment::class.className,
                                     feature.id,
                                     feature.key,
                                     feature.name!!,
                                     feature.isOptional,
                                     feature.isMultiple,
-                                    ClassName("com.strumenta.starlasu.base.v1", "ASTLanguageV1"),
+                                    ASTLanguageV1::class.className,
                                     feature.type!!.name!!,
                                 )
                             } else {
                                 populateMethodCode.addStatement(
                                     "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%T.getLanguage().getInterfaceByName(%S)))",
                                     varName,
-                                    ClassName("io.lionweb.language", "Containment"),
+                                    Containment::class.className,
                                     feature.id,
                                     feature.key,
                                     feature.name!!,
                                     feature.isOptional,
                                     feature.isMultiple,
-                                    ClassName("com.strumenta.starlasu.base.v1", "ASTLanguageV1"),
+                                    ASTLanguageV1::class.className,
                                     feature.type!!.name!!,
                                 )
                             }
@@ -400,7 +402,7 @@ class LanguagesGeneratorCommand : CliktCommand("langgen") {
                             populateMethodCode.addStatement(
                                 "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%L))",
                                 varName,
-                                ClassName("io.lionweb.language", "Containment"),
+                                Containment::class.className,
                                 feature.id,
                                 feature.key,
                                 feature.name!!,
@@ -417,26 +419,26 @@ class LanguagesGeneratorCommand : CliktCommand("langgen") {
                                 populateMethodCode.addStatement(
                                     "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%T.getInstance(LionWebVersion.v2023_1).getConceptByName(%S)))",
                                     varName,
-                                    ClassName("io.lionweb.language", "Reference"),
+                                    Reference::class.className,
                                     feature.id,
                                     feature.key,
                                     feature.name!!,
                                     feature.isOptional,
                                     feature.isMultiple,
-                                    ClassName("io.lionweb.language", "LionCoreBuiltins"),
+                                    LionCoreBuiltins::class.className,
                                     feature.type!!.name!!,
                                 )
                             } else {
                                 populateMethodCode.addStatement(
                                     "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%T.getInstance(LionWebVersion.v2023_1).getInterfaceByName(%S)))",
                                     varName,
-                                    ClassName("io.lionweb.language", "Reference"),
+                                    Reference::class.className,
                                     feature.id,
                                     feature.key,
                                     feature.name!!,
                                     feature.isOptional,
                                     feature.isMultiple,
-                                    ClassName("io.lionweb.language", "LionCoreBuiltins"),
+                                    LionCoreBuiltins::class.className,
                                     feature.type!!.name!!,
                                 )
                             }
@@ -444,21 +446,21 @@ class LanguagesGeneratorCommand : CliktCommand("langgen") {
                             populateMethodCode.addStatement(
                                 "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%T.getLanguage().%L(%S)))",
                                 varName,
-                                ClassName("io.lionweb.language", "Reference"),
+                                Reference::class.className,
                                 feature.id,
                                 feature.key,
                                 feature.name!!,
                                 feature.isOptional,
                                 feature.isMultiple,
                                 if (feature.type is Concept) "getConceptByName" else "getInterfaceByName",
-                                ClassName("com.strumenta.starlasu.base.v1", "ASTLanguageV1"),
+                                ASTLanguageV1::class.className,
                                 feature.type!!.name!!,
                             )
                         } else {
                             populateMethodCode.addStatement(
                                 "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%L))",
                                 varName,
-                                ClassName("io.lionweb.language", "Reference"),
+                                Reference::class.className,
                                 feature.id,
                                 feature.key,
                                 feature.name!!,
@@ -492,7 +494,7 @@ class LanguagesGeneratorCommand : CliktCommand("langgen") {
         val varName = primitiveType.name!!.decapitalize()
         langClassBuilder.addProperty(
             PropertySpec
-                .builder(varName, ClassName("io.lionweb.language", "PrimitiveType"), KModifier.LATEINIT)
+                .builder(varName, PrimitiveType::class.className, KModifier.LATEINIT)
                 .mutable(true)
                 .build(),
         )

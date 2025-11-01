@@ -1,4 +1,4 @@
-package com.strumenta.starlasu.nextgen.model
+package com.strumenta.starlasu.lwstubs.model
 
 import io.lionweb.kotlin.BaseNode
 
