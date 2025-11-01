@@ -338,7 +338,7 @@ class LanguagesGeneratorCommand : CliktCommand("langgen") {
                                 feature.key,
                                 feature.name!!,
                                 feature.isOptional,
-                                ASTLanguageV1::class.className,
+                                LionCoreBuiltins::class.className,
                                 feature.type!!.name!!,
                             )
                         } else if (feature.type!!.language == ASTLanguageV1.getLanguage()) {
