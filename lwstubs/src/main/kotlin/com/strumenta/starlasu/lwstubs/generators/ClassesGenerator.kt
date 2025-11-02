@@ -126,8 +126,9 @@ class ClassesGeneratorCommand : AbstractGeneratorCommand("classgen") {
 
                 is PrimitiveType -> {
                     val primitiveTypeClass = ClassName(packageName, element.name!!)
+
                     deserializer.addStatement(
-                        "%L.registerDeserializer(%T.${element.name!!.decapitalize()}.id!!) { %T(it) }",
+                        "%L.registerDeserializer(%T.${element.name!!.decapitalize()}.id!!) { it?.let { %T(it) } }",
                         "primitiveValuesSerialization",
                         ClassName(packageName, langName),
                         primitiveTypeClass,
