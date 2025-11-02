@@ -584,11 +584,11 @@ class LionWebModelConverter(
                                 as PrimitiveValueSerialization<Any>
                         serialization.primitiveValuesSerialization.registerSerializer(
                             lwPrimitiveType.id!!,
-                        ) { value -> serializer.serialize(value) }
+                        ) { value -> serializer.serialize(value!!) }
 
                         serialization.primitiveValuesSerialization.registerDeserializer(
                             lwPrimitiveType.id!!,
-                        ) { serialized -> serializer.deserialize(serialized) }
+                        ) { serialized -> serializer.deserialize(serialized!!) }
                     }
                 }
             }
@@ -597,7 +597,7 @@ class LionWebModelConverter(
     }
 
     /**
-     * Deserialize nodes, taking into accaount the known languages.
+     * Deserialize nodes, taking into account the known languages.
      */
     fun deserializeToNodes(
         json: String,

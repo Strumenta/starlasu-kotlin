@@ -281,146 +281,119 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
             classifier.features.forEach { feature ->
                 when (feature) {
                     is Property -> {
-                        if (feature.type!!.language == LionCoreBuiltins.getInstance(LionWebVersion.v2023_1)) {
-                            populateMethodCode.addStatement(
-                                "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setType(%T.getInstance(LionWebVersion.v2023_1).getPrimitiveTypeByName(%S)))",
-                                varName,
-                                Property::class.asClassName(),
-                                feature.id,
-                                feature.key,
-                                feature.name!!,
-                                feature.isOptional,
-                                LionCoreBuiltins::class.asClassName(),
-                                feature.type!!.name!!,
-                            )
-                        } else if (feature.type!!.language == ASTLanguageV1.getLanguage()) {
-                            populateMethodCode.addStatement(
-                                "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setType(%T.getLanguage().getPrimitiveTypeByName(%S)))",
-                                varName,
-                                Property::class.asClassName(),
-                                feature.id,
-                                feature.key,
-                                feature.name!!,
-                                feature.isOptional,
-                                ASTLanguageV1::class.asClassName(),
-                                feature.type!!.name!!,
-                            )
-                        } else {
-                            populateMethodCode.addStatement(
-                                "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setType(%L))",
-                                varName,
-                                Property::class.asClassName(),
-                                feature.id,
-                                feature.key,
-                                feature.name!!,
-                                feature.isOptional,
-                                feature.type!!.name!!.decapitalize(),
-                            )
-                        }
+                        val t = requireNotNull(feature.type) { "Property ${feature.name} missing type" }
+                        val typeExpr: CodeBlock =
+                            when (t.language) {
+                                LionCoreBuiltins.getInstance(LionWebVersion.v2023_1) ->
+                                    CodeBlock.of(
+                                        "%T.getInstance(LionWebVersion.v2023_1).getPrimitiveTypeByName(%S)",
+                                        LionCoreBuiltins::class.asClassName(),
+                                        t.name,
+                                    )
+                                ASTLanguageV1.getLanguage() ->
+                                    CodeBlock.of(
+                                        "%T.getLanguage().getPrimitiveTypeByName(%S)",
+                                        ASTLanguageV1::class.asClassName(),
+                                        t.name,
+                                    )
+                                else ->
+                                    CodeBlock.of("%L", t.name!!.replaceFirstChar { it.lowercaseChar() })
+                            }
+                        populateMethodCode.addStatement(
+                            "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setType(%L))",
+                            varName,
+                            Property::class.asClassName(),
+                            feature.id,
+                            feature.key,
+                            requireNotNull(feature.name),
+                            feature.isOptional,
+                            typeExpr,
+                        )
                     }
 
                     is Containment -> {
-                        if (feature.type!!.language == LionCoreBuiltins.getInstance(LionWebVersion.v2023_1)) {
-                            TODO()
-                        } else if (feature.type!!.language == ASTLanguageV1.getLanguage()) {
-                            if (feature.type is Concept) {
-                                populateMethodCode.addStatement(
-                                    "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%T.getLanguage().getConceptByName(%S)))",
-                                    varName,
-                                    Containment::class.asClassName(),
-                                    feature.id,
-                                    feature.key,
-                                    feature.name!!,
-                                    feature.isOptional,
-                                    feature.isMultiple,
-                                    ASTLanguageV1::class.asClassName(),
-                                    feature.type!!.name!!,
-                                )
-                            } else {
-                                populateMethodCode.addStatement(
-                                    "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%T.getLanguage().getInterfaceByName(%S)))",
-                                    varName,
-                                    Containment::class.asClassName(),
-                                    feature.id,
-                                    feature.key,
-                                    feature.name!!,
-                                    feature.isOptional,
-                                    feature.isMultiple,
-                                    ASTLanguageV1::class.asClassName(),
-                                    feature.type!!.name!!,
-                                )
-                            }
-                        } else {
-                            populateMethodCode.addStatement(
-                                "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%L))",
-                                varName,
-                                Containment::class.asClassName(),
-                                feature.id,
-                                feature.key,
-                                feature.name!!,
-                                feature.isOptional,
-                                feature.isMultiple,
-                                feature.type!!.name!!.decapitalize(),
-                            )
+                        val t = requireNotNull(feature.type) { "Containment ${feature.name} missing type" }
+                        if (t.language == LionCoreBuiltins.getInstance(LionWebVersion.v2023_1)) {
+                            TODO("Containment to LionCoreBuiltins not implemented")
                         }
+
+                        val typeExpr: CodeBlock =
+                            when (t.language) {
+                                ASTLanguageV1.getLanguage() ->
+                                    if (t is Concept) {
+                                        CodeBlock.of(
+                                            "%T.getLanguage().getConceptByName(%S)",
+                                            ASTLanguageV1::class.asClassName(),
+                                            requireNotNull(t.name),
+                                        )
+                                    } else {
+                                        CodeBlock.of(
+                                            "%T.getLanguage().getInterfaceByName(%S)",
+                                            ASTLanguageV1::class.asClassName(),
+                                            requireNotNull(t.name),
+                                        )
+                                    }
+                                else -> {
+                                    val name = requireNotNull(t.name).replaceFirstChar { it.lowercaseChar() }
+                                    CodeBlock.of("%L", name)
+                                }
+                            }
+
+                        populateMethodCode.addStatement(
+                            "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%L))",
+                            varName,
+                            Containment::class.asClassName(),
+                            feature.id,
+                            feature.key,
+                            requireNotNull(feature.name),
+                            feature.isOptional,
+                            feature.isMultiple,
+                            typeExpr,
+                        )
                     }
 
                     is Reference -> {
-                        if (feature.type!!.language == LionCoreBuiltins.getInstance(LionWebVersion.v2023_1)) {
-                            if (feature.type is Concept) {
-                                populateMethodCode.addStatement(
-                                    "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%T.getInstance(LionWebVersion.v2023_1).getConceptByName(%S)))",
-                                    varName,
-                                    Reference::class.asClassName(),
-                                    feature.id,
-                                    feature.key,
-                                    feature.name!!,
-                                    feature.isOptional,
-                                    feature.isMultiple,
-                                    LionCoreBuiltins::class.asClassName(),
-                                    feature.type!!.name!!,
-                                )
-                            } else {
-                                populateMethodCode.addStatement(
-                                    "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%T.getInstance(LionWebVersion.v2023_1).getInterfaceByName(%S)))",
-                                    varName,
-                                    Reference::class.asClassName(),
-                                    feature.id,
-                                    feature.key,
-                                    feature.name!!,
-                                    feature.isOptional,
-                                    feature.isMultiple,
-                                    LionCoreBuiltins::class.asClassName(),
-                                    feature.type!!.name!!,
-                                )
+                        val t = requireNotNull(feature.type) { "Reference ${feature.name} missing type" }
+
+                        val typeExpr: CodeBlock =
+                            when (t.language) {
+                                LionCoreBuiltins.getInstance(LionWebVersion.v2023_1) -> {
+                                    val fn = if (t is Concept) "getConceptByName" else "getInterfaceByName"
+                                    CodeBlock.of(
+                                        "%T.getInstance(LionWebVersion.v2023_1).%L(%S)",
+                                        LionCoreBuiltins::class.asClassName(),
+                                        fn,
+                                        requireNotNull(t.name),
+                                    )
+                                }
+                                ASTLanguageV1.getLanguage() -> {
+                                    val fn = if (t is Concept) "getConceptByName" else "getInterfaceByName"
+                                    CodeBlock.of(
+                                        "%T.getLanguage().%L(%S)",
+                                        ASTLanguageV1::class.asClassName(),
+                                        fn,
+                                        requireNotNull(t.name),
+                                    )
+                                }
+                                else ->
+                                    CodeBlock.of(
+                                        "%L",
+                                        requireNotNull(t.name).replaceFirstChar { it.lowercaseChar() },
+                                    )
                             }
-                        } else if (feature.type!!.language == ASTLanguageV1.getLanguage()) {
-                            populateMethodCode.addStatement(
-                                "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%T.getLanguage().%L(%S)))",
-                                varName,
-                                Reference::class.asClassName(),
-                                feature.id,
-                                feature.key,
-                                feature.name!!,
-                                feature.isOptional,
-                                feature.isMultiple,
-                                if (feature.type is Concept) "getConceptByName" else "getInterfaceByName",
-                                ASTLanguageV1::class.asClassName(),
-                                feature.type!!.name!!,
-                            )
-                        } else {
-                            populateMethodCode.addStatement(
-                                "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%L))",
-                                varName,
-                                Reference::class.asClassName(),
-                                feature.id,
-                                feature.key,
-                                feature.name!!,
-                                feature.isOptional,
-                                feature.isMultiple,
-                                feature.type!!.name!!.decapitalize(),
-                            )
-                        }
+
+                        populateMethodCode.addStatement(
+                            "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L)" +
+                                ".setMultiple(%L).setType(%L))",
+                            varName,
+                            Reference::class.asClassName(),
+                            feature.id,
+                            feature.key,
+                            requireNotNull(feature.name),
+                            feature.isOptional,
+                            feature.isMultiple,
+                            typeExpr,
+                        )
                     }
 
                     else -> TODO()
