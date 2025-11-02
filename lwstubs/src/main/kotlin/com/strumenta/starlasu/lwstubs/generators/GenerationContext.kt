@@ -3,7 +3,6 @@ package com.strumenta.starlasu.lwstubs.generators
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.asClassName
 import com.strumenta.starlasu.base.v1.ASTLanguageV1
-import com.strumenta.starlasu.lwstubs.className
 import com.strumenta.starlasu.lwstubs.model.BehaviorDeclarationLW
 import com.strumenta.starlasu.lwstubs.model.DocumentationLW
 import com.strumenta.starlasu.lwstubs.model.EntityDeclarationLW
@@ -19,11 +18,15 @@ import io.lionweb.language.Classifier
 import io.lionweb.language.Language
 import io.lionweb.language.LionCoreBuiltins
 
-class GenerationContext(val packageName: String, val language: Language, val languageType : ClassName) {
-    fun classifierToClassName(classifier: Classifier<*>?): ClassName? {
-        return when {
+class GenerationContext(
+    val packageName: String,
+    val language: Language,
+    val languageType: ClassName,
+) {
+    fun classifierToClassName(classifier: Classifier<*>?): ClassName? =
+        when {
             classifier == null -> null
-            classifier == ASTLanguageV1.getASTNode() -> StarlasuLWBaseASTNode::class.className
+            classifier == ASTLanguageV1.getASTNode() -> StarlasuLWBaseASTNode::class.asClassName()
             classifier == ASTLanguageV1.getStatement() -> StatementLW::class.asClassName()
             classifier == ASTLanguageV1.getExpression() -> ExpressionLW::class.asClassName()
             classifier == ASTLanguageV1.getParameter() -> ParameterLW::class.asClassName()
@@ -31,10 +34,9 @@ class GenerationContext(val packageName: String, val language: Language, val lan
             classifier == ASTLanguageV1.getPlaceholderElement() -> PlaceholderElementLW::class.asClassName()
             classifier == ASTLanguageV1.getEntityDeclaration() -> EntityDeclarationLW::class.asClassName()
             classifier == ASTLanguageV1.getDocumentation() -> DocumentationLW::class.asClassName()
-            classifier == LionCoreBuiltins.getINamed(LionWebVersion.v2023_1)  -> NamedLW::class.asClassName()
+            classifier == LionCoreBuiltins.getINamed(LionWebVersion.v2023_1) -> NamedLW::class.asClassName()
             classifier == ASTLanguageV1.getTypeAnnotation() -> TypeAnnotationLW::class.asClassName()
             language == classifier.language -> ClassName(packageName, classifier.name!!)
             else -> TODO()
         }
-    }
 }

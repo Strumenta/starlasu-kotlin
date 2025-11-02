@@ -16,17 +16,8 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
 import com.strumenta.starlasu.base.v1.ASTLanguageV1
-import com.strumenta.starlasu.lwstubs.className
-import com.strumenta.starlasu.lwstubs.model.BehaviorDeclarationLW
-import com.strumenta.starlasu.lwstubs.model.DocumentationLW
-import com.strumenta.starlasu.lwstubs.model.EntityDeclarationLW
-import com.strumenta.starlasu.lwstubs.model.ExpressionLW
 import com.strumenta.starlasu.lwstubs.model.NamedLW
-import com.strumenta.starlasu.lwstubs.model.ParameterLW
-import com.strumenta.starlasu.lwstubs.model.PlaceholderElementLW
 import com.strumenta.starlasu.lwstubs.model.StarlasuLWBaseASTNode
-import com.strumenta.starlasu.lwstubs.model.StatementLW
-import com.strumenta.starlasu.lwstubs.model.TypeAnnotationLW
 import io.lionweb.LionWebVersion
 import io.lionweb.kotlin.BaseNode
 import io.lionweb.kotlin.SpecificReferenceValue
@@ -46,8 +37,10 @@ import io.lionweb.serialization.AbstractSerialization
 import java.io.File
 
 class ClassesGeneratorCommand : AbstractGeneratorCommand("classgen") {
-    override val dependenciesFiles: List<File> by option("--dependency", help = "Dependency file to generate classes for")
-        .file(mustExist = true, canBeDir = false, mustBeReadable = true, canBeFile = true)
+    override val dependenciesFiles: List<File> by option(
+        "--dependency",
+        help = "Dependency file to generate classes for",
+    ).file(mustExist = true, canBeDir = false, mustBeReadable = true, canBeFile = true)
         .multiple(required = false)
     override val languageFiles: List<File> by option("--language", help = "Language file to generate classes for")
         .file(mustExist = true, canBeDir = false, mustBeReadable = true, canBeFile = true)
@@ -61,7 +54,10 @@ class ClassesGeneratorCommand : AbstractGeneratorCommand("classgen") {
     override val names: List<String>
         by option("--name", help = "Name of the generated language").multiple(required = false)
 
-    override fun processLanguage(language: Language, overridenName: String?) {
+    override fun processLanguage(
+        language: Language,
+        overridenName: String?,
+    ) {
         echo("Generating classes for language ${language.name}")
         echo("-------------------------------------------------------------------")
         echo()
@@ -90,7 +86,7 @@ class ClassesGeneratorCommand : AbstractGeneratorCommand("classgen") {
         val langName = overridenName ?: packageName.split(".").last()
         val deserializerName = langName.capitalize() + "Deserializer"
 
-        val abstractSerialization = AbstractSerialization::class.className
+        val abstractSerialization = AbstractSerialization::class.asClassName()
         val instantiatorClassifier =
             ClassName("io.lionweb.serialization", "Instantiator", "ClassifierSpecificInstantiator")
         val rpgLanguage = ClassName(packageName, langName)
@@ -107,11 +103,11 @@ class ClassesGeneratorCommand : AbstractGeneratorCommand("classgen") {
 
                     deserializer.addStatement(
                         """
-                            instantiator.registerCustomDeserializer(%T.${element.name!!.decapitalize()}.id,
-                                %T<%T> { classifier, serializedClassifierInstance, deserializedNodesByID, propertiesValues ->
-                                    %T().apply { setID(serializedClassifierInstance.id!!) }
-                                })
-                            """.trimIndent(),
+                        instantiator.registerCustomDeserializer(%T.${element.name!!.decapitalize()}.id,
+                            %T<%T> { classifier, serializedClassifierInstance, deserializedNodesByID, propertiesValues ->
+                                %T().apply { setID(serializedClassifierInstance.id!!) }
+                            })
+                        """.trimIndent(),
                         rpgLanguage,
                         instantiatorClassifier,
                         astClass,
@@ -255,7 +251,8 @@ class ClassesGeneratorCommand : AbstractGeneratorCommand("classgen") {
                     val prop =
                         PropertySpec.builder(
                             feature.name!!,
-                            SpecificReferenceValue::class.asClassName()
+                            SpecificReferenceValue::class
+                                .asClassName()
                                 .parameterizedBy(baseType)
                                 .copy(nullable = true),
                         )
@@ -318,7 +315,7 @@ class ClassesGeneratorCommand : AbstractGeneratorCommand("classgen") {
         generationContext: GenerationContext,
     ): FileSpec {
         val packageName = concept.language!!.name!!
-        val baseNode = BaseNode::class.className
+        val baseNode = BaseNode::class.asClassName()
         val conceptType =
             TypeSpec
                 .classBuilder(concept.name!!)
@@ -330,7 +327,9 @@ class ClassesGeneratorCommand : AbstractGeneratorCommand("classgen") {
             conceptType.superclass(generationContext.classifierToClassName(concept.extendedConcept) ?: baseNode)
         }
         concept.implemented.forEach { interf ->
-            conceptType.addSuperinterface(generationContext.classifierToClassName(interf) ?: throw IllegalStateException())
+            conceptType.addSuperinterface(
+                generationContext.classifierToClassName(interf) ?: throw IllegalStateException(),
+            )
             interf.features.forEach { feature ->
                 generateFeature(conceptType, packageName, concept, feature, overridden = true)
             }
@@ -340,7 +339,7 @@ class ClassesGeneratorCommand : AbstractGeneratorCommand("classgen") {
             FunSpec
                 .builder("getClassifier")
                 .addModifiers(KModifier.OVERRIDE)
-                .returns(Concept::class.className) // use the actual return type if known
+                .returns(Concept::class.asClassName()) // use the actual return type if known
                 .addCode("return %T.${concept.name!!.decapitalize()}\n", generationContext.languageType)
                 .build()
         conceptType.addFunction(getClassifierFun)
@@ -355,17 +354,22 @@ class ClassesGeneratorCommand : AbstractGeneratorCommand("classgen") {
             .build()
     }
 
-    private fun generateInterface(interf: Interface, generationContext: GenerationContext): FileSpec {
+    private fun generateInterface(
+        interf: Interface,
+        generationContext: GenerationContext,
+    ): FileSpec {
         val packageName = interf.language!!.name!!
         val interfaceType =
             TypeSpec
                 .interfaceBuilder(interf.name!!)
                 .addModifiers(KModifier.PUBLIC)
         interf.extendedInterfaces.forEach { superInterf ->
-            interfaceType.addSuperinterface(generationContext.classifierToClassName(superInterf) ?: throw IllegalStateException())
+            interfaceType.addSuperinterface(
+                generationContext.classifierToClassName(superInterf) ?: throw IllegalStateException(),
+            )
         }
         if (interf.extendedInterfaces.isEmpty()) {
-            interfaceType.addSuperinterface(Node::class.className)
+            interfaceType.addSuperinterface(Node::class.asClassName())
         }
 
         interf.features.forEach { feature ->

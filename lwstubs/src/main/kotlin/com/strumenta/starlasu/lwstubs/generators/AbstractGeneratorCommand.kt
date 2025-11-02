@@ -1,10 +1,6 @@
 package com.strumenta.starlasu.lwstubs.generators
 
 import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.parameters.options.default
-import com.github.ajalt.clikt.parameters.options.multiple
-import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.types.enum
 import com.github.ajalt.clikt.parameters.types.file
 import com.strumenta.starlasu.base.v1.ASTLanguageV1
 import io.lionweb.LionWebVersion
@@ -15,7 +11,9 @@ import io.lionweb.serialization.ProtoBufSerialization
 import io.lionweb.serialization.SerializationProvider
 import java.io.File
 
-abstract class AbstractGeneratorCommand(val name: String) : CliktCommand(name){
+abstract class AbstractGeneratorCommand(
+    val name: String,
+) : CliktCommand(name) {
     abstract val dependenciesFiles: List<File>
     abstract val languageFiles: List<File>
     abstract val outputDir: File
@@ -68,5 +66,8 @@ abstract class AbstractGeneratorCommand(val name: String) : CliktCommand(name){
         }
     }
 
-    protected abstract fun processLanguage(language: Language, overriddenName: String?)
+    protected abstract fun processLanguage(
+        language: Language,
+        overriddenName: String?,
+    )
 }

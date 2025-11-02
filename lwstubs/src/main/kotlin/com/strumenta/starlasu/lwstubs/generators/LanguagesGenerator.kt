@@ -1,21 +1,19 @@
 package com.strumenta.starlasu.lwstubs.generators
 
-import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.multiple
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.enum
 import com.github.ajalt.clikt.parameters.types.file
-import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asClassName
 import com.strumenta.starlasu.base.v1.ASTLanguageV1
-import com.strumenta.starlasu.lwstubs.className
 import io.lionweb.LionWebVersion
 import io.lionweb.language.Classifier
 import io.lionweb.language.Concept
@@ -28,17 +26,15 @@ import io.lionweb.language.LionCoreBuiltins
 import io.lionweb.language.PrimitiveType
 import io.lionweb.language.Property
 import io.lionweb.language.Reference
-import io.lionweb.serialization.AbstractSerialization
-import io.lionweb.serialization.JsonSerialization
-import io.lionweb.serialization.ProtoBufSerialization
-import io.lionweb.serialization.SerializationProvider
 import java.io.File
 import kotlin.collections.associateWith
 import kotlin.collections.forEach
 
 class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
-    override val dependenciesFiles: List<File> by option("--dependency", help = "Dependency file to generate classes for")
-        .file(mustExist = true, canBeDir = false, mustBeReadable = true, canBeFile = true)
+    override val dependenciesFiles: List<File> by option(
+        "--dependency",
+        help = "Dependency file to generate classes for",
+    ).file(mustExist = true, canBeDir = false, mustBeReadable = true, canBeFile = true)
         .multiple(required = false)
     override val languageFiles: List<File> by option("--language", help = "Language file to generate classes for")
         .file(mustExist = true, canBeDir = false, mustBeReadable = true, canBeFile = true)
@@ -52,7 +48,10 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
     override val names: List<String>
         by option("--name", help = "Name of the generated language").multiple(required = false)
 
-    override fun processLanguage(language: Language, overriddenName: String?) {
+    override fun processLanguage(
+        language: Language,
+        overriddenName: String?,
+    ) {
         echo("Generating classes for language ${language.name}")
         echo("-------------------------------------------------------------------")
         echo()
@@ -74,8 +73,8 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
         val langClassBuilder =
             TypeSpec
                 .objectBuilder(langClassName)
-                .superclass(Language::class.className)
-                .addSuperclassConstructorParameter("%T.v2023_1", LionWebVersion::class.className)
+                .superclass(Language::class.asClassName())
+                .addSuperclassConstructorParameter("%T.v2023_1", LionWebVersion::class.asClassName())
 
         val dataTypeCreator = FunSpec.builder("createDataTypes").addModifiers(KModifier.PRIVATE)
         val dataTypeCreatorCode = CodeBlock.builder()
@@ -113,7 +112,7 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
         val varName = enumeration.name!!.decapitalize()
         langClassBuilder.addProperty(
             PropertySpec
-                .builder(varName, Enumeration::class.className, KModifier.LATEINIT)
+                .builder(varName, Enumeration::class.asClassName(), KModifier.LATEINIT)
                 .mutable(true)
                 .build(),
         )
@@ -125,7 +124,7 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
             langInit.addStatement(
                 "%L.addLiteral(%T(%L, %S).setKey(%S))",
                 varName,
-                EnumerationLiteral::class.className,
+                EnumerationLiteral::class.asClassName(),
                 varName,
                 literal.name!!,
                 literal.key!!,
@@ -176,7 +175,7 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
             val varName = classifier.name!!.decapitalize()
             when (classifier) {
                 is Concept -> {
-                    langClassBuilder.addProperty(varName, Concept::class.className)
+                    langClassBuilder.addProperty(varName, Concept::class.asClassName())
                     langInit.addStatement("$varName = Concept()")
                     langInit.addStatement("$varName.setID(\"${classifier.id!!}\")")
                     langInit.addStatement("$varName.setKey(\"${classifier.key!!}\")")
@@ -184,7 +183,7 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
                 }
 
                 is Interface -> {
-                    langClassBuilder.addProperty(varName, Interface::class.className)
+                    langClassBuilder.addProperty(varName, Interface::class.asClassName())
                     langInit.addStatement("$varName = Interface()")
                     langInit.addStatement("$varName.setID(\"${classifier.id!!}\")")
                     langInit.addStatement("$varName.setKey(\"${classifier.key!!}\")")
@@ -207,7 +206,6 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
         sortedClassifiers.forEach { classifier ->
             val varName = classifier.name!!.decapitalize()
 
-            // if (!classifier.features.isEmpty()) {
             val populateMethod = FunSpec.builder("populate${classifier.name!!.capitalize()}")
             val populateMethodCode = CodeBlock.builder()
 
@@ -219,7 +217,7 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
                         if (classifier.extendedConcept == ASTLanguageV1.getASTNode()) {
                             populateMethodCode.addStatement(
                                 "$varName.extendedConcept = %T.getASTNode()",
-                                ASTLanguageV1::class.className,
+                                ASTLanguageV1::class.asClassName(),
                             )
                         } else if (classifier.language == classifier.extendedConcept!!.language) {
                             populateMethodCode.addStatement(
@@ -234,27 +232,27 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
                         if (implementedClassifier == ASTLanguageV1.getExpression()) {
                             populateMethodCode.addStatement(
                                 "$varName.addImplementedInterface(%T.getExpression())",
-                                ASTLanguageV1::class.className,
+                                ASTLanguageV1::class.asClassName(),
                             )
                         } else if (implementedClassifier == ASTLanguageV1.getStatement()) {
                             populateMethodCode.addStatement(
                                 "$varName.addImplementedInterface(%T.getStatement())",
-                                ASTLanguageV1::class.className,
+                                ASTLanguageV1::class.asClassName(),
                             )
                         } else if (implementedClassifier.language == ASTLanguageV1.getLanguage()) {
                             populateMethodCode.addStatement(
                                 "$varName.addImplementedInterface(%T.get${implementedClassifier.name!!.capitalize()}())",
-                                ASTLanguageV1::class.className,
+                                ASTLanguageV1::class.asClassName(),
                             )
                         } else if (implementedClassifier == ASTLanguageV1.getDocumentation()) {
                             populateMethodCode.addStatement(
                                 "$varName.addImplementedInterface(%T.getDocumentation())",
-                                ASTLanguageV1::class.className,
+                                ASTLanguageV1::class.asClassName(),
                             )
                         } else if (implementedClassifier == LionCoreBuiltins.getINamed(LionWebVersion.v2023_1)) {
                             populateMethodCode.addStatement(
                                 "$varName.addImplementedInterface(%T.getINamed(LionWebVersion.v2023_1))",
-                                LionCoreBuiltins::class.className,
+                                LionCoreBuiltins::class.asClassName(),
                             )
                         } else if (implementedClassifier.language == classifier.language) {
                             populateMethodCode.addStatement(
@@ -271,7 +269,7 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
                         if (it == LionCoreBuiltins.getINamed(LionWebVersion.v2023_1)) {
                             populateMethodCode.addStatement(
                                 "$varName.addExtendedInterface(%T.getINamed(LionWebVersion.v2023_1))",
-                                LionCoreBuiltins::class.className,
+                                LionCoreBuiltins::class.asClassName(),
                             )
                         } else {
                             TODO()
@@ -287,31 +285,31 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
                             populateMethodCode.addStatement(
                                 "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setType(%T.getInstance(LionWebVersion.v2023_1).getPrimitiveTypeByName(%S)))",
                                 varName,
-                                Property::class.className,
+                                Property::class.asClassName(),
                                 feature.id,
                                 feature.key,
                                 feature.name!!,
                                 feature.isOptional,
-                                LionCoreBuiltins::class.className,
+                                LionCoreBuiltins::class.asClassName(),
                                 feature.type!!.name!!,
                             )
                         } else if (feature.type!!.language == ASTLanguageV1.getLanguage()) {
                             populateMethodCode.addStatement(
                                 "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setType(%T.getLanguage().getPrimitiveTypeByName(%S)))",
                                 varName,
-                                Property::class.className,
+                                Property::class.asClassName(),
                                 feature.id,
                                 feature.key,
                                 feature.name!!,
                                 feature.isOptional,
-                                ASTLanguageV1::class.className,
+                                ASTLanguageV1::class.asClassName(),
                                 feature.type!!.name!!,
                             )
                         } else {
                             populateMethodCode.addStatement(
                                 "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setType(%L))",
                                 varName,
-                                Property::class.className,
+                                Property::class.asClassName(),
                                 feature.id,
                                 feature.key,
                                 feature.name!!,
@@ -329,26 +327,26 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
                                 populateMethodCode.addStatement(
                                     "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%T.getLanguage().getConceptByName(%S)))",
                                     varName,
-                                    Containment::class.className,
+                                    Containment::class.asClassName(),
                                     feature.id,
                                     feature.key,
                                     feature.name!!,
                                     feature.isOptional,
                                     feature.isMultiple,
-                                    ASTLanguageV1::class.className,
+                                    ASTLanguageV1::class.asClassName(),
                                     feature.type!!.name!!,
                                 )
                             } else {
                                 populateMethodCode.addStatement(
                                     "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%T.getLanguage().getInterfaceByName(%S)))",
                                     varName,
-                                    Containment::class.className,
+                                    Containment::class.asClassName(),
                                     feature.id,
                                     feature.key,
                                     feature.name!!,
                                     feature.isOptional,
                                     feature.isMultiple,
-                                    ASTLanguageV1::class.className,
+                                    ASTLanguageV1::class.asClassName(),
                                     feature.type!!.name!!,
                                 )
                             }
@@ -356,7 +354,7 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
                             populateMethodCode.addStatement(
                                 "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%L))",
                                 varName,
-                                Containment::class.className,
+                                Containment::class.asClassName(),
                                 feature.id,
                                 feature.key,
                                 feature.name!!,
@@ -373,26 +371,26 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
                                 populateMethodCode.addStatement(
                                     "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%T.getInstance(LionWebVersion.v2023_1).getConceptByName(%S)))",
                                     varName,
-                                    Reference::class.className,
+                                    Reference::class.asClassName(),
                                     feature.id,
                                     feature.key,
                                     feature.name!!,
                                     feature.isOptional,
                                     feature.isMultiple,
-                                    LionCoreBuiltins::class.className,
+                                    LionCoreBuiltins::class.asClassName(),
                                     feature.type!!.name!!,
                                 )
                             } else {
                                 populateMethodCode.addStatement(
                                     "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%T.getInstance(LionWebVersion.v2023_1).getInterfaceByName(%S)))",
                                     varName,
-                                    Reference::class.className,
+                                    Reference::class.asClassName(),
                                     feature.id,
                                     feature.key,
                                     feature.name!!,
                                     feature.isOptional,
                                     feature.isMultiple,
-                                    LionCoreBuiltins::class.className,
+                                    LionCoreBuiltins::class.asClassName(),
                                     feature.type!!.name!!,
                                 )
                             }
@@ -400,21 +398,21 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
                             populateMethodCode.addStatement(
                                 "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%T.getLanguage().%L(%S)))",
                                 varName,
-                                Reference::class.className,
+                                Reference::class.asClassName(),
                                 feature.id,
                                 feature.key,
                                 feature.name!!,
                                 feature.isOptional,
                                 feature.isMultiple,
                                 if (feature.type is Concept) "getConceptByName" else "getInterfaceByName",
-                                ASTLanguageV1::class.className,
+                                ASTLanguageV1::class.asClassName(),
                                 feature.type!!.name!!,
                             )
                         } else {
                             populateMethodCode.addStatement(
                                 "%L.addFeature(%T().setID(%S).setKey(%S).setName(%S).setOptional(%L).setMultiple(%L).setType(%L))",
                                 varName,
-                                Reference::class.className,
+                                Reference::class.asClassName(),
                                 feature.id,
                                 feature.key,
                                 feature.name!!,
@@ -433,7 +431,6 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
             populateMethod.addCode(populateMethodCode.build())
             langClassBuilder.addFunction(populateMethod.build())
         }
-        // }
     }
 
     private fun save(fileSpec: FileSpec) {
@@ -448,7 +445,7 @@ class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
         val varName = primitiveType.name!!.decapitalize()
         langClassBuilder.addProperty(
             PropertySpec
-                .builder(varName, PrimitiveType::class.className, KModifier.LATEINIT)
+                .builder(varName, PrimitiveType::class.asClassName(), KModifier.LATEINIT)
                 .mutable(true)
                 .build(),
         )
