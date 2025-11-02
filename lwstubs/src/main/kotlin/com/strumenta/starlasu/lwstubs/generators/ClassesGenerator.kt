@@ -1,6 +1,5 @@
 package com.strumenta.starlasu.lwstubs.generators
 
-import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.multiple
@@ -29,6 +28,8 @@ import com.strumenta.starlasu.lwstubs.model.StarlasuLWBaseASTNode
 import com.strumenta.starlasu.lwstubs.model.StatementLW
 import com.strumenta.starlasu.lwstubs.model.TypeAnnotationLW
 import io.lionweb.LionWebVersion
+import io.lionweb.kotlin.BaseNode
+import io.lionweb.kotlin.SpecificReferenceValue
 import io.lionweb.language.Classifier
 import io.lionweb.language.Concept
 import io.lionweb.language.Containment
@@ -42,88 +43,37 @@ import io.lionweb.language.Property
 import io.lionweb.language.Reference
 import io.lionweb.model.Node
 import io.lionweb.serialization.AbstractSerialization
-import io.lionweb.serialization.JsonSerialization
-import io.lionweb.serialization.ProtoBufSerialization
-import io.lionweb.serialization.SerializationProvider
 import java.io.File
 
-class ClassesGeneratorCommand : CliktCommand("classgen") {
-    val dependenciesFiles: List<File> by option("--dependency", help = "Dependency file to generate classes for")
+class ClassesGeneratorCommand : AbstractGeneratorCommand("classgen") {
+    override val dependenciesFiles: List<File> by option("--dependency", help = "Dependency file to generate classes for")
         .file(mustExist = true, canBeDir = false, mustBeReadable = true, canBeFile = true)
         .multiple(required = false)
-    val languageFiles: List<File> by option("--language", help = "Language file to generate classes for")
+    override val languageFiles: List<File> by option("--language", help = "Language file to generate classes for")
         .file(mustExist = true, canBeDir = false, mustBeReadable = true, canBeFile = true)
         .multiple(required = true)
-    val outputDir: File by option("--output", help = "Output directory for generated classes")
+    override val outputDir: File by option("--output", help = "Output directory for generated classes")
         .file(mustExist = false, canBeDir = true, mustBeReadable = false, canBeFile = false)
         .default(File("out"))
-    val lwVersion: LionWebVersion by option("--lwversion", help = "LionWeb version to generate classes for")
+    override val lwVersion: LionWebVersion by option("--lwversion", help = "LionWeb version to generate classes for")
         .enum<LionWebVersion>(ignoreCase = true)
         .default(LionWebVersion.v2023_1)
-    val names: List<String>
+    override val names: List<String>
         by option("--name", help = "Name of the generated language").multiple(required = false)
 
-    override fun run() {
-        val extensions = (languageFiles.map { it.extension } + dependenciesFiles.map { it.extension }).toSet()
-        if (extensions.size != 1) {
-            throw IllegalArgumentException("All language files and dependencies must have the same extension")
-        }
-        val extension = extensions.first().lowercase()
-        val serialization: AbstractSerialization =
-            when (extension) {
-                "json" -> SerializationProvider.getStandardJsonSerialization(lwVersion)
-                "pb" -> SerializationProvider.getStandardProtoBufSerialization(lwVersion)
-                else -> throw IllegalArgumentException("Unsupported language extension: $extension")
-            }
-        serialization.registerLanguage(ASTLanguageV1.getLanguage())
-
-        fun loadLanguage(file: File): Language {
-            val language =
-                when (serialization) {
-                    is ProtoBufSerialization -> {
-                        val nodes = serialization.deserializeToNodes(file)
-                        val languages = nodes.filterIsInstance(Language::class.java)
-                        if (languages.size != 1) {
-                            throw IllegalArgumentException("Expected exactly one language in language file: $file")
-                        }
-                        languages.first()
-                    }
-                    is JsonSerialization -> {
-                        serialization.loadLanguage(file)
-                    }
-                    else -> throw UnsupportedOperationException("Serialization not supported for language file: $file")
-                }
-            serialization.registerLanguage(language)
-            return language
-        }
-        dependenciesFiles.forEach { dependencyFile ->
-            loadLanguage(dependencyFile)
-        }
-        val languages =
-            languageFiles.map { languageFile ->
-                loadLanguage(languageFile)
-            }
-        languages.forEachIndexed { index, language ->
-            val overriddenName = names.getOrNull(index)
-            generateLanguage(language, overriddenName)
-        }
-    }
-
-    private fun generateLanguage(
-        language: Language,
-        overridenName: String?,
-    ) {
+    override fun processLanguage(language: Language, overridenName: String?) {
         echo("Generating classes for language ${language.name}")
         echo("-------------------------------------------------------------------")
         echo()
         val languageType = ClassName(language.name!!, overridenName ?: language.name!!)
+        val generationContext = GenerationContext(language.name!!, language, languageType)
         language.elements.forEach { element ->
             echo(" - Generating class for ${element.javaClass.simpleName} ${element.name}")
             val fileSpec: FileSpec? =
                 when (element) {
                     is Enumeration -> generateEnumeration(element)
-                    is Concept -> generateConcept(element, languageType)
-                    is Interface -> generateInterface(element)
+                    is Concept -> generateConcept(element, generationContext)
+                    is Interface -> generateInterface(element, generationContext)
                     is PrimitiveType -> generatePrimitiveType(element)
                     else -> TODO("Not yet implemented for element type ${element::class.simpleName}")
                 }
@@ -140,7 +90,7 @@ class ClassesGeneratorCommand : CliktCommand("classgen") {
         val langName = overridenName ?: packageName.split(".").last()
         val deserializerName = langName.capitalize() + "Deserializer"
 
-        val abstractSerialization = ClassName("io.lionweb.serialization", "AbstractSerialization")
+        val abstractSerialization = AbstractSerialization::class.className
         val instantiatorClassifier =
             ClassName("io.lionweb.serialization", "Instantiator", "ClassifierSpecificInstantiator")
         val rpgLanguage = ClassName(packageName, langName)
@@ -151,42 +101,48 @@ class ClassesGeneratorCommand : CliktCommand("classgen") {
                 .receiver(abstractSerialization)
 
         language.elements.forEach { element ->
-            if (element is Concept && !element.isAbstract) {
-                val astClass = ClassName(packageName, element.name!!)
+            when (element) {
+                is Concept if !element.isAbstract -> {
+                    val astClass = ClassName(packageName, element.name!!)
 
-                deserializer.addStatement(
-                    """
-                    instantiator.registerCustomDeserializer(%T.${element.name!!.decapitalize()}.id,
-                        %T<%T> { classifier, serializedClassifierInstance, deserializedNodesByID, propertiesValues ->
-                            %T().apply { setID(serializedClassifierInstance.id!!) }
-                        })
-                    """.trimIndent(),
-                    rpgLanguage,
-                    instantiatorClassifier,
-                    astClass,
-                    astClass,
-                )
-            } else if (element is Enumeration) {
-                val enumClass = ClassName(packageName, element.name!!)
-                deserializer.addStatement(
-                    "primitiveValuesSerialization.registerEnumClass(%T::class.java, %T.${element.name!!.decapitalize()})",
-                    enumClass,
-                    ClassName(packageName, langName),
-                )
-            } else if (element is PrimitiveType) {
-                val primitiveTypeClass = ClassName(packageName, element.name!!)
-                deserializer.addStatement(
-                    "%L.registerDeserializer(%T.${element.name!!.decapitalize()}.id!!) { %T(it) }",
-                    "primitiveValuesSerialization",
-                    ClassName(packageName, langName),
-                    primitiveTypeClass,
-                )
+                    deserializer.addStatement(
+                        """
+                            instantiator.registerCustomDeserializer(%T.${element.name!!.decapitalize()}.id,
+                                %T<%T> { classifier, serializedClassifierInstance, deserializedNodesByID, propertiesValues ->
+                                    %T().apply { setID(serializedClassifierInstance.id!!) }
+                                })
+                            """.trimIndent(),
+                        rpgLanguage,
+                        instantiatorClassifier,
+                        astClass,
+                        astClass,
+                    )
+                }
+
+                is Enumeration -> {
+                    val enumClass = ClassName(packageName, element.name!!)
+                    deserializer.addStatement(
+                        "primitiveValuesSerialization.registerEnumClass(%T::class.java, %T.${element.name!!.decapitalize()})",
+                        enumClass,
+                        ClassName(packageName, langName),
+                    )
+                }
+
+                is PrimitiveType -> {
+                    val primitiveTypeClass = ClassName(packageName, element.name!!)
+                    deserializer.addStatement(
+                        "%L.registerDeserializer(%T.${element.name!!.decapitalize()}.id!!) { %T(it) }",
+                        "primitiveValuesSerialization",
+                        ClassName(packageName, langName),
+                        primitiveTypeClass,
+                    )
+                }
             }
         }
 
         val fileSpec =
             FileSpec
-                .builder(packageName + ".serialization", deserializerName)
+                .builder("$packageName.serialization", deserializerName)
                 .addFunction(deserializer.build())
                 .build()
         save(fileSpec)
@@ -205,8 +161,8 @@ class ClassesGeneratorCommand : CliktCommand("classgen") {
                 ).addProperty(
                     PropertySpec
                         .builder("value", String::class)
-                        .mutable(true) // makes it 'var'
-                        .initializer("value") // links property to constructor parameter
+                        .mutable(true)
+                        .initializer("value")
                         .build(),
                 )
         return FileSpec
@@ -299,7 +255,7 @@ class ClassesGeneratorCommand : CliktCommand("classgen") {
                     val prop =
                         PropertySpec.builder(
                             feature.name!!,
-                            ClassName("io.lionweb.kotlin", "SpecificReferenceValue")
+                            SpecificReferenceValue::class.asClassName()
                                 .parameterizedBy(baseType)
                                 .copy(nullable = true),
                         )
@@ -359,10 +315,10 @@ class ClassesGeneratorCommand : CliktCommand("classgen") {
 
     private fun generateConcept(
         concept: Concept,
-        languageType: ClassName,
+        generationContext: GenerationContext,
     ): FileSpec {
         val packageName = concept.language!!.name!!
-        val baseNode = ClassName("io.lionweb.kotlin", "BaseNode")
+        val baseNode = BaseNode::class.className
         val conceptType =
             TypeSpec
                 .classBuilder(concept.name!!)
@@ -371,66 +327,10 @@ class ClassesGeneratorCommand : CliktCommand("classgen") {
             conceptType.addModifiers(KModifier.ABSTRACT)
         }
         if (concept.extendedConcept != null) {
-            val superConcept = concept.extendedConcept
-            when {
-                superConcept == null -> conceptType.superclass(baseNode)
-                superConcept == ASTLanguageV1.getASTNode() ->
-                    conceptType.superclass(
-                        StarlasuLWBaseASTNode::class.asClassName(),
-                    )
-                // else -> conceptType.superclass(dynamicNode)
-                concept.language == superConcept.language ->
-                    conceptType.superclass(
-                        ClassName(packageName, superConcept.name!!),
-                    )
-                else -> TODO()
-            }
+            conceptType.superclass(generationContext.classifierToClassName(concept.extendedConcept) ?: baseNode)
         }
         concept.implemented.forEach { interf ->
-            when {
-                concept.language == interf.language ->
-                    conceptType.addSuperinterface(
-                        ClassName(packageName, interf.name!!),
-                    )
-                interf == ASTLanguageV1.getStatement() ->
-                    conceptType.addSuperinterface(
-                        StatementLW::class.asClassName(),
-                    )
-                interf == ASTLanguageV1.getExpression() ->
-                    conceptType.addSuperinterface(
-                        ExpressionLW::class.asClassName(),
-                    )
-                interf == ASTLanguageV1.getParameter() ->
-                    conceptType.addSuperinterface(
-                        ParameterLW::class.asClassName(),
-                    )
-                interf == ASTLanguageV1.getBehaviorDeclaration() ->
-                    conceptType.addSuperinterface(
-                        BehaviorDeclarationLW::class.asClassName(),
-                    )
-                interf == ASTLanguageV1.getPlaceholderElement() ->
-                    conceptType.addSuperinterface(
-                        PlaceholderElementLW::class.asClassName(),
-                    )
-                interf == ASTLanguageV1.getEntityDeclaration() ->
-                    conceptType.addSuperinterface(
-                        EntityDeclarationLW::class.asClassName(),
-                    )
-                interf == ASTLanguageV1.getDocumentation() ->
-                    conceptType.addSuperinterface(
-                        DocumentationLW::class.asClassName(),
-                    )
-                interf ==
-                    LionCoreBuiltins.getINamed(
-                        LionWebVersion.v2023_1,
-                    )
-                -> conceptType.addSuperinterface(NamedLW::class.asClassName())
-                interf == ASTLanguageV1.getTypeAnnotation() ->
-                    conceptType.addSuperinterface(
-                        TypeAnnotationLW::class.asClassName(),
-                    )
-                else -> TODO()
-            }
+            conceptType.addSuperinterface(generationContext.classifierToClassName(interf) ?: throw IllegalStateException())
             interf.features.forEach { feature ->
                 generateFeature(conceptType, packageName, concept, feature, overridden = true)
             }
@@ -441,7 +341,7 @@ class ClassesGeneratorCommand : CliktCommand("classgen") {
                 .builder("getClassifier")
                 .addModifiers(KModifier.OVERRIDE)
                 .returns(Concept::class.className) // use the actual return type if known
-                .addCode("return %T.${concept.name!!.decapitalize()}\n", languageType)
+                .addCode("return %T.${concept.name!!.decapitalize()}\n", generationContext.languageType)
                 .build()
         conceptType.addFunction(getClassifierFun)
 
@@ -455,57 +355,14 @@ class ClassesGeneratorCommand : CliktCommand("classgen") {
             .build()
     }
 
-    private fun generateInterface(interf: Interface): FileSpec {
+    private fun generateInterface(interf: Interface, generationContext: GenerationContext): FileSpec {
         val packageName = interf.language!!.name!!
         val interfaceType =
             TypeSpec
                 .interfaceBuilder(interf.name!!)
                 .addModifiers(KModifier.PUBLIC)
         interf.extendedInterfaces.forEach { superInterf ->
-            when {
-                superInterf.language == interf.language ->
-                    interfaceType.addSuperinterface(
-                        ClassName(packageName, interf.name!!),
-                    )
-                superInterf == ASTLanguageV1.getStatement() ->
-                    interfaceType.addSuperinterface(
-                        StatementLW::class.className,
-                    )
-                superInterf == ASTLanguageV1.getExpression() ->
-                    interfaceType.addSuperinterface(
-                        ExpressionLW::class.className,
-                    )
-                superInterf == ASTLanguageV1.getParameter() ->
-                    interfaceType.addSuperinterface(
-                        ParameterLW::class.className,
-                    )
-                superInterf == ASTLanguageV1.getBehaviorDeclaration() ->
-                    interfaceType.addSuperinterface(
-                        BehaviorDeclarationLW::class.asClassName(),
-                    )
-                superInterf == ASTLanguageV1.getPlaceholderElement() ->
-                    interfaceType.addSuperinterface(
-                        PlaceholderElementLW::class.asClassName(),
-                    )
-                superInterf == ASTLanguageV1.getEntityDeclaration() ->
-                    interfaceType.addSuperinterface(
-                        EntityDeclarationLW::class.asClassName(),
-                    )
-                superInterf == ASTLanguageV1.getDocumentation() ->
-                    interfaceType.addSuperinterface(
-                        DocumentationLW::class.asClassName(),
-                    )
-                superInterf ==
-                    LionCoreBuiltins.getINamed(
-                        LionWebVersion.v2023_1,
-                    )
-                -> interfaceType.addSuperinterface(NamedLW::class.asClassName())
-                superInterf == ASTLanguageV1.getTypeAnnotation() ->
-                    interfaceType.addSuperinterface(
-                        TypeAnnotationLW::class.asClassName(),
-                    )
-                else -> TODO()
-            }
+            interfaceType.addSuperinterface(generationContext.classifierToClassName(superInterf) ?: throw IllegalStateException())
         }
         if (interf.extendedInterfaces.isEmpty()) {
             interfaceType.addSuperinterface(Node::class.className)

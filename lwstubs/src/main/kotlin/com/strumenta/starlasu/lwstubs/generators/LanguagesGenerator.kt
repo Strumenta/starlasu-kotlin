@@ -36,69 +36,23 @@ import java.io.File
 import kotlin.collections.associateWith
 import kotlin.collections.forEach
 
-class LanguagesGeneratorCommand : CliktCommand("langgen") {
-    val dependenciesFiles: List<File> by option("--dependency", help = "Dependency file to generate classes for")
+class LanguagesGeneratorCommand : AbstractGeneratorCommand("langgen") {
+    override val dependenciesFiles: List<File> by option("--dependency", help = "Dependency file to generate classes for")
         .file(mustExist = true, canBeDir = false, mustBeReadable = true, canBeFile = true)
         .multiple(required = false)
-    val languageFiles: List<File> by option("--language", help = "Language file to generate classes for")
+    override val languageFiles: List<File> by option("--language", help = "Language file to generate classes for")
         .file(mustExist = true, canBeDir = false, mustBeReadable = true, canBeFile = true)
         .multiple(required = true)
-    val outputDir: File by option("--output", help = "Output directory for generated classes")
+    override val outputDir: File by option("--output", help = "Output directory for generated classes")
         .file(mustExist = false, canBeDir = true, mustBeReadable = false, canBeFile = false)
         .default(File("out"))
-    val lwVersion: LionWebVersion by option("--lwversion", help = "LionWeb version to generate classes for")
+    override val lwVersion: LionWebVersion by option("--lwversion", help = "LionWeb version to generate classes for")
         .enum<LionWebVersion>(ignoreCase = true)
         .default(LionWebVersion.v2023_1)
-    val names: List<String>
+    override val names: List<String>
         by option("--name", help = "Name of the generated language").multiple(required = false)
 
-    override fun run() {
-        val extensions = (languageFiles.map { it.extension } + dependenciesFiles.map { it.extension }).toSet()
-        if (extensions.size != 1) {
-            throw IllegalArgumentException("All language files and dependencies must have the same extension")
-        }
-        val extension = extensions.first().lowercase()
-        val serialization: AbstractSerialization =
-            when (extension) {
-                "json" -> SerializationProvider.getStandardJsonSerialization(lwVersion)
-                "pb" -> SerializationProvider.getStandardProtoBufSerialization(lwVersion)
-                else -> throw IllegalArgumentException("Unsupported language extension: $extension")
-            }
-        serialization.registerLanguage(ASTLanguageV1.getLanguage())
-
-        fun loadLanguage(file: File): Language {
-            val language =
-                when (serialization) {
-                    is ProtoBufSerialization -> {
-                        val nodes = serialization.deserializeToNodes(file)
-                        val languages = nodes.filterIsInstance(Language::class.java)
-                        if (languages.size != 1) {
-                            throw IllegalArgumentException("Expected exactly one language in language file: $file")
-                        }
-                        languages.first()
-                    }
-                    is JsonSerialization -> {
-                        serialization.loadLanguage(file)
-                    }
-                    else -> throw UnsupportedOperationException("Serialization not supported for language file: $file")
-                }
-            serialization.registerLanguage(language)
-            return language
-        }
-        dependenciesFiles.forEach { dependencyFile ->
-            loadLanguage(dependencyFile)
-        }
-        languageFiles.forEachIndexed { index, languageFile ->
-            val overriddenName = names.getOrNull(index)
-            val language = loadLanguage(languageFile)
-            generateLanguage(language, overriddenName)
-        }
-    }
-
-    private fun generateLanguage(
-        language: Language,
-        overriddenName: String? = null,
-    ) {
+    override fun processLanguage(language: Language, overriddenName: String?) {
         echo("Generating classes for language ${language.name}")
         echo("-------------------------------------------------------------------")
         echo()

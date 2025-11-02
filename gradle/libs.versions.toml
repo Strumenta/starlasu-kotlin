@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.2.20"
-lwjava = "1.1.5-SNAPSHOT"
-lwkotlin = "0.6.2"
+lwjava = "1.1.5"
+lwkotlin = "0.6.3"
 kotest= "5.9.1"
 dokka = "2.1.0"
 jvm = "11"
