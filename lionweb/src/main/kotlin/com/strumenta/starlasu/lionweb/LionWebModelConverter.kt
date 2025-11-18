@@ -81,24 +81,25 @@ class DummyNodeResolver : NodeResolver {
     override fun resolve(nodeID: String): SNode? = null
 }
 
-object ASTV2 {
-    val position = ASTLanguage.getASTNode().getPropertyByName("position")!!
-    val originalNode = ASTLanguage.getASTNode().getReferenceByName("originalNode")!!
-    val transpiledNodes = ASTLanguage.getASTNode().getReferenceByName("transpiledNodes")!!
-    val PlaceholderNode = ASTLanguage.getLanguage().getElementByName("PlaceholderNode") as Annotation
-    val PlaceholderNodeMessageProperty = PlaceholderNode.getPropertyByName("message")!!
-    val PlaceholderNodeTypeProperty = PlaceholderNode.getPropertyByName("type")!!
-    val PlaceholderNodeType = ASTLanguage.getLanguage().getEnumerationByName("PlaceholderNodeType")!!
+abstract class ASTLanguageElements {
+    abstract val language: Language
+    abstract val astNode: Classifier<*>
+    val position by lazy { astNode.getPropertyByName("position")!! }
+    val originalNode by lazy { ASTV2.astNode.getReferenceByName("originalNode")!! }
+    val transpiledNodes by lazy { ASTV2.astNode.getReferenceByName("transpiledNodes")!! }
+    val placeholderNode by lazy { language.getElementByName("PlaceholderNode") as Annotation }
+    val placeholderNodeMessage by lazy { placeholderNode.getPropertyByName("message")!! }
+    val placeholderNodeType by lazy { placeholderNode.getPropertyByName("type")!! }
 }
 
-object ASTV1 {
-    val position = ASTLanguageV1.getASTNode().getPropertyByName("position")!!
-    val originalNode = ASTLanguageV1.getASTNode().getReferenceByName("originalNode")!!
-    val transpiledNodes = ASTLanguageV1.getASTNode().getReferenceByName("transpiledNodes")!!
-    val PlaceholderNode = ASTLanguageV1.getLanguage().getElementByName("PlaceholderNode") as Annotation
-    val PlaceholderNodeMessageProperty = PlaceholderNode.getPropertyByName("message")!!
-    val PlaceholderNodeTypeProperty = PlaceholderNode.getPropertyByName("type")!!
-    val PlaceholderNodeType = ASTLanguageV1.getLanguage().getEnumerationByName("PlaceholderNodeType")!!
+object ASTV2 : ASTLanguageElements() {
+    override val language = ASTLanguage.getLanguage()
+    override val astNode = ASTLanguage.getASTNode()
+}
+
+object ASTV1 : ASTLanguageElements() {
+    override val language = ASTLanguageV1.getLanguage()
+    override val astNode = ASTLanguageV1.getASTNode()
 }
 
 /**
@@ -177,20 +178,16 @@ class LionWebModelConverter(
         }
     }
 
-    interface IDManager {
-        fun nodeId(kNode: ASTNode): String
-    }
-
     fun exportModelToLionWeb(
         starlasuTree: ASTNode,
         nodeIdProvider: NodeIdProvider = this.nodeIdProvider,
         considerParent: Boolean = true,
     ): LWNode {
         val myIDManager =
-            object : IDManager {
+            object : NodeIdProvider {
                 private val cache = IdentityHashMap<ASTNode, String>()
 
-                override fun nodeId(kNode: ASTNode): String =
+                override fun id(kNode: ASTNode): String =
                     cache.getOrPut(kNode) {
                         val currentId = kNode.id
                         if (currentId != null) {
@@ -204,13 +201,13 @@ class LionWebModelConverter(
                         }
                     }
 
-                override fun toString(): String = "Caching ID Manager in front of $nodeIdProvider"
+                override var parentProvider: NodeIdProvider? = null
             }
 
         if (!nodesMapping.containsA(starlasuTree)) {
             starlasuTreeWalker.walk(starlasuTree).forEach { kNode ->
                 if (!nodesMapping.containsA(kNode)) {
-                    val nodeID = kNode.id ?: myIDManager.nodeId(kNode)
+                    val nodeID = kNode.id ?: myIDManager.id(kNode)
                     if (!CommonChecks.isValidID(nodeID)) {
                         throw RuntimeException(
                             "We generated an invalid Node ID, using $myIDManager in $kNode. Node ID: $nodeID",
@@ -291,9 +288,7 @@ class LionWebModelConverter(
                                     myIDManager,
                                     lwNode,
                                     feature,
-                                    ASTV2.PlaceholderNode,
-                                    ASTV2.PlaceholderNodeMessageProperty,
-                                    ASTV2.PlaceholderNodeTypeProperty,
+                                    ASTV2,
                                 )
                             } else if (feature == ASTV1.originalNode) {
                                 setOriginalNode(
@@ -301,9 +296,7 @@ class LionWebModelConverter(
                                     myIDManager,
                                     lwNode,
                                     feature,
-                                    ASTV1.PlaceholderNode,
-                                    ASTV1.PlaceholderNodeMessageProperty,
-                                    ASTV1.PlaceholderNodeTypeProperty,
+                                    ASTV1,
                                 )
                             } else if (feature == ASTV2.transpiledNodes || feature == ASTV1.transpiledNodes) {
                                 val destinationNodes = mutableListOf<SNode>()
@@ -324,7 +317,7 @@ class LionWebModelConverter(
                                         DroppedDestination -> {
                                             val annotation =
                                                 DynamicAnnotationInstance(
-                                                    myIDManager.nodeId(kNode) + "-dropped",
+                                                    myIDManager.id(kNode) + "-dropped",
                                                     MigrationLanguage.getDroppedElement(),
                                                 )
                                             lwNode.addAnnotation(annotation)
@@ -333,7 +326,7 @@ class LionWebModelConverter(
                                 }
                                 val referenceValues =
                                     destinationNodes.map { destinationNode ->
-                                        val targetID = destinationNode.id ?: myIDManager.nodeId(destinationNode)
+                                        val targetID = destinationNode.id ?: myIDManager.id(destinationNode)
                                         ReferenceValue(ProxyNode(targetID), null)
                                     }
                                 lwNode.setReferenceValues(feature, referenceValues)
@@ -414,32 +407,30 @@ class LionWebModelConverter(
 
     private fun setOriginalNode(
         kNode: ASTNode,
-        myIDManager: IDManager,
+        myIDManager: NodeIdProvider,
         lwNode: LWNode,
         reference: Reference,
-        placeholderNode: Annotation,
-        placeholderNodeMessageProperty: Property,
-        placeholderNodeTypeProperty: Property,
+        astLanguage: ASTLanguageElements,
     ) {
         val origin = kNode.origin
         if (origin is SNode) {
-            val targetID = origin.id ?: myIDManager.nodeId(origin)
+            val targetID = origin.id ?: myIDManager.id(origin)
             setOriginalNode(reference, lwNode, targetID)
         } else if (origin is PlaceholderASTTransformation) {
             if (lwNode is AbstractClassifierInstance<*>) {
                 val instance =
                     DynamicAnnotationInstance(
                         "${lwNode.id}_placeholder_annotation",
-                        placeholderNode,
+                        astLanguage.placeholderNode,
                     )
                 val effectiveOrigin = origin.origin
                 if (effectiveOrigin is SNode) {
-                    val targetID = effectiveOrigin.id ?: myIDManager.nodeId(effectiveOrigin)
+                    val targetID = effectiveOrigin.id ?: myIDManager.id(effectiveOrigin)
                     setOriginalNode(reference, lwNode, targetID)
                 }
-                setPlaceholderNodeType(instance, placeholderNodeTypeProperty, origin.javaClass.kotlin)
+                setPlaceholderNodeType(instance, astLanguage.placeholderNodeType, origin.javaClass.kotlin)
                 instance.setPropertyValue(
-                    placeholderNodeMessageProperty,
+                    astLanguage.placeholderNodeMessage,
                     origin.message,
                 )
                 lwNode.addAnnotation(instance)
@@ -538,29 +529,17 @@ class LionWebModelConverter(
         lionWebTreeWalker.thisAndAllDescendants(lwTree).forEach { lwNode ->
             val kNode = nodesMapping.byB(lwNode)!!
             if (kNode is SNode) {
-                val positionProperty: Property
-                val originalNodeRef: Reference
-                val placeholderNodeMessageProperty: Property
-                val placeholderNodeTypeProperty: Property
-                val transpiledNodesRef: Reference
+                val astLanguage: ASTLanguageElements
                 if (lwNode.classifier.allProperties().contains(ASTV2.position)) {
-                    positionProperty = ASTV2.position
-                    originalNodeRef = ASTV2.originalNode
-                    placeholderNodeMessageProperty = ASTV2.PlaceholderNodeMessageProperty
-                    placeholderNodeTypeProperty = ASTV2.PlaceholderNodeTypeProperty
-                    transpiledNodesRef = ASTV2.transpiledNodes
+                    astLanguage = ASTV2
                 } else {
-                    positionProperty = ASTV1.position
-                    originalNodeRef = ASTV1.originalNode
-                    placeholderNodeMessageProperty = ASTV1.PlaceholderNodeMessageProperty
-                    placeholderNodeTypeProperty = ASTV1.PlaceholderNodeTypeProperty
-                    transpiledNodesRef = ASTV1.transpiledNodes
+                    astLanguage = ASTV1
                 }
-                val lwPosition = lwNode.getPropertyValue(positionProperty)
+                val lwPosition = lwNode.getPropertyValue(astLanguage.position)
                 if (lwPosition != null) {
                     kNode.position = lwPosition as Position
                 }
-                val originalNodes = lwNode.getReferenceValues(originalNodeRef)
+                val originalNodes = lwNode.getReferenceValues(astLanguage.originalNode)
                 if (originalNodes.isNotEmpty()) {
                     require(originalNodes.size == 1)
                     val originalNode = originalNodes.first()
@@ -570,7 +549,7 @@ class LionWebModelConverter(
                 }
                 val placeholderNodeAnnotation =
                     lwNode.annotations.find {
-                        it.classifier == ASTV2.PlaceholderNode || it.classifier == ASTV1.PlaceholderNode
+                        it.classifier == ASTV2.placeholderNode || it.classifier == ASTV1.placeholderNode
                     }
                 val droppedAnnotation =
                     lwNode.annotations.find {
@@ -583,12 +562,12 @@ class LionWebModelConverter(
                     val placeholderType =
                         (
                             placeholderNodeAnnotation.getPropertyValue(
-                                placeholderNodeTypeProperty,
+                                astLanguage.placeholderNodeType,
                             ) as EnumerationValue
                         ).enumerationLiteral
                     val placeholderMessage =
                         placeholderNodeAnnotation.getPropertyValue(
-                            placeholderNodeMessageProperty,
+                            astLanguage.placeholderNodeMessage,
                         ) as String
                     when (placeholderType.name) {
                         MissingASTTransformation::class.simpleName -> {
@@ -613,7 +592,7 @@ class LionWebModelConverter(
                         else -> TODO()
                     }
                 }
-                val transpiledNodes = lwNode.getReferenceValues(transpiledNodesRef)
+                val transpiledNodes = lwNode.getReferenceValues(astLanguage.transpiledNodes)
                 if (transpiledNodes.isNotEmpty()) {
                     val transpiledNodeIDs = transpiledNodes.map { it.referredID!! }
                     referencesPostponer.registerPostponedTranspiledReference(kNode, transpiledNodeIDs)

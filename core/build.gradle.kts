@@ -63,8 +63,9 @@ tasks.named<Delete>("clean") {
     delete("generated-src", "generated-test-src")
 }
 
+val jvm = libs.versions.jvm.get().toInt()
 kotlin {
-    jvmToolchain(11)
+    jvmToolchain(jvm)
 }
 
 idea {
