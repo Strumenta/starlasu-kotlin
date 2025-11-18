@@ -63,6 +63,10 @@ tasks.named<Delete>("clean") {
     delete("generated-src", "generated-test-src")
 }
 
+kotlin {
+    jvmToolchain(11)
+}
+
 idea {
     module {
         testSources.from(file("generated-test-src/antlr/main"))
