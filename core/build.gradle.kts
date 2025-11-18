@@ -63,6 +63,14 @@ tasks.named<Delete>("clean") {
     delete("generated-src", "generated-test-src")
 }
 
+val jvm =
+    libs.versions.jvm
+        .get()
+        .toInt()
+kotlin {
+    jvmToolchain(jvm)
+}
+
 idea {
     module {
         testSources.from(file("generated-test-src/antlr/main"))
