@@ -631,14 +631,14 @@ class LionWebModelConverter(
                                 )
                         val serializer =
                             primitiveValueSerializations[primitiveClass]!!
-                                as PrimitiveValueSerialization<Any>
+                                as PrimitiveValueSerialization<Any?>
                         serialization.primitiveValuesSerialization.registerSerializer(
                             lwPrimitiveType.id!!,
                         ) { value -> serializer.serialize(value) }
 
                         serialization.primitiveValuesSerialization.registerDeserializer(
                             lwPrimitiveType.id!!,
-                        ) { serialized -> serializer.deserialize(serialized) }
+                        ) { serialized -> if (serialized == null) null else serializer.deserialize(serialized) }
                     }
                 }
             }
