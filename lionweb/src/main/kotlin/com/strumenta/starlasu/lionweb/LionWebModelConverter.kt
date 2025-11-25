@@ -85,8 +85,8 @@ abstract class ASTLanguageElements {
     abstract val language: Language
     abstract val astNode: Classifier<*>
     val position by lazy { astNode.getPropertyByName("position")!! }
-    val originalNode by lazy { ASTV2.astNode.getReferenceByName("originalNode")!! }
-    val transpiledNodes by lazy { ASTV2.astNode.getReferenceByName("transpiledNodes")!! }
+    val originalNode by lazy { astNode.getReferenceByName("originalNode")!! }
+    val transpiledNodes by lazy { astNode.getReferenceByName("transpiledNodes")!! }
     val placeholderNode by lazy { language.getElementByName("PlaceholderNode") as Annotation }
     val placeholderNodeMessage by lazy { placeholderNode.getPropertyByName("message")!! }
     val placeholderNodeType by lazy { placeholderNode.getPropertyByName("type")!! }
