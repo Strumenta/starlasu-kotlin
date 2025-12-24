@@ -537,11 +537,11 @@ class LionWebModelConverter(
                             as PrimitiveValueSerialization<Any>
                         serialization.primitiveValuesSerialization.registerSerializer(
                             lwPrimitiveType.id!!
-                        ) { value -> serializer.serialize(value) }
+                        ) { value -> value?.let { serializer.serialize(it) } }
 
                         serialization.primitiveValuesSerialization.registerDeserializer(
                             lwPrimitiveType.id!!
-                        ) { serialized -> serializer.deserialize(serialized) }
+                        ) { serialized -> serialized?.let { serializer.deserialize(it) } }
                     }
                 }
             }

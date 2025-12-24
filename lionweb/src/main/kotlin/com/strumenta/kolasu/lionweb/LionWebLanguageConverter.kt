@@ -97,16 +97,22 @@ class LionWebLanguageConverter {
         // First we create all types
         kolasuLanguage.astClasses.forEach { astClass ->
             if (astClass.isConcept) {
-                val concept = Concept(lionwebLanguage, astClass.simpleName)
+                val concept = Concept(
+                    lionwebLanguage,
+                    astClass.simpleName,
+                    lionwebLanguage.id + "_" + astClass.simpleName
+                )
                 concept.isPartition = false
                 concept.key = lionwebLanguage.key + "_" + concept.name
-                concept.setID(lionwebLanguage.id + "_" + concept.name)
                 concept.isAbstract = astClass.isAbstract || astClass.isSealed
                 registerMapping(astClass, concept)
             } else if (astClass.isConceptInterface) {
-                val conceptInterface = Interface(lionwebLanguage, astClass.simpleName)
+                val conceptInterface = Interface(
+                    lionwebLanguage,
+                    astClass.simpleName,
+                    lionwebLanguage.id + "_" + astClass.simpleName
+                )
                 conceptInterface.key = lionwebLanguage.key + "_" + conceptInterface.name
-                conceptInterface.setID(lionwebLanguage.id + "_" + conceptInterface.name)
                 registerMapping(astClass, conceptInterface)
             }
         }
@@ -145,25 +151,30 @@ class LionWebLanguageConverter {
             features.forEach {
                 when (it) {
                     is Attribute -> {
-                        val prop = Property(it.name, featuresContainer)
+                        val prop = Property(it.name, featuresContainer, featuresContainer.id + "_" + it.name)
                         prop.key = featuresContainer.key + "_" + prop.name
-                        prop.setID(featuresContainer.id + "_" + prop.name)
                         prop.setOptional(it.optional)
                         prop.setType(toLWDataType(it.type, lionwebLanguage))
                         featuresContainer.addFeature(prop)
                     }
                     is Reference -> {
-                        val ref = io.lionweb.language.Reference(it.name, featuresContainer)
+                        val ref = io.lionweb.language.Reference(
+                            it.name,
+                            featuresContainer,
+                            featuresContainer.id + "_" + it.name
+                        )
                         ref.key = featuresContainer.key + "_" + ref.name
-                        ref.setID(featuresContainer.id + "_" + ref.name)
                         ref.setOptional(it.optional)
                         ref.setType(toLWClassifier(it.type))
                         featuresContainer.addFeature(ref)
                     }
                     is Containment -> {
-                        val cont = io.lionweb.language.Containment(it.name, featuresContainer)
+                        val cont = io.lionweb.language.Containment(
+                            it.name,
+                            featuresContainer,
+                            featuresContainer.id + "_" + it.name
+                        )
                         cont.key = featuresContainer.key + "_" + cont.name
-                        cont.setID(featuresContainer.id + "_" + cont.name)
                         cont.setOptional(true)
                         cont.setMultiple(it.multiplicity == Multiplicity.MANY)
                         cont.setType(toLWClassifier(it.type))
@@ -348,15 +359,17 @@ class LionWebLanguageConverter {
 }
 
 fun addEnumerationFromClass(lionwebLanguage: LWLanguage, kClass: EnumKClass): Enumeration {
-    val newEnumeration = Enumeration(lionwebLanguage, kClass.simpleName)
-    newEnumeration.setID((lionwebLanguage.id ?: "unknown_language") + "_" + newEnumeration.name)
+    val newEnumeration = Enumeration(
+        lionwebLanguage,
+        kClass.simpleName,
+        (lionwebLanguage.id ?: "unknown_language") + "_" + kClass.simpleName
+    )
     newEnumeration.key = newEnumeration.name
 
     val entries = kClass.java.enumConstants
     entries.forEach { entry ->
         newEnumeration.addLiteral(
-            EnumerationLiteral(newEnumeration, entry.name).apply {
-                setID(newEnumeration.id + "-" + entry.name)
+            EnumerationLiteral(newEnumeration, entry.name, newEnumeration.id + "-" + entry.name).apply {
                 key = newEnumeration.key + "-" + entry.name
             }
         )
