@@ -23,7 +23,9 @@ fun <R : Node> deserialize(
 ): CodebaseFile<R> {
     val relativePath = codebaseFile.getPropertyValueByName("relative_path") as String
     val code = codebaseFile.getPropertyValueByName("code") as String
-    val ast = codebaseFile.getOnlyChildByContainmentName("ast")!!
+    val ast = codebaseFile.getOnlyChildByContainmentName("ast") ?: throw IllegalStateException(
+        "No AST found for $relativePath"
+    )
     val compilationUnit = modelConverter.importModelFromLionWeb(ast) as R
     val issues =
         codebaseFile.getChildrenByContainmentName("issues").map { lwIssue ->
