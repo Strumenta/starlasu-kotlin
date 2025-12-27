@@ -4,7 +4,7 @@ import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.NodeIdProviderAdapter
 import com.strumenta.kolasu.model.assignIDsToTree
 import com.strumenta.kolasu.traversing.walk
-import com.strumenta.starlasu.base.IDProvider
+import com.strumenta.starlasu.IDProvider
 import kotlin.test.Test
 import kotlin.test.assertEquals
 

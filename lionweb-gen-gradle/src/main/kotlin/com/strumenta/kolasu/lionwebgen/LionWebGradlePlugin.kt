@@ -4,6 +4,7 @@ import com.google.devtools.ksp.gradle.KspExtension
 import com.strumenta.kolasu.lionweb.ASTGenerator
 import com.strumenta.kolasu.lionweb.KotlinCodeProcessor
 import com.strumenta.kolasu.lionweb.LIONWEB_VERSION_USED_BY_KOLASU
+import com.strumenta.starlasu.base.v1.ASTLanguage
 import io.lionweb.language.Language
 import io.lionweb.serialization.SerializationProvider
 import org.gradle.api.Plugin
@@ -11,7 +12,6 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import java.io.File
 import java.io.FileInputStream
-import com.strumenta.starlasu.base.v1.ASTLanguageV1 as ASTLanguage
 
 val tasksGroup = "lionweb"
 val genASTClasses = "generateASTClasses"
@@ -49,7 +49,7 @@ class LionWebGradlePlugin : Plugin<Project> {
                             val jsonser = SerializationProvider.getStandardJsonSerialization(
                                 LIONWEB_VERSION_USED_BY_KOLASU
                             )
-                            jsonser.instanceResolver.addTree(ASTLanguage.getLanguage())
+                            jsonser.instanceResolver.addTree(ASTLanguage.getInstance())
                             val language = jsonser.deserializeToNodes(FileInputStream(languageFile)).first() as Language
                             val existingKotlinClasses = KotlinCodeProcessor().classesDeclaredInDir(
                                 project.file("src/main/kotlin")

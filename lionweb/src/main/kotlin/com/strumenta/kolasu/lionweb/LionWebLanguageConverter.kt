@@ -26,6 +26,7 @@ import com.strumenta.kolasu.parsing.ParsingResult
 import com.strumenta.kolasu.validation.Issue
 import com.strumenta.kolasu.validation.IssueSeverity
 import com.strumenta.kolasu.validation.IssueType
+import com.strumenta.starlasu.base.v1.ASTLanguage
 import io.lionweb.language.Classifier
 import io.lionweb.language.Concept
 import io.lionweb.language.DataType
@@ -38,7 +39,6 @@ import io.lionweb.language.Property
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.full.createType
-import com.strumenta.starlasu.base.v1.ASTLanguageV1 as ASTLanguage
 
 /**
  * This class is able to convert between Kolasu and LionWeb languages, tracking the mapping.
@@ -50,32 +50,32 @@ class LionWebLanguageConverter {
     private val languages = BiMap<KolasuLanguage, LWLanguage>()
 
     init {
-        val starLasuKLanguage = KolasuLanguage(ASTLanguage.getLanguage().name!!)
-        languages.associate(starLasuKLanguage, ASTLanguage.getLanguage())
-        registerMapping(Node::class, ASTLanguage.getASTNode())
+        val starLasuKLanguage = KolasuLanguage(ASTLanguage.getInstance().name!!)
+        languages.associate(starLasuKLanguage, ASTLanguage.getInstance())
+        registerMapping(Node::class, ASTLanguage.getInstance().astNode)
         registerMapping(Named::class, LionCoreBuiltins.getINamed(LIONWEB_VERSION_USED_BY_KOLASU))
         registerMapping(PossiblyNamed::class, LionCoreBuiltins.getINamed(LIONWEB_VERSION_USED_BY_KOLASU))
-        registerMapping(CommonElement::class, ASTLanguage.getCommonElement())
-        registerMapping(BehaviorDeclaration::class, ASTLanguage.getBehaviorDeclaration())
-        registerMapping(Documentation::class, ASTLanguage.getDocumentation())
-        registerMapping(EntityDeclaration::class, ASTLanguage.getEntityDeclaration())
-        registerMapping(EntityGroupDeclaration::class, ASTLanguage.getEntityGroupDeclaration())
-        registerMapping(Expression::class, ASTLanguage.getExpression())
-        registerMapping(Parameter::class, ASTLanguage.getParameter())
-        registerMapping(PlaceholderElement::class, ASTLanguage.getPlaceholderElement())
-        registerMapping(Statement::class, ASTLanguage.getStatement())
-        registerMapping(TypeAnnotation::class, ASTLanguage.getTypeAnnotation())
+        registerMapping(CommonElement::class, ASTLanguage.getInstance().commonElement)
+        registerMapping(BehaviorDeclaration::class, ASTLanguage.getInstance().behaviorDeclaration)
+        registerMapping(Documentation::class, ASTLanguage.getInstance().documentation)
+        registerMapping(EntityDeclaration::class, ASTLanguage.getInstance().entityDeclaration)
+        registerMapping(EntityGroupDeclaration::class, ASTLanguage.getInstance().entityGroupDeclaration)
+        registerMapping(Expression::class, ASTLanguage.getInstance().expression)
+        registerMapping(Parameter::class, ASTLanguage.getInstance().parameter)
+        registerMapping(PlaceholderElement::class, ASTLanguage.getInstance().placeholderElement)
+        registerMapping(Statement::class, ASTLanguage.getInstance().statement)
+        registerMapping(TypeAnnotation::class, ASTLanguage.getInstance().typeAnnotation)
 
-        registerMapping(Issue::class, ASTLanguage.getIssue())
+        registerMapping(Issue::class, ASTLanguage.getInstance().issue)
         classesAndEnumerations.associate(
             IssueSeverity::class,
-            (ASTLanguage.getIssue().getFeatureByName(Issue::severity.name) as Property).type as Enumeration
+            (ASTLanguage.getInstance().issue.getFeatureByName(Issue::severity.name) as Property).type as Enumeration
         )
         classesAndEnumerations.associate(
             IssueType::class,
-            (ASTLanguage.getIssue().getFeatureByName(Issue::type.name) as Property).type as Enumeration
+            (ASTLanguage.getInstance().issue.getFeatureByName(Issue::type.name) as Property).type as Enumeration
         )
-        registerMapping(ParsingResult::class, ASTLanguage.getParsingResult())
+        registerMapping(ParsingResult::class, ASTLanguage.getInstance().parsingResult)
     }
 
     fun exportToLionWeb(kolasuLanguage: KolasuLanguage): LWLanguage {
@@ -84,7 +84,7 @@ class LionWebLanguageConverter {
         lionwebLanguage.name = kolasuLanguage.qualifiedName
         lionwebLanguage.key = kolasuLanguage.qualifiedName.replace('.', '-')
         lionwebLanguage.setID("starlasu_language_${kolasuLanguage.qualifiedName.replace('.', '-')}")
-        lionwebLanguage.addDependency(ASTLanguage.getLanguage())
+        lionwebLanguage.addDependency(ASTLanguage.getInstance())
 
         kolasuLanguage.enumClasses.forEach { enumClass ->
             toLWEnumeration(enumClass, lionwebLanguage)
@@ -97,16 +97,18 @@ class LionWebLanguageConverter {
         // First we create all types
         kolasuLanguage.astClasses.forEach { astClass ->
             if (astClass.isConcept) {
-                val concept = Concept(lionwebLanguage, astClass.simpleName)
+                val concept = Concept(lionwebLanguage.lionWebVersion, astClass.simpleName)
                 concept.isPartition = false
                 concept.key = lionwebLanguage.key + "_" + concept.name
                 concept.setID(lionwebLanguage.id + "_" + concept.name)
                 concept.isAbstract = astClass.isAbstract || astClass.isSealed
+                lionwebLanguage.addElement(concept)
                 registerMapping(astClass, concept)
             } else if (astClass.isConceptInterface) {
-                val conceptInterface = Interface(lionwebLanguage, astClass.simpleName)
+                val conceptInterface = Interface(lionwebLanguage.lionWebVersion, astClass.simpleName)
                 conceptInterface.key = lionwebLanguage.key + "_" + conceptInterface.name
                 conceptInterface.setID(lionwebLanguage.id + "_" + conceptInterface.name)
+                lionwebLanguage.addElement(conceptInterface)
                 registerMapping(astClass, conceptInterface)
             }
         }
@@ -145,25 +147,30 @@ class LionWebLanguageConverter {
             features.forEach {
                 when (it) {
                     is Attribute -> {
-                        val prop = Property(it.name, featuresContainer)
+                        val prop = Property(it.name, featuresContainer, featuresContainer.id + "_" + it.name)
                         prop.key = featuresContainer.key + "_" + prop.name
-                        prop.setID(featuresContainer.id + "_" + prop.name)
                         prop.setOptional(it.optional)
                         prop.setType(toLWDataType(it.type, lionwebLanguage))
                         featuresContainer.addFeature(prop)
                     }
                     is Reference -> {
-                        val ref = io.lionweb.language.Reference(it.name, featuresContainer)
+                        val ref = io.lionweb.language.Reference(
+                            it.name,
+                            featuresContainer,
+                            featuresContainer.id + "_" + it.name
+                        )
                         ref.key = featuresContainer.key + "_" + ref.name
-                        ref.setID(featuresContainer.id + "_" + ref.name)
                         ref.setOptional(it.optional)
                         ref.setType(toLWClassifier(it.type))
                         featuresContainer.addFeature(ref)
                     }
                     is Containment -> {
-                        val cont = io.lionweb.language.Containment(it.name, featuresContainer)
+                        val cont = io.lionweb.language.Containment(
+                            it.name,
+                            featuresContainer,
+                            featuresContainer.id + "_" + it.name
+                        )
                         cont.key = featuresContainer.key + "_" + cont.name
-                        cont.setID(featuresContainer.id + "_" + cont.name)
                         cont.setOptional(true)
                         cont.setMultiple(it.multiplicity == Multiplicity.MANY)
                         cont.setType(toLWClassifier(it.type))
@@ -333,14 +340,14 @@ class LionWebLanguageConverter {
             Long::class.createType() -> LionCoreBuiltins.getInteger(LIONWEB_VERSION_USED_BY_KOLASU)
             String::class.createType() -> LionCoreBuiltins.getString(LIONWEB_VERSION_USED_BY_KOLASU)
             Boolean::class.createType() -> LionCoreBuiltins.getBoolean(LIONWEB_VERSION_USED_BY_KOLASU)
-            Char::class.createType() -> ASTLanguage.getChar()
+            Char::class.createType() -> ASTLanguage.getInstance().requirePrimitiveTypeByName("Char")
             else -> {
                 val kClass = kType.classifier as KClass<*>
                 val isEnum = kClass.supertypes.any { it.classifier == Enum::class }
                 if (isEnum) {
-                    return toLWEnumeration(kClass, lionwebLanguage)
+                    toLWEnumeration(kClass, lionwebLanguage)
                 } else {
-                    return toLWPrimitiveType(kClass, lionwebLanguage)
+                    toLWPrimitiveType(kClass, lionwebLanguage)
                 }
             }
         }
@@ -348,15 +355,17 @@ class LionWebLanguageConverter {
 }
 
 fun addEnumerationFromClass(lionwebLanguage: LWLanguage, kClass: EnumKClass): Enumeration {
-    val newEnumeration = Enumeration(lionwebLanguage, kClass.simpleName)
-    newEnumeration.setID((lionwebLanguage.id ?: "unknown_language") + "_" + newEnumeration.name)
+    val newEnumeration = Enumeration(
+        lionwebLanguage,
+        kClass.simpleName,
+        (lionwebLanguage.id ?: "unknown_language") + "_" + kClass.simpleName
+    )
     newEnumeration.key = newEnumeration.name
 
     val entries = kClass.java.enumConstants
     entries.forEach { entry ->
         newEnumeration.addLiteral(
-            EnumerationLiteral(newEnumeration, entry.name).apply {
-                setID(newEnumeration.id + "-" + entry.name)
+            EnumerationLiteral(newEnumeration, entry.name, newEnumeration.id + "-" + entry.name).apply {
                 key = newEnumeration.key + "-" + entry.name
             }
         )

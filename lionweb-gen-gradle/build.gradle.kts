@@ -24,7 +24,8 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:$kotlin_version")
     testImplementation("org.junit.jupiter:junit-jupiter:5.7.1")
     implementation(libs.gson)
-    implementation(libs.starlasu.specs)
+    implementation(libs.starlasu.specs.languages)
+    implementation(libs.starlasu.specs.components)
     implementation("com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin:$completeKspVersion")
 }
 

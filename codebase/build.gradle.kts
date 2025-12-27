@@ -19,7 +19,8 @@ java {
 dependencies {
     implementation(project(":core"))
     implementation(project(":lionweb"))
-    implementation(libs.starlasu.specs)
+    implementation(libs.starlasu.specs.languages)
+    implementation(libs.starlasu.specs.components)
     implementation("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")

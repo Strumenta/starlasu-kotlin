@@ -4,11 +4,11 @@ import com.strumenta.kolasu.lionweb.KNode
 import com.strumenta.kolasu.lionweb.LWNode
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.Source
+import com.strumenta.starlasu.base.v1.ASTLanguage
 import io.lionweb.kotlin.children
 import io.lionweb.language.Concept
 import io.lionweb.model.HasSettableParent
 import io.lionweb.model.impl.ProxyNode
-import com.strumenta.starlasu.base.v1.ASTLanguageV1 as ASTLanguage
 
 fun Node.withSource(source: Source): Node {
     this.setSourceForTree(source)
@@ -43,5 +43,5 @@ fun KolasuClient.getASTRoots(aLWNode: LWNode): Sequence<KNode> {
 }
 
 fun isKolasuConcept(concept: Concept): Boolean {
-    return concept.allAncestors().contains(ASTLanguage.getASTNode())
+    return concept.allAncestors().contains(ASTLanguage.getInstance().astNode)
 }

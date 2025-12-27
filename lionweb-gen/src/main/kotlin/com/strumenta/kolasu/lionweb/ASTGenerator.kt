@@ -15,6 +15,7 @@ import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.NodeType
 import com.strumenta.kolasu.model.Position
 import com.strumenta.kolasu.model.ReferenceByName
+import com.strumenta.starlasu.base.v1.ASTLanguage
 import io.lionweb.language.Classifier
 import io.lionweb.language.Concept
 import io.lionweb.language.Containment
@@ -27,7 +28,6 @@ import io.lionweb.language.Property
 import io.lionweb.language.Reference
 import org.jetbrains.kotlin.konan.file.File
 import java.lang.UnsupportedOperationException
-import com.strumenta.starlasu.base.v1.ASTLanguageV1 as ASTLanguage
 
 data class KotlinFile(val path: String, val code: String)
 
@@ -81,7 +81,7 @@ class ASTGenerator(val packageName: String, val language: LWLanguage) {
                         } else {
                             typeSpec.superclass(typeName(element.extendedConcept!!))
                             (element.extendedConcept as Concept).allFeatures().forEach {
-                                if (it !in ASTLanguage.getASTNode().features) {
+                                if (it !in ASTLanguage.getInstance().astNode.features) {
                                     typeSpec.addSuperclassConstructorParameter(it.name!!)
                                 }
                             }
@@ -91,14 +91,14 @@ class ASTGenerator(val packageName: String, val language: LWLanguage) {
                         }
                         val constructor = FunSpec.constructorBuilder()
                         element.inheritedFeatures().forEach { feature ->
-                            if (feature in ASTLanguage.getASTNode().features) {
+                            if (feature in ASTLanguage.getInstance().astNode.features) {
                                 // skip it
                             } else {
                                 processFeature(feature, constructor, typeSpec, true, element.isAbstract)
                             }
                         }
                         element.features.forEach { feature ->
-                            if (feature in ASTLanguage.getASTNode().features) {
+                            if (feature in ASTLanguage.getInstance().astNode.features) {
                                 // skip it
                             } else {
                                 processFeature(feature, constructor, typeSpec, false, element.isAbstract)
@@ -222,7 +222,7 @@ class ASTGenerator(val packageName: String, val language: LWLanguage) {
 
     private fun typeName(classifier: Classifier<*>): TypeName {
         return when {
-            classifier.id == ASTLanguage.getASTNode().id -> {
+            classifier.id == ASTLanguage.getInstance().astNode.id -> {
                 Node::class.java.asTypeName()
             }
             classifier.id == LionCoreBuiltins.getNode(LIONWEB_VERSION_USED_BY_KOLASU).id -> {
@@ -231,7 +231,7 @@ class ASTGenerator(val packageName: String, val language: LWLanguage) {
             classifier.id == LionCoreBuiltins.getINamed(LIONWEB_VERSION_USED_BY_KOLASU).id -> {
                 Named::class.java.asTypeName()
             }
-            classifier.id == ASTLanguage.getPosition().id -> {
+            classifier.id == ASTLanguage.getInstance().requirePrimitiveTypeByName("Position").id -> {
                 Position::class.java.asTypeName()
             }
             classifier.language == this.language -> {
