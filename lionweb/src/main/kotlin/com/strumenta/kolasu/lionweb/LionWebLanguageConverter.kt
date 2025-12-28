@@ -340,7 +340,7 @@ class LionWebLanguageConverter {
             Long::class.createType() -> LionCoreBuiltins.getInteger(LIONWEB_VERSION_USED_BY_KOLASU)
             String::class.createType() -> LionCoreBuiltins.getString(LIONWEB_VERSION_USED_BY_KOLASU)
             Boolean::class.createType() -> LionCoreBuiltins.getBoolean(LIONWEB_VERSION_USED_BY_KOLASU)
-            Char::class.createType() -> ASTLanguage.getInstance().requirePrimitiveTypeByName("Char")
+            Char::class.createType() -> ASTLanguage.getInstance().char
             else -> {
                 val kClass = kType.classifier as KClass<*>
                 val isEnum = kClass.supertypes.any { it.classifier == Enum::class }

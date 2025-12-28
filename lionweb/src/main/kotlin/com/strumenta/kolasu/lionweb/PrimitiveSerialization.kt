@@ -14,17 +14,17 @@ fun registerSerializersAndDeserializersInMetamodelRegistry(
     metamodelRegistry: MetamodelRegistry = DefaultMetamodelRegistry
 ) {
     metamodelRegistry.addSerializerAndDeserializer(
-        ASTLanguage.getInstance().requirePrimitiveTypeByName("Char"),
+        ASTLanguage.getInstance().char,
         charSerializer,
         charDeserializer
     )
     metamodelRegistry.addSerializerAndDeserializer(
-        ASTLanguage.getInstance().requirePrimitiveTypeByName("Position"),
+        ASTLanguage.getInstance().position,
         positionSerializer,
         positionDeserializer
     )
     metamodelRegistry.addSerializerAndDeserializer(
-        ASTLanguage.getInstance().requirePrimitiveTypeByName("TokensList"),
+        ASTLanguage.getInstance().tokensList,
         tokensListPrimitiveSerializer,
         tokensListPrimitiveDeserializer
     )

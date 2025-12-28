@@ -231,7 +231,7 @@ class ASTGenerator(val packageName: String, val language: LWLanguage) {
             classifier.id == LionCoreBuiltins.getINamed(LIONWEB_VERSION_USED_BY_KOLASU).id -> {
                 Named::class.java.asTypeName()
             }
-            classifier.id == ASTLanguage.getInstance().requirePrimitiveTypeByName("Position").id -> {
+            classifier.id == ASTLanguage.getInstance().position.id -> {
                 Position::class.java.asTypeName()
             }
             classifier.language == this.language -> {
