@@ -1,6 +1,6 @@
 package com.strumenta.starlasu.ids
 
-import com.strumenta.starlasu.base.IDProvider
+import com.strumenta.starlasu.IDProvider
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.traversing.walk
 import kotlin.test.Test

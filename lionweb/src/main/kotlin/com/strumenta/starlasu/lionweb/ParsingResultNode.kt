@@ -5,7 +5,7 @@ import com.strumenta.starlasu.ids.SourceShouldBeSetException
 import com.strumenta.starlasu.model.Source
 import io.lionweb.kotlin.BaseNode
 import io.lionweb.language.Concept
-import com.strumenta.starlasu.base.v2.ASTLanguageV2 as ASTLanguage
+import com.strumenta.starlasu.base.v2.ASTLanguage as ASTLanguage
 
 class ParsingResultNode(
     val source: Source?,
@@ -17,5 +17,5 @@ class ParsingResultNode(
             super.calculateID()
         }
 
-    override fun getClassifier(): Concept = ASTLanguage.getParsingResult()
+    override fun getClassifier(): Concept = ASTLanguage.getInstance().parsingResult
 }
