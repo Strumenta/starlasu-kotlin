@@ -25,6 +25,7 @@ import com.strumenta.kolasu.transformation.dummyInstance
 import com.strumenta.kolasu.validation.Issue
 import com.strumenta.kolasu.validation.IssueSeverity
 import com.strumenta.kolasu.validation.IssueType
+import com.strumenta.starlasu.base.v1.ASTLanguage
 import io.lionweb.kotlin.children
 import io.lionweb.kotlin.createAnnotation
 import io.lionweb.kotlin.createProperty
@@ -47,7 +48,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
-import com.strumenta.starlasu.base.v1.ASTLanguageV1 as ASTLanguage
 
 enum class AnEnum {
     FOO,
@@ -384,7 +384,7 @@ class LionWebModelConverterTest {
         val lwLanguage = mConverter.exportLanguageToLionWeb(kLanguage)
         assertEquals(4, lwLanguage.elements.filterIsInstance<Concept>().size)
         lwLanguage.elements.filterIsInstance<Concept>().forEach { concept ->
-            assertEquals(true, concept.allAncestors().contains(ASTLanguage.getASTNode()))
+            assertEquals(true, concept.allAncestors().contains(ASTLanguage.getInstance().astNode))
         }
     }
 

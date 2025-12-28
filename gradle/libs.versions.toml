@@ -1,8 +1,8 @@
 [versions]
-lwjava = "1.1.4"
-lwkotlin = "0.6.2"
+lwjava = "1.2.4"
+lwkotlin = "0.6.6"
 kotest= "1.3.3"
-specs = "0.6.1"
+specs = "0.7.0"
 gson = "2.13.0"
 jvm = "1.8"
 antlr = "4.9.3"
@@ -28,7 +28,8 @@ lionweb-java-emf = { group = "io.lionweb.lionweb-java", name = "lionweb-java-202
 lionweb-java-client-testing = { group = "io.lionweb.lionweb-java", name = "lionweb-java-2024.1-client-testing", version.ref = "lwjava" }
 lionweb-kotlin-client = { group = "io.lionweb.lionweb-kotlin", name = "lionweb-kotlin-2024.1-client", version.ref = "lwkotlin" }
 lionweb-kotlin = { group = "io.lionweb.lionweb-kotlin", name = "lionweb-kotlin-2024.1-core", version.ref = "lwkotlin" }
-starlasu-specs = { module="com.strumenta.starlasu.specs:starlasuspecs-jvm", version.ref="specs" }
+starlasu-specs-languages = { module="com.strumenta.starlasu.specs:languages", version.ref="specs" }
+starlasu-specs-components = { module="com.strumenta.starlasu.specs:components", version.ref="specs" }
 antlr = { module = "org.antlr:antlr4", version.ref = "antlr" }
 antlr-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "antlr" }
 clikt = { module = "com.github.ajalt.clikt:clikt", version.ref = "clikt" }

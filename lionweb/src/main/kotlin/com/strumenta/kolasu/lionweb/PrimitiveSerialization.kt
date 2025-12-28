@@ -4,23 +4,27 @@ import com.strumenta.kolasu.model.Point
 import com.strumenta.kolasu.model.Position
 import com.strumenta.kolasu.parsing.KolasuToken
 import com.strumenta.kolasu.parsing.TokenCategory
+import com.strumenta.starlasu.base.v1.ASTLanguage
 import io.lionweb.kotlin.DefaultMetamodelRegistry
 import io.lionweb.kotlin.MetamodelRegistry
 import io.lionweb.serialization.PrimitiveValuesSerialization.PrimitiveDeserializer
 import io.lionweb.serialization.PrimitiveValuesSerialization.PrimitiveSerializer
-import com.strumenta.starlasu.base.v1.ASTLanguageV1 as ASTLanguage
 
 fun registerSerializersAndDeserializersInMetamodelRegistry(
     metamodelRegistry: MetamodelRegistry = DefaultMetamodelRegistry
 ) {
-    metamodelRegistry.addSerializerAndDeserializer(ASTLanguage.getChar(), charSerializer, charDeserializer)
     metamodelRegistry.addSerializerAndDeserializer(
-        ASTLanguage.getPosition(),
+        ASTLanguage.getInstance().char,
+        charSerializer,
+        charDeserializer
+    )
+    metamodelRegistry.addSerializerAndDeserializer(
+        ASTLanguage.getInstance().position,
         positionSerializer,
         positionDeserializer
     )
     metamodelRegistry.addSerializerAndDeserializer(
-        ASTLanguage.getTokensList(),
+        ASTLanguage.getInstance().tokensList,
         tokensListPrimitiveSerializer,
         tokensListPrimitiveDeserializer
     )
@@ -84,7 +88,7 @@ val positionDeserializer = PrimitiveDeserializer<Position> { serialized ->
     require(parts.size == 2) {
         "Position has an unexpected format: $serialized"
     }
-    Position(pointDeserializer.deserialize(parts[0]), pointDeserializer.deserialize(parts[1]))
+    Position(pointDeserializer.deserialize(parts[0])!!, pointDeserializer.deserialize(parts[1])!!)
 }
 
 //
@@ -109,7 +113,7 @@ val tokensListPrimitiveDeserializer = PrimitiveDeserializer<TokensList?> { seria
             require(parts.size == 2)
             val category = parts[0]
             val position = positionDeserializer.deserialize(parts[1])
-            KolasuToken(TokenCategory(category), position)
+            KolasuToken(TokenCategory(category), position!!)
         }.toMutableList()
     }
     TokensList(tokens)

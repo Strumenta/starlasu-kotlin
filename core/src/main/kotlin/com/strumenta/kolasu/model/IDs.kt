@@ -1,7 +1,7 @@
 package com.strumenta.kolasu.model
 
 import com.strumenta.kolasu.ids.NodeIdProvider
-import com.strumenta.starlasu.base.IDProvider
+import com.strumenta.starlasu.IDProvider
 
 class NodeIdProviderAdapter(val idProvider: IDProvider) : NodeIdProvider {
     private var available: List<String>? = null

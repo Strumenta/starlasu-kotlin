@@ -5,7 +5,8 @@ import com.strumenta.kolasu.lionweb.LWNode
 import com.strumenta.kolasu.lionweb.LionWebModelConverter
 import com.strumenta.kolasu.lionweb.TokensList
 import com.strumenta.kolasu.model.Node
-import com.strumenta.starlasu.base.CodebaseAccess
+import com.strumenta.starlasu.base.v1.CodebaseLanguage
+import com.strumenta.starlasu.pipeline.CodebaseAccess
 import io.lionweb.kotlin.getChildrenByContainmentName
 import io.lionweb.kotlin.getOnlyChildByContainmentName
 import io.lionweb.kotlin.getPropertyValueByName
@@ -14,7 +15,6 @@ import io.lionweb.model.ClassifierInstanceUtils
 import io.lionweb.model.impl.DynamicNode
 import io.lionweb.serialization.ProtoBufSerialization
 import java.util.stream.Collectors
-import com.strumenta.starlasu.base.v1.CodebaseLanguageV1 as CodebaseLanguage
 
 fun <R : Node> deserialize(
     modelConverter: LionWebModelConverter,
@@ -41,7 +41,7 @@ fun <R : Node> serialize(
     languageName: String,
     codebaseFile: CodebaseFile<R>
 ): LWNode {
-    val lwCodebaseFile = DynamicNode(id, CodebaseLanguage.getCodebaseFile())
+    val lwCodebaseFile = DynamicNode(id, CodebaseLanguage.getInstance().codebaseFile)
     lwCodebaseFile.setPropertyValueByName("language_name", languageName)
     lwCodebaseFile.setPropertyValueByName("relative_path", codebaseFile.relativePath)
     lwCodebaseFile.setPropertyValueByName("code", codebaseFile.code)
