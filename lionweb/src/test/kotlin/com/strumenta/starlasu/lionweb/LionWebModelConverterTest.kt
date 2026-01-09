@@ -1,5 +1,6 @@
 package com.strumenta.starlasu.lionweb
 
+import com.strumenta.starlasu.base.v2.ASTLanguage
 import com.strumenta.starlasu.language.KolasuLanguage
 import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.ASTRoot
@@ -49,7 +50,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 import kotlin.test.assertTrue
-import com.strumenta.starlasu.base.v2.ASTLanguageV2 as ASTLanguage
 
 enum class AnEnum {
     FOO,
@@ -391,7 +391,7 @@ class LionWebModelConverterTest {
         val lwLanguage = mConverter.exportLanguageToLionWeb(kLanguage)
         assertEquals(4, lwLanguage.elements.filterIsInstance<Concept>().size)
         lwLanguage.elements.filterIsInstance<Concept>().forEach { concept ->
-            assertEquals(true, concept.allAncestors().contains(ASTLanguage.getASTNode()))
+            assertEquals(true, concept.allAncestors().contains(ASTLanguage.getInstance().astNode))
         }
     }
 

@@ -4,7 +4,7 @@ import com.strumenta.starlasu.lionweb.SNode
 import com.strumenta.starlasu.lionweb.LWNode
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.Source
-import com.strumenta.starlasu.base.v2.ASTLanguageV2 as ASTLanguage
+import com.strumenta.starlasu.base.v2.ASTLanguage
 import io.lionweb.kotlin.children
 import io.lionweb.language.Concept
 import io.lionweb.model.HasSettableParent
@@ -43,5 +43,5 @@ fun StarlasuClient.getASTRoots(aLWNode: LWNode): Sequence<SNode> {
 }
 
 fun isStarlasuConcept(concept: Concept): Boolean {
-    return concept.allAncestors().contains(ASTLanguage.getASTNode())
+    return concept.allAncestors().contains(ASTLanguage.getInstance().astNode)
 }

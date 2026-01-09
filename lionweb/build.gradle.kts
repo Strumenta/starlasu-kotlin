@@ -18,13 +18,13 @@ dependencies {
     "cliImplementation"(libs.clikt)
     testImplementation(kotlin("test-junit", libs.versions.kotlin.get()))
     testImplementation(libs.gson)
-    implementation(libs.starlasu.specs)
+    implementation(libs.starlasu.specs.languages)
+    implementation(libs.starlasu.specs.components)
 
     api(libs.lionweb.java)
     api(libs.lionweb.kotlin)
 
     api(project(":core"))
-    implementation(libs.starlasu.specs)
 }
 
 mavenPublishing {
