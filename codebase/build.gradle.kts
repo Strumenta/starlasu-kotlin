@@ -63,12 +63,6 @@ mavenPublishing {
 
 lionweb {
     languagesSpecificPackages = mapOf(
-        "com-strumenta-StarLasu" to "com.strumenta.starlasu.base.v1",
-        "com-strumenta-starlasu-comments" to "com.strumenta.starlasu.base.v1",
-        "strumenta-codebase" to "com.strumenta.starlasu.base.v1",
-        "com-strumenta-Pipeline" to "com.strumenta.starlasu.base.v1",
-        "com-strumenta-starlasu-types" to "com.strumenta.starlasu.base.v1",
-        "strumenta-migration" to "com.strumenta.starlasu.base.v1",
         "com-strumenta-Starlasu-v2" to "com.strumenta.starlasu.base.v2",
         "strumenta-codebase-v2" to "com.strumenta.starlasu.base.v2",
     )
