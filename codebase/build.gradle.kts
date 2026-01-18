@@ -4,6 +4,7 @@ plugins {
     id("signing")
     id("org.jetbrains.dokka")
     alias(libs.plugins.vanniktech.publish)
+    alias(libs.plugins.lionweb)
 }
 
 dependencies {
