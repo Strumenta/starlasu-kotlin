@@ -12,7 +12,8 @@ plugins {
 dependencies {
     antlr(libs.antlr)
     implementation(libs.antlr.runtime)
-    implementation(libs.starlasu.specs)
+    implementation(libs.starlasu.specs.languages)
+    implementation(libs.starlasu.specs.components)
     implementation(kotlin("stdlib", libs.versions.kotlin.get()))
     implementation(kotlin("reflect", libs.versions.kotlin.get()))
     implementation(libs.gson)

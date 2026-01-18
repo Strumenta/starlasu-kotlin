@@ -12,7 +12,8 @@ dependencies {
     implementation(project(":lionweb"))
     implementation(kotlin("stdlib", libs.versions.kotlin.get()))
     implementation(kotlin("reflect", libs.versions.kotlin.get()))
-    implementation(libs.starlasu.specs)
+    implementation(libs.starlasu.specs.languages)
+    implementation(libs.starlasu.specs.components)
     implementation(libs.gson)
 
     testImplementation(kotlin("test", libs.versions.kotlin.get()))
@@ -58,4 +59,21 @@ mavenPublishing {
             developerConnection.set("scm:git:ssh://git@github.com/Strumenta/starlasu-kotlin.git")
         }
     }
+}
+
+lionweb {
+    languagesSpecificPackages = mapOf(
+        "com-strumenta-StarLasu" to "com.strumenta.starlasu.base.v1",
+        "com-strumenta-starlasu-comments" to "com.strumenta.starlasu.base.v1",
+        "strumenta-codebase" to "com.strumenta.starlasu.base.v1",
+        "com-strumenta-Pipeline" to "com.strumenta.starlasu.base.v1",
+        "com-strumenta-starlasu-types" to "com.strumenta.starlasu.base.v1",
+        "strumenta-migration" to "com.strumenta.starlasu.base.v1",
+        "com-strumenta-Starlasu-v2" to "com.strumenta.starlasu.base.v2",
+        "strumenta-codebase-v2" to "com.strumenta.starlasu.base.v2",
+    )
+    primitiveTypes = mapOf(
+        "com-strumenta-Starlasu-v2-TokensList-2-id" to "com.strumenta.starlasu.lionweb.TokensList",
+        "com-strumenta-Starlasu-v2-Position-2-id" to "com.strumenta.starlasu.model.Position"
+    )
 }

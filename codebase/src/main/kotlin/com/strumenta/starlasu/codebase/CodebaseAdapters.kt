@@ -1,11 +1,12 @@
 package com.strumenta.starlasu.codebase
 
-import com.strumenta.starlasu.base.CodebaseAccess
+import com.strumenta.starlasu.base.v2.CodebaseLanguage
 import com.strumenta.starlasu.lionweb.IssueNode
 import com.strumenta.starlasu.lionweb.LWNode
 import com.strumenta.starlasu.lionweb.LionWebModelConverter
 import com.strumenta.starlasu.lionweb.TokensList
 import com.strumenta.starlasu.model.Node
+import com.strumenta.starlasu.pipeline.CodebaseAccess
 import io.lionweb.kotlin.getChildrenByContainmentName
 import io.lionweb.kotlin.getOnlyChildByContainmentName
 import io.lionweb.kotlin.getPropertyValueByName
@@ -14,7 +15,6 @@ import io.lionweb.model.ClassifierInstanceUtils
 import io.lionweb.model.impl.DynamicNode
 import io.lionweb.serialization.ProtoBufSerialization
 import java.util.stream.Collectors
-import com.strumenta.starlasu.base.v1.CodebaseLanguageV1 as CodebaseLanguage
 
 fun <R : Node> deserialize(
     modelConverter: LionWebModelConverter,
@@ -23,7 +23,10 @@ fun <R : Node> deserialize(
 ): CodebaseFile<R> {
     val relativePath = codebaseFile.getPropertyValueByName("relative_path") as String
     val code = codebaseFile.getPropertyValueByName("code") as String
-    val ast = codebaseFile.getOnlyChildByContainmentName("ast")!!
+    val ast =
+        codebaseFile.getOnlyChildByContainmentName("ast") ?: throw IllegalStateException(
+            "No AST found for $relativePath",
+        )
     val compilationUnit = modelConverter.importModelFromLionWeb(ast) as R
     val issues =
         codebaseFile.getChildrenByContainmentName("issues").map { lwIssue ->
@@ -39,7 +42,7 @@ fun <R : Node> serialize(
     languageName: String,
     codebaseFile: CodebaseFile<R>,
 ): LWNode {
-    val lwCodebaseFile = DynamicNode(id, CodebaseLanguage.getCodebaseFile())
+    val lwCodebaseFile = DynamicNode(id, CodebaseLanguage.getInstance().codebaseFile)
     lwCodebaseFile.setPropertyValueByName("language_name", languageName)
     lwCodebaseFile.setPropertyValueByName("relative_path", codebaseFile.relativePath)
     lwCodebaseFile.setPropertyValueByName("code", codebaseFile.code)

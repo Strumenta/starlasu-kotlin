@@ -1,7 +1,7 @@
 package com.strumenta.starlasu.lionweb
 
-import com.strumenta.starlasu.base.v1.ASTLanguageV1
 import com.strumenta.starlasu.base.v1.MigrationLanguage
+import com.strumenta.starlasu.base.v2.ASTLanguage
 import com.strumenta.starlasu.ids.IDGenerationException
 import com.strumenta.starlasu.ids.NodeIdProvider
 import com.strumenta.starlasu.language.Feature
@@ -64,7 +64,7 @@ import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KParameter
 import kotlin.reflect.KType
 import kotlin.reflect.full.primaryConstructor
-import com.strumenta.starlasu.base.v2.ASTLanguageV2 as ASTLanguage
+import com.strumenta.starlasu.base.v1.ASTLanguage as ASTLanguageV1
 import io.lionweb.language.Feature as LWFeature
 
 interface PrimitiveValueSerialization<E> {
@@ -93,13 +93,13 @@ abstract class ASTLanguageElements {
 }
 
 object ASTV2 : ASTLanguageElements() {
-    override val language = ASTLanguage.getLanguage()
-    override val astNode = ASTLanguage.getASTNode()
+    override val language = ASTLanguage.getInstance()
+    override val astNode = ASTLanguage.getInstance().astNode
 }
 
 object ASTV1 : ASTLanguageElements() {
-    override val language = ASTLanguageV1.getLanguage()
-    override val astNode = ASTLanguageV1.getASTNode()
+    override val language = ASTLanguageV1.getInstance()
+    override val astNode = ASTLanguageV1.getInstance().astNode
 }
 
 /**
@@ -318,7 +318,7 @@ class LionWebModelConverter(
                                             val annotation =
                                                 DynamicAnnotationInstance(
                                                     myIDManager.id(kNode) + "-dropped",
-                                                    MigrationLanguage.getDroppedElement(),
+                                                    MigrationLanguage.getInstance().droppedElement,
                                                 )
                                             lwNode.addAnnotation(annotation)
                                         }
@@ -553,7 +553,7 @@ class LionWebModelConverter(
                     }
                 val droppedAnnotation =
                     lwNode.annotations.find {
-                        it.classifier == MigrationLanguage.getDroppedElement()
+                        it.classifier == MigrationLanguage.getInstance().droppedElement
                     }
                 if (droppedAnnotation != null) {
                     kNode.withDestination(DroppedDestination)
@@ -634,11 +634,11 @@ class LionWebModelConverter(
                                 as PrimitiveValueSerialization<Any>
                         serialization.primitiveValuesSerialization.registerSerializer(
                             lwPrimitiveType.id!!,
-                        ) { value -> serializer.serialize(value) }
+                        ) { value -> value?.let { serializer.serialize(value) } }
 
                         serialization.primitiveValuesSerialization.registerDeserializer(
                             lwPrimitiveType.id!!,
-                        ) { serialized -> serializer.deserialize(serialized) }
+                        ) { serialized -> serialized?.let { serializer.deserialize(it) } }
                     }
                 }
             }
@@ -1067,10 +1067,20 @@ class LionWebModelConverter(
     ): IssueNode {
         val issueNode = IssueNode()
         id?.let { issueNode.setID(it) }
-        issueNode.setPropertyValue(ASTLanguage.getIssue().getPropertyByName(Issue::message.name)!!, issue.message)
-        issueNode.setPropertyValue(ASTLanguage.getIssue().getPropertyByName(Issue::position.name)!!, issue.position)
-        setEnumProperty(issueNode, ASTLanguage.getIssue().getPropertyByName(Issue::severity.name)!!, issue.severity)
-        setEnumProperty(issueNode, ASTLanguage.getIssue().getPropertyByName(Issue::type.name)!!, issue.type)
+        issueNode.setPropertyValue(
+            ASTLanguage.getInstance().issue.getPropertyByName(Issue::message.name)!!,
+            issue.message,
+        )
+        issueNode.setPropertyValue(
+            ASTLanguage.getInstance().issue.getPropertyByName(Issue::position.name)!!,
+            issue.position,
+        )
+        setEnumProperty(
+            issueNode,
+            ASTLanguage.getInstance().issue.getPropertyByName(Issue::severity.name)!!,
+            issue.severity,
+        )
+        setEnumProperty(issueNode, ASTLanguage.getInstance().issue.getPropertyByName(Issue::type.name)!!, issue.type)
         return issueNode
     }
 
@@ -1078,22 +1088,22 @@ class LionWebModelConverter(
         val issueType =
             importEnumValue(
                 issueNode.getPropertyValue(
-                    ASTLanguage.getIssue().getPropertyByName(Issue::type.name)!!,
+                    ASTLanguage.getInstance().issue.getPropertyByName(Issue::type.name)!!,
                 ) as EnumerationValue,
             ) as IssueType
         val message =
             issueNode.getPropertyValue(
-                ASTLanguage.getIssue().getPropertyByName(Issue::message.name)!!,
+                ASTLanguage.getInstance().issue.getPropertyByName(Issue::message.name)!!,
             ) as String
         val severity =
             importEnumValue(
                 issueNode.getPropertyValue(
-                    ASTLanguage.getIssue().getPropertyByName(Issue::severity.name)!!,
+                    ASTLanguage.getInstance().issue.getPropertyByName(Issue::severity.name)!!,
                 ) as EnumerationValue,
             ) as IssueSeverity
         val position =
             issueNode.getPropertyValue(
-                ASTLanguage.getIssue().getPropertyByName(Issue::position.name)!!,
+                ASTLanguage.getInstance().issue.getPropertyByName(Issue::position.name)!!,
             ) as? Position
         val issue = Issue(issueType, message, severity, position)
         return issueNode.id!! to issue
@@ -1110,7 +1120,7 @@ class LionWebModelConverter(
             throw IllegalStateException("Parsing result has null ID")
         }
         resultNode.setPropertyValue(
-            ASTLanguage.getParsingResult().getPropertyByName(ParsingResult<*>::code.name)!!,
+            ASTLanguage.getInstance().parsingResult.getPropertyByName(ParsingResult<*>::code.name)!!,
             pr.code,
         )
         val root =
@@ -1125,17 +1135,20 @@ class LionWebModelConverter(
             }
         root?.let {
             resultNode.addChild(
-                ASTLanguage.getParsingResult().getContainmentByName(ParsingResult<*>::root.name)!!,
+                ASTLanguage.getInstance().parsingResult.getContainmentByName(ParsingResult<*>::root.name)!!,
                 root,
             )
         }
-        val issuesContainment = ASTLanguage.getParsingResult().getContainmentByName(ParsingResult<*>::issues.name)!!
+        val issuesContainment =
+            ASTLanguage.getInstance().parsingResult.getContainmentByName(
+                ParsingResult<*>::issues.name,
+            )!!
         pr.issues.forEachIndexed { index, issue ->
             val id = "${resultNode.id}-issue-$index"
             resultNode.addChild(issuesContainment, exportIssueToLionweb(issue, id))
         }
         resultNode.setPropertyValue(
-            ASTLanguage.getParsingResult().getPropertyByName(ParsingResultWithTokens<*>::tokens.name)!!,
+            ASTLanguage.getInstance().parsingResult.getPropertyByName(ParsingResultWithTokens<*>::tokens.name)!!,
             TokensList(tokens),
         )
         if (idCheck) {
