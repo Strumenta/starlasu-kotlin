@@ -1,6 +1,6 @@
 [versions]
 kotlin = "2.0.21"
-lwjava = "1.2.5"
+lwjava = "1.2.6-SNAPSHOT"
 lwkotlin = "0.6.7"
 kotest= "5.9.1"
 dokka = "2.1.0"
@@ -8,7 +8,7 @@ jvm = "11"
 antlr = "4.13.2"
 gson = "2.13.2"
 clikt = "5.0.3"
-specs = "0.7.1"
+specs = "0.7.2-SNAPSHOT"
 testcontainers = "1.21.3"
 
 [plugins]

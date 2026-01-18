@@ -76,4 +76,5 @@ lionweb {
         "com-strumenta-Starlasu-v2-TokensList-2-id" to "com.strumenta.starlasu.lionweb.TokensList",
         "com-strumenta-Starlasu-v2-Position-2-id" to "com.strumenta.starlasu.model.Position"
     )
+    languagesToGenerate = setOf("strumenta-codebase-v2")
 }
