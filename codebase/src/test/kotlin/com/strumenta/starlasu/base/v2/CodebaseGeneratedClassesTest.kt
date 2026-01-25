@@ -81,10 +81,10 @@ class CodebaseGeneratedClassesTest {
 
         codebase.addToFiles(f1)
         assertEquals(listOf(ReferenceValue(f1, null)), codebase.files)
-        codebase.addToFiles(f2)
+        codebase.addToFiles(f3)
         assertEquals(listOf(ReferenceValue(f1, null),
-            ReferenceValue(f2, null)), codebase.files)
-        codebase.addToFiles(f3, 1)
+            ReferenceValue(f3, null)), codebase.files)
+        codebase.addToFiles(f2, 1)
         assertEquals(listOf(ReferenceValue(f1, null),
             ReferenceValue(f2, null),
             ReferenceValue(f3, null)), codebase.files)
