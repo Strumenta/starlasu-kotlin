@@ -28,10 +28,10 @@ fun <R : Node> deserialize(
             "No AST found for $relativePath",
         )
     val compilationUnit = modelConverter.importModelFromLionWeb(ast) as R
-    val issues =
-        codebaseFile.getChildrenByContainmentName("issues").map { lwIssue ->
-            modelConverter.importIssueFromLionweb(lwIssue as IssueNode).second
-        }
+    val issues = TODO()
+//        codebaseFile.getChildrenByContainmentName("issues").map { lwIssue ->
+//            modelConverter.importIssueFromLionweb(lwIssue as IssueNode).second
+//        }
     val tokens = codebaseFile.getPropertyValueByName("tokens") as TokensList
     return CodebaseFile(codebase, relativePath, code, compilationUnit, tokens, issues)
 }
@@ -51,7 +51,8 @@ fun <R : Node> serialize(
     val ast = modelConverter.exportModelToLionWeb(codebaseFile.ast)
     ClassifierInstanceUtils.setOnlyChildByContainmentName(lwCodebaseFile, "ast", ast)
     codebaseFile.parsingIssues.forEachIndexed { index, issue ->
-        val lwIssue = modelConverter.exportIssueToLionweb(issue, "$id-issue-$index")
+        val lwIssueConverted = TODO()
+        val lwIssue = modelConverter.exportIssueToLionweb(lwIssueConverted, "$id-issue-$index")
         ClassifierInstanceUtils.addChild(lwCodebaseFile, "issues", lwIssue)
     }
     return lwCodebaseFile

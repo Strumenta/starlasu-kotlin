@@ -75,3 +75,10 @@ lionweb {
         "com.strumenta.Starlasu.Issue" to "com.strumenta.starlasu.validation.LWIssue"
     )
 }
+
+sourceSets {
+    main {
+        java.srcDir("src/main/kotlin")
+        java.srcDir("build/generated-lionweb")
+    }
+}

@@ -13,7 +13,7 @@ import io.lionweb.model.ReferenceValue
 import io.lionweb.model.impl.AbstractNode
 import java.util.Objects
 
-class Issue(id: String) : AbstractNode(), HasSettableParent {
+class LWIssue(id: String) : AbstractNode(), HasSettableParent {
     private val id: String
 
     private var parent: ClassifierInstance<*>? = null

@@ -6,7 +6,7 @@ import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.PropertyType
 import com.strumenta.starlasu.model.ReferenceByName
 import com.strumenta.starlasu.traversing.walk
-import com.strumenta.starlasu.validation.Issue
+import com.strumenta.starlasu.validation.LWIssue
 import java.io.File
 
 data class CodebaseFile<R : Node>(
@@ -15,7 +15,7 @@ data class CodebaseFile<R : Node>(
     var code: String,
     var ast: R,
     var tokens: TokensList?,
-    val parsingIssues: List<Issue> = emptyList(),
+    val parsingIssues: List<LWIssue> = emptyList(),
 ) {
     init {
         ast.source = this.asSource()

@@ -46,7 +46,7 @@ class FileBasedCodebase<R : Node>(
                                                 child.readText(),
                                                 root,
                                                 tokens = null,
-                                                parsingResult.issues,
+                                                TODO()//parsingResult.issues,
                                             )
                                         yield(codebaseFile)
                                     }
