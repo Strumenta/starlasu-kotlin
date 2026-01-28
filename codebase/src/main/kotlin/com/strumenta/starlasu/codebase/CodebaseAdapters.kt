@@ -1,13 +1,11 @@
 package com.strumenta.starlasu.codebase
 
 import com.strumenta.starlasu.base.v2.CodebaseLanguage
-import com.strumenta.starlasu.lionweb.IssueNode
 import com.strumenta.starlasu.lionweb.LWNode
 import com.strumenta.starlasu.lionweb.LionWebModelConverter
 import com.strumenta.starlasu.lionweb.TokensList
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.pipeline.CodebaseAccess
-import io.lionweb.kotlin.getChildrenByContainmentName
 import io.lionweb.kotlin.getOnlyChildByContainmentName
 import io.lionweb.kotlin.getPropertyValueByName
 import io.lionweb.kotlin.setPropertyValueByName

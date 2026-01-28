@@ -62,18 +62,21 @@ mavenPublishing {
 }
 
 lionweb {
-    languagesSpecificPackages = mapOf(
-        "com-strumenta-Starlasu-v2" to "com.strumenta.starlasu.base.v2",
-        "strumenta-codebase-v2" to "com.strumenta.starlasu.base.v2",
-    )
-    primitiveTypes = mapOf(
-        "com-strumenta-Starlasu-v2-TokensList-2-id" to "com.strumenta.starlasu.lionweb.TokensList",
-        "com-strumenta-Starlasu-v2-Position-2-id" to "com.strumenta.starlasu.model.Position"
-    )
+    languagesSpecificPackages =
+        mapOf(
+            "com-strumenta-Starlasu-v2" to "com.strumenta.starlasu.base.v2",
+            "strumenta-codebase-v2" to "com.strumenta.starlasu.base.v2",
+        )
+    primitiveTypes =
+        mapOf(
+            "com-strumenta-Starlasu-v2-TokensList-2-id" to "com.strumenta.starlasu.lionweb.TokensList",
+            "com-strumenta-Starlasu-v2-Position-2-id" to "com.strumenta.starlasu.model.Position",
+        )
     languagesToGenerate = setOf("strumenta-codebase-v2")
-    mappings = mapOf(
-        "com.strumenta.Starlasu.Issue" to "com.strumenta.starlasu.validation.LWIssue"
-    )
+    mappings =
+        mapOf(
+            "com.strumenta.Starlasu.Issue" to "com.strumenta.starlasu.validation.LWIssue",
+        )
 }
 
 sourceSets {

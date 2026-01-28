@@ -15,19 +15,21 @@ import kotlin.test.assertSame
 
 object Instantiator {
     private var nextId = 0
-    fun <T: Node> instantiate(clazz: KClass<T>) : T = clazz.constructors.first().call("id-${++nextId}")
-    fun instantiate(concept: Concept) : DynamicNode = DynamicNode("id-${++nextId}", concept)
+
+    fun <T : Node> instantiate(clazz: KClass<T>): T = clazz.constructors.first().call("id-${++nextId}")
+
+    fun instantiate(concept: Concept): DynamicNode = DynamicNode("id-${++nextId}", concept)
 }
 
-fun <T:Node>KClass<T>.instantiate() : T = Instantiator.instantiate(this)
+fun <T : Node> KClass<T>.instantiate(): T = Instantiator.instantiate(this)
 
-fun Concept.instantiate() : DynamicNode = Instantiator.instantiate(this)
+fun Concept.instantiate(): DynamicNode = Instantiator.instantiate(this)
 
 class CodebaseGeneratedClassesTest {
-
-    val simpleLanguage = lwLanguage("SimpleLanguage").apply {
-        createConcept("SimpleConcept")
-    }
+    val simpleLanguage =
+        lwLanguage("SimpleLanguage").apply {
+            createConcept("SimpleConcept")
+        }
 
     val simpleConcept = simpleLanguage.requireConceptByName("SimpleConcept")
 
@@ -44,7 +46,7 @@ class CodebaseGeneratedClassesTest {
 
         bc.addToBuiltins(sc1)
         bc.addToBuiltins(sc3)
-        bc.addToBuiltins(1, sc2)
+        bc.addToBuiltins(sc2, 1)
         assertEquals(listOf(sc1, sc2, sc3), bc.builtins)
         assertSame(bc, sc1.parent)
         assertSame(bc, sc2.parent)
@@ -82,34 +84,24 @@ class CodebaseGeneratedClassesTest {
         codebase.addToFiles(f1)
         assertEquals(listOf(ReferenceValue(f1, null)), codebase.files)
         codebase.addToFiles(f3)
-        assertEquals(listOf(ReferenceValue(f1, null),
-            ReferenceValue(f3, null)), codebase.files)
+        assertEquals(
+            listOf(
+                ReferenceValue(f1, null),
+                ReferenceValue(f3, null),
+            ),
+            codebase.files,
+        )
         codebase.addToFiles(f2, 1)
-        assertEquals(listOf(ReferenceValue(f1, null),
-            ReferenceValue(f2, null),
-            ReferenceValue(f3, null)), codebase.files)
+        assertEquals(
+            listOf(
+                ReferenceValue(f1, null),
+                ReferenceValue(f2, null),
+                ReferenceValue(f3, null),
+            ),
+            codebase.files,
+        )
 
-
-//        bc.clearBuiltins()
-//        assertEquals(emptyList(), bc.builtins)
-//        assertNull(sc1.parent)
-//        assertNull(sc2.parent)
-//        assertNull(sc3.parent)
-//
-//        val sc4 = simpleConcept.instantiate()
-//        val sc5 = simpleConcept.instantiate()
-//
-//        bc.setBuiltins(listOf(sc4, sc5))
-//        assertEquals(listOf(sc4, sc5), bc.builtins)
-//        assertSame(bc, sc4.parent)
-//        assertSame(bc, sc5.parent)
-//
-//        bc.removeFromBuiltins(sc4)
-//        assertNull(sc4.parent)
-//        assertEquals(listOf(sc5), bc.builtins)
-//
-//        bc.removeFromBuiltins(sc5)
-//        assertNull(sc5.parent)
-//        assertEquals(emptyList(), bc.builtins)
+        codebase.clearFiles()
+        assertEquals(emptyList(), codebase.files)
     }
 }

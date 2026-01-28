@@ -13,7 +13,10 @@ import io.lionweb.model.ReferenceValue
 import io.lionweb.model.impl.AbstractNode
 import java.util.Objects
 
-class LWIssue(id: String) : AbstractNode(), HasSettableParent {
+class LWIssue(
+    id: String,
+) : AbstractNode(),
+    HasSettableParent {
     private val id: String
 
     private var parent: ClassifierInstance<*>? = null
@@ -31,70 +34,68 @@ class LWIssue(id: String) : AbstractNode(), HasSettableParent {
         this.id = id
     }
 
-    override fun getID(): String {
-        return this.id
-    }
+    override fun getID(): String = this.id
 
-    override fun getParent(): ClassifierInstance<*>? {
-        return this.parent
-    }
+    override fun getParent(): ClassifierInstance<*>? = this.parent
 
     override fun setParent(parent: ClassifierInstance<*>?): ClassifierInstance<*> {
         this.parent = parent
         return this
     }
 
-    override fun getClassifier(): Concept {
-        return ASTLanguage.getInstance().getIssue()
-    }
+    override fun getClassifier(): Concept = ASTLanguage.getInstance().getIssue()
 
-    fun getType(): IssueType? {
-        return type
-    }
+    fun getType(): IssueType? = type
 
     fun setType(value: IssueType?) {
         if (partitionObserverCache != null) {
             partitionObserverCache!!.propertyChanged(
-                this, this.getClassifier().requirePropertyByName("type"), getType(), value
+                this,
+                this.getClassifier().requirePropertyByName("type"),
+                getType(),
+                value,
             )
         }
         this.type = value
     }
 
-    fun getMessage(): String? {
-        return message
-    }
+    fun getMessage(): String? = message
 
     fun setMessage(value: String?) {
         if (partitionObserverCache != null) {
             partitionObserverCache!!.propertyChanged(
-                this, this.getClassifier().requirePropertyByName("message"), getMessage(), value
+                this,
+                this.getClassifier().requirePropertyByName("message"),
+                getMessage(),
+                value,
             )
         }
         this.message = value
     }
 
-    fun getSeverity(): IssueSeverity? {
-        return severity
-    }
+    fun getSeverity(): IssueSeverity? = severity
 
     fun setSeverity(value: IssueSeverity?) {
         if (partitionObserverCache != null) {
             partitionObserverCache!!.propertyChanged(
-                this, this.getClassifier().requirePropertyByName("severity"), getSeverity(), value
+                this,
+                this.getClassifier().requirePropertyByName("severity"),
+                getSeverity(),
+                value,
             )
         }
         this.severity = value
     }
 
-    fun getPosition(): Position? {
-        return position
-    }
+    fun getPosition(): Position? = position
 
     fun setPosition(value: Position?) {
         if (partitionObserverCache != null) {
             partitionObserverCache!!.propertyChanged(
-                this, this.getClassifier().requirePropertyByName("position"), getPosition(), value
+                this,
+                this.getClassifier().requirePropertyByName("position"),
+                getPosition(),
+                value,
             )
         }
         this.position = value
@@ -116,7 +117,10 @@ class LWIssue(id: String) : AbstractNode(), HasSettableParent {
         throw IllegalStateException("Property " + property + " not found.")
     }
 
-    override fun setPropertyValue(property: Property, value: Any?) {
+    override fun setPropertyValue(
+        property: Property,
+        value: Any?,
+    ) {
         Objects.requireNonNull<Property?>(property, "Property should not be null")
 
         Objects.requireNonNull<String?>(property!!.getKey(), "Cannot assign a property with no Key specified")
@@ -140,41 +144,52 @@ class LWIssue(id: String) : AbstractNode(), HasSettableParent {
         throw IllegalStateException("Property " + property + " not found.")
     }
 
-    override fun getChildren(containment: Containment): MutableList<out Node?> {
+    override fun getChildren(containment: Containment): MutableList<out Node?> =
         throw IllegalStateException("Containment " + containment + " not found.")
-    }
 
-    override fun addChild(containment: Containment, child: Node) {
+    override fun addChild(
+        containment: Containment,
+        child: Node,
+    ) {
         Objects.requireNonNull<Containment?>(containment, "Containment should not be null")
         Objects.requireNonNull<Node?>(child, "Child should not be null")
         throw IllegalStateException("Containment " + containment + " not found.")
     }
 
-    override fun addChild(containment: Containment, child: Node, index: Int) {
-        throw UnsupportedOperationException("Not supported yet.")
-    }
+    override fun addChild(
+        containment: Containment,
+        child: Node,
+        index: Int,
+    ): Unit = throw UnsupportedOperationException("Not supported yet.")
 
-    override fun getReferenceValues(reference: Reference): MutableList<ReferenceValue?> {
+    override fun getReferenceValues(reference: Reference): MutableList<ReferenceValue?> =
         throw UnsupportedOperationException("Not supported yet.")
-    }
 
-    override fun addReferenceValue(reference: Reference, referredNode: ReferenceValue?): Int {
-        throw UnsupportedOperationException("Not supported yet.")
-    }
+    override fun addReferenceValue(
+        reference: Reference,
+        referredNode: ReferenceValue?,
+    ): Int = throw UnsupportedOperationException("Not supported yet.")
 
-    override fun addReferenceValue(reference: Reference, index: Int, referredNode: ReferenceValue?): Int {
-        throw UnsupportedOperationException("Not supported yet.")
-    }
+    override fun addReferenceValue(
+        reference: Reference,
+        index: Int,
+        referredNode: ReferenceValue?,
+    ): Int = throw UnsupportedOperationException("Not supported yet.")
 
-    override fun setReferenceValues(reference: Reference, values: MutableList<out ReferenceValue?>) {
-        throw UnsupportedOperationException("Not supported yet.")
-    }
+    override fun setReferenceValues(
+        reference: Reference,
+        values: MutableList<out ReferenceValue?>,
+    ): Unit = throw UnsupportedOperationException("Not supported yet.")
 
-    override fun setReferred(reference: Reference, index: Int, referredNode: Node?) {
-        throw UnsupportedOperationException("Not supported yet.")
-    }
+    override fun setReferred(
+        reference: Reference,
+        index: Int,
+        referredNode: Node?,
+    ): Unit = throw UnsupportedOperationException("Not supported yet.")
 
-    override fun setResolveInfo(reference: Reference, index: Int, resolveInfo: String?) {
-        throw UnsupportedOperationException("Not supported yet.")
-    }
+    override fun setResolveInfo(
+        reference: Reference,
+        index: Int,
+        resolveInfo: String?,
+    ): Unit = throw UnsupportedOperationException("Not supported yet.")
 }
