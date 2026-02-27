@@ -20,7 +20,7 @@ dependencies {
     cliImplementation "com.github.ajalt.clikt:clikt:$clikt_version"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
     testImplementation(libs.gson)
-    api(libs.lionweb.java)
+    api(libs.lionweb.core)
     api(libs.lionweb.kotlin) {
         exclude group: "org.jetbrains.kotlin", module: "kotlin-test-junit5"
     }
