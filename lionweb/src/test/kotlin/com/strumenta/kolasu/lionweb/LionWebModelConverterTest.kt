@@ -71,10 +71,6 @@ class LionWebModelConverterTest {
       "version": "1"
     },
     {
-      "key": "com_strumenta_starlasu",
-      "version": "1"
-    },
-    {
       "key": "LionCore-builtins",
       "version": "2023.1"
     }
@@ -95,14 +91,6 @@ class LionWebModelConverterTest {
             "key": "com-strumenta-SimpleLang_SimpleRoot__id"
           },
           "value": "12345"
-        },
-        {
-          "property": {
-            "language": "com_strumenta_starlasu",
-            "version": "1",
-            "key": "com_strumenta_starlasu-ASTNode-position-key"
-          },
-          "value": null
         }
       ],
       "containments": [
@@ -139,14 +127,6 @@ class LionWebModelConverterTest {
             "key": "LionCore-builtins-INamed-name"
           },
           "value": "A1"
-        },
-        {
-          "property": {
-            "language": "com_strumenta_starlasu",
-            "version": "1",
-            "key": "com_strumenta_starlasu-ASTNode-position-key"
-          },
-          "value": null
         }
       ],
       "containments": [
@@ -184,14 +164,6 @@ class LionWebModelConverterTest {
             "key": "com-strumenta-SimpleLang_SimpleNodeB_value"
           },
           "value": "some magic value"
-        },
-        {
-          "property": {
-            "language": "com_strumenta_starlasu",
-            "version": "1",
-            "key": "com_strumenta_starlasu-ASTNode-position-key"
-          },
-          "value": null
         }
       ],
       "containments": [],
@@ -214,14 +186,6 @@ class LionWebModelConverterTest {
             "key": "LionCore-builtins-INamed-name"
           },
           "value": "A3"
-        },
-        {
-          "property": {
-            "language": "com_strumenta_starlasu",
-            "version": "1",
-            "key": "com_strumenta_starlasu-ASTNode-position-key"
-          },
-          "value": null
         }
       ],
       "containments": [
@@ -269,14 +233,6 @@ class LionWebModelConverterTest {
             "key": "com-strumenta-SimpleLang_SimpleNodeB_value"
           },
           "value": "some other value"
-        },
-        {
-          "property": {
-            "language": "com_strumenta_starlasu",
-            "version": "1",
-            "key": "com_strumenta_starlasu-ASTNode-position-key"
-          },
-          "value": null
         }
       ],
       "containments": [],
@@ -343,7 +299,7 @@ class LionWebModelConverterTest {
         assertEquals("A1", refValue3[0].resolveInfo)
         assertSame(child1, refValue3[0].referred)
 
-        val js = SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
+        val js = SerializationProvider.getEfficientJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
         assertJSONsAreEqual(serialized, js.serializeTreeToJsonString(lwAST))
     }
 
@@ -484,7 +440,7 @@ class LionWebModelConverterTest {
         assertEquals("ZUM", (exportedN3.getPropertyValueByName("e") as EnumerationValue).enumerationLiteral.name)
         assertEquals(null, exportedN4.getPropertyValueByName("e"))
 
-        val jsonSerialization = SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
+        val jsonSerialization = SerializationProvider.getEfficientJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
         converter.prepareSerialization(jsonSerialization)
         jsonSerialization.serializeTreesToJsonString(exportedN1)
     }
@@ -630,7 +586,7 @@ class LionWebModelConverterTest {
             .withPosition(Position(Point(3, 5), Point(27, 200)))
             .setSourceForTree(LionWebSource("MySource"))
         val lwNode = mc.exportModelToLionWeb(n1)
-        val jsonSerialization = SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
+        val jsonSerialization = SerializationProvider.getEfficientJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
         mc.prepareSerialization(jsonSerialization)
         val serializationBlock = jsonSerialization.serializeNodesToSerializationChunk(lwNode)
         assertEquals(
@@ -654,7 +610,7 @@ class LionWebModelConverterTest {
             .withPosition(Position(Point(3, 5), Point(27, 200)))
             .setSourceForTree(LionWebSource("MySource"))
         val lwNode = mc.exportModelToLionWeb(n1)
-        val jsonSerialization = SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
+        val jsonSerialization = SerializationProvider.getEfficientJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
         jsonSerialization.enableDynamicNodes()
         mc.prepareSerialization(jsonSerialization)
         val json = jsonSerialization.serializeNodesToJsonString(lwNode)

@@ -20,7 +20,7 @@ class ASTGeneratorCommand : CliktCommand() {
     override fun run() {
         val existingKotlinClasses = KotlinCodeProcessor().classesDeclaredInDir(existingKotlinCode)
 
-        val jsonser = SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
+        val jsonser = SerializationProvider.getEfficientJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
         jsonser.instanceResolver.addTree(ASTLanguage.getLanguage())
         val language = jsonser.deserializeToNodes(FileInputStream(languageFile)).first() as Language
         val ktFiles = ASTGenerator(packageName, language).generateClasses(existingKotlinClasses)

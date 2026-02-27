@@ -19,7 +19,7 @@ java {
 dependencies {
     antlr(libs.antlr)
     api(libs.clikt)
-    api(libs.lionweb.java)
+    api(libs.lionweb.core)
     implementation(libs.antlr.runtime)
     implementation(libs.starlasu.specs)
     implementation(kotlin("stdlib", libs.versions.kotlin.get()))
