@@ -6,8 +6,8 @@ import com.strumenta.kolasu.parsing.KolasuToken
 import com.strumenta.kolasu.parsing.TokenCategory
 import io.lionweb.kotlin.DefaultMetamodelRegistry
 import io.lionweb.kotlin.MetamodelRegistry
-import io.lionweb.serialization.DataTypesValuesSerialization.DataTypeSerializer
 import io.lionweb.serialization.DataTypesValuesSerialization.DataTypeDeserializer
+import io.lionweb.serialization.DataTypesValuesSerialization.DataTypeSerializer
 import com.strumenta.starlasu.base.v1.ASTLanguageV1 as ASTLanguage
 
 fun registerSerializersAndDeserializersInMetamodelRegistry(

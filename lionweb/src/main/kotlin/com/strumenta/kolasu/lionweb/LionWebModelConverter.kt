@@ -515,7 +515,7 @@ class LionWebModelConverter(
 
     fun prepareSerialization(
         serialization: AbstractSerialization =
-            SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
+            SerializationProvider.getEfficientJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
     ): AbstractSerialization {
         registerSerializersAndDeserializersInMetamodelRegistry(metamodelRegistry)
         metamodelRegistry.prepareSerialization(serialization)

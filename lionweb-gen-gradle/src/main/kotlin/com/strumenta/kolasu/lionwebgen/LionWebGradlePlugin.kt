@@ -46,7 +46,7 @@ class LionWebGradlePlugin : Plugin<Project> {
                     println("processing languageFile $languageFile")
                     when (languageFile.extension) {
                         "json" -> {
-                            val jsonser = SerializationProvider.getStandardJsonSerialization(
+                            val jsonser = SerializationProvider.getEfficientJsonSerialization(
                                 LIONWEB_VERSION_USED_BY_KOLASU
                             )
                             jsonser.instanceResolver.addTree(ASTLanguage.getLanguage())

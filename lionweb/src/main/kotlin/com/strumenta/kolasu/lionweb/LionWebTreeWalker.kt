@@ -1,6 +1,5 @@
 package com.strumenta.kolasu.lionweb
 
-import io.lionweb.language.Concept
 import io.lionweb.language.Containment
 import io.lionweb.model.impl.ProxyNode
 import java.util.concurrent.ConcurrentHashMap
@@ -16,7 +15,7 @@ class LionWebTreeWalker {
     }
 
     private suspend fun SequenceScope<LWNode>.yieldThisAndAllDescendants(node: LWNode) {
-        val containments = containmentsCache.computeIfAbsent(node.classifier.id!! ) { _ ->
+        val containments = containmentsCache.computeIfAbsent(node.classifier.id!!) { _ ->
             node.classifier.allContainments()
         }
         yield(node)

@@ -15,7 +15,7 @@ class ASTGeneratorTest {
     @Test
     fun allASTClassesAreGeneratedAsExpected() {
         val inputStream = this.javaClass.getResourceAsStream("/properties-language.json")
-        val jsonser = SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
+        val jsonser = SerializationProvider.getEfficientJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
         jsonser.instanceResolver.addTree(ASTLanguage.getLanguage())
         val propertiesLanguage = jsonser.deserializeToNodes(inputStream).first() as Language
         val generated = ASTGenerator("com.strumenta.properties", propertiesLanguage).generateClasses()

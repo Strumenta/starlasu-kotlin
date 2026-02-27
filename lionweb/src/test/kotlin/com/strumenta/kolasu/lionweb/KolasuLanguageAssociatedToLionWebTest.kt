@@ -47,16 +47,16 @@ class KolasuLanguageAssociatedToLionWebTest {
             setKey("lang-key")
             setVersion("45")
         }
-        val lwRoot = Concept(lwLang, "Root").apply {
+        val lwRoot = Concept(lwLang, "Root", "id-123").apply {
             setKey("key-123")
         }
-        val lwNodeA = Concept(lwLang, "NodeA").apply {
+        val lwNodeA = Concept(lwLang, "NodeA", "id-456").apply {
             setKey("key-456")
         }
-        val lwNodeB = Concept(lwLang, "NodeA").apply {
+        val lwNodeB = Concept(lwLang, "NodeA", "id-789").apply {
             setKey("key-789")
         }
-        val lwEnum = Enumeration(lwLang, "MyEnum").apply {
+        val lwEnum = Enumeration(lwLang, "MyEnum", "id-000").apply {
             setKey("key-000")
         }
         val kolasuLanguage = KolasuLanguage("LangA").apply {
