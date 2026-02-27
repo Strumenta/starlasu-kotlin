@@ -71,10 +71,6 @@ class LionWebModelConverterTest {
       "version": "1"
     },
     {
-      "key": "com_strumenta_starlasu",
-      "version": "1"
-    },
-    {
       "key": "LionCore-builtins",
       "version": "2023.1"
     }
@@ -95,14 +91,6 @@ class LionWebModelConverterTest {
             "key": "com-strumenta-SimpleLang_SimpleRoot__id"
           },
           "value": "12345"
-        },
-        {
-          "property": {
-            "language": "com_strumenta_starlasu",
-            "version": "1",
-            "key": "com_strumenta_starlasu-ASTNode-position-key"
-          },
-          "value": null
         }
       ],
       "containments": [
@@ -139,14 +127,6 @@ class LionWebModelConverterTest {
             "key": "LionCore-builtins-INamed-name"
           },
           "value": "A1"
-        },
-        {
-          "property": {
-            "language": "com_strumenta_starlasu",
-            "version": "1",
-            "key": "com_strumenta_starlasu-ASTNode-position-key"
-          },
-          "value": null
         }
       ],
       "containments": [
@@ -184,14 +164,6 @@ class LionWebModelConverterTest {
             "key": "com-strumenta-SimpleLang_SimpleNodeB_value"
           },
           "value": "some magic value"
-        },
-        {
-          "property": {
-            "language": "com_strumenta_starlasu",
-            "version": "1",
-            "key": "com_strumenta_starlasu-ASTNode-position-key"
-          },
-          "value": null
         }
       ],
       "containments": [],
@@ -214,14 +186,6 @@ class LionWebModelConverterTest {
             "key": "LionCore-builtins-INamed-name"
           },
           "value": "A3"
-        },
-        {
-          "property": {
-            "language": "com_strumenta_starlasu",
-            "version": "1",
-            "key": "com_strumenta_starlasu-ASTNode-position-key"
-          },
-          "value": null
         }
       ],
       "containments": [
@@ -269,14 +233,6 @@ class LionWebModelConverterTest {
             "key": "com-strumenta-SimpleLang_SimpleNodeB_value"
           },
           "value": "some other value"
-        },
-        {
-          "property": {
-            "language": "com_strumenta_starlasu",
-            "version": "1",
-            "key": "com_strumenta_starlasu-ASTNode-position-key"
-          },
-          "value": null
         }
       ],
       "containments": [],
