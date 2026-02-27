@@ -97,13 +97,21 @@ class LionWebLanguageConverter {
         // First we create all types
         kolasuLanguage.astClasses.forEach { astClass ->
             if (astClass.isConcept) {
-                val concept = Concept(lionwebLanguage, astClass.simpleName, lionwebLanguage.id + "_" + astClass.simpleName)
+                val concept = Concept(
+                    lionwebLanguage,
+                    astClass.simpleName,
+                    lionwebLanguage.id + "_" + astClass.simpleName
+                )
                 concept.isPartition = false
                 concept.key = lionwebLanguage.key + "_" + concept.name
                 concept.isAbstract = astClass.isAbstract || astClass.isSealed
                 registerMapping(astClass, concept)
             } else if (astClass.isConceptInterface) {
-                val conceptInterface = Interface(lionwebLanguage, astClass.simpleName, lionwebLanguage.id + "_" + astClass.simpleName)
+                val conceptInterface = Interface(
+                    lionwebLanguage,
+                    astClass.simpleName,
+                    lionwebLanguage.id + "_" + astClass.simpleName
+                )
                 conceptInterface.key = lionwebLanguage.key + "_" + conceptInterface.name
                 registerMapping(astClass, conceptInterface)
             }
@@ -150,14 +158,22 @@ class LionWebLanguageConverter {
                         featuresContainer.addFeature(prop)
                     }
                     is Reference -> {
-                        val ref = io.lionweb.language.Reference(it.name, featuresContainer, featuresContainer.id + "_" + it.name)
+                        val ref = io.lionweb.language.Reference(
+                            it.name,
+                            featuresContainer,
+                            featuresContainer.id + "_" + it.name
+                        )
                         ref.key = featuresContainer.key + "_" + ref.name
                         ref.setOptional(it.optional)
                         ref.setType(toLWClassifier(it.type))
                         featuresContainer.addFeature(ref)
                     }
                     is Containment -> {
-                        val cont = io.lionweb.language.Containment(it.name, featuresContainer, featuresContainer.id + "_" + it.name)
+                        val cont = io.lionweb.language.Containment(
+                            it.name,
+                            featuresContainer,
+                            featuresContainer.id + "_" + it.name
+                        )
                         cont.key = featuresContainer.key + "_" + cont.name
                         cont.setOptional(true)
                         cont.setMultiple(it.multiplicity == Multiplicity.MANY)
@@ -343,7 +359,11 @@ class LionWebLanguageConverter {
 }
 
 fun addEnumerationFromClass(lionwebLanguage: LWLanguage, kClass: EnumKClass): Enumeration {
-    val newEnumeration = Enumeration(lionwebLanguage, kClass.simpleName, (lionwebLanguage.id ?: "unknown_language") + "_" + kClass.simpleName)
+    val newEnumeration = Enumeration(
+        lionwebLanguage,
+        kClass.simpleName,
+        (lionwebLanguage.id ?: "unknown_language") + "_" + kClass.simpleName
+    )
     newEnumeration.key = newEnumeration.name
 
     val entries = kClass.java.enumConstants
