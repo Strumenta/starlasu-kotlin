@@ -696,7 +696,10 @@ class LionWebModelConverter(
     private fun containmentValue(data: LWNode, containment: Containment): Any? {
         val lwChildren = data.getChildren(containment)
         if (containment.isMultiple) {
-            val kChildren = lwChildren.map { nodesMapping.byB(it)!! }
+            val kChildren = ArrayList<Any>(lwChildren.size)
+            for (child in lwChildren) {
+                kChildren.add(nodesMapping.byB(child)!!)
+            }
             return kChildren
         } else {
             // Given we navigate the tree in reverse the child should have been already
@@ -767,7 +770,7 @@ class LionWebModelConverter(
                     TODO()
                 }
             }
-        val params = mutableMapOf<KParameter, Any?>()
+        val params = HashMap<KParameter, Any?>(constructor.parameters.size)
         constructor.parameters.forEach { param ->
             val feature = lwFeatureByName(data.classifier, param.name!!)
             if (feature == null) {
