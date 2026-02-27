@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 class LionWebTreeWalker {
 
-    private val containmentsCache = ConcurrentHashMap<Concept, List<Containment>>()
+    private val containmentsCache = ConcurrentHashMap<String, List<Containment>>()
 
     fun thisAndAllDescendants(node: LWNode): Sequence<LWNode> {
         return sequence {
@@ -16,8 +16,8 @@ class LionWebTreeWalker {
     }
 
     private suspend fun SequenceScope<LWNode>.yieldThisAndAllDescendants(node: LWNode) {
-        val containments = containmentsCache.computeIfAbsent(node.classifier) { concept ->
-            concept.allContainments()
+        val containments = containmentsCache.computeIfAbsent(node.classifier.id!! ) { _ ->
+            node.classifier.allContainments()
         }
         yield(node)
         if (node is ProxyNode) {
@@ -49,8 +49,8 @@ class LionWebTreeWalker {
             return
         }
 
-        val containments = containmentsCache.computeIfAbsent(node.classifier) { concept ->
-            concept.allContainments()
+        val containments = containmentsCache.computeIfAbsent(node.classifier.id!!) { _ ->
+            node.classifier.allContainments()
         }
 
         var i = 0
