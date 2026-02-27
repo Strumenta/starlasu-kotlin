@@ -11,7 +11,8 @@ dependencies {
     implementation(project(":lionweb"))
     implementation(kotlin("stdlib", libs.versions.kotlin.get()))
     implementation(kotlin("reflect", libs.versions.kotlin.get()))
-    implementation(libs.starlasu.specs)
+    implementation(libs.starlasu.specs.languages)
+    implementation(libs.starlasu.specs.components)
     implementation(libs.gson)
 
     testImplementation(kotlin("test", libs.versions.kotlin.get()))

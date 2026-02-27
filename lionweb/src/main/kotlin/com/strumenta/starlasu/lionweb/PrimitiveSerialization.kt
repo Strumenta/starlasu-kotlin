@@ -8,19 +8,19 @@ import io.lionweb.kotlin.DefaultMetamodelRegistry
 import io.lionweb.kotlin.MetamodelRegistry
 import io.lionweb.serialization.PrimitiveValuesSerialization.PrimitiveDeserializer
 import io.lionweb.serialization.PrimitiveValuesSerialization.PrimitiveSerializer
-import com.strumenta.starlasu.base.v2.ASTLanguageV2 as ASTLanguage
+import com.strumenta.starlasu.base.v2.ASTLanguage as ASTLanguage
 
 fun registerSerializersAndDeserializersInMetamodelRegistry(
     metamodelRegistry: MetamodelRegistry = DefaultMetamodelRegistry,
 ) {
-    metamodelRegistry.addSerializerAndDeserializer(ASTLanguage.getChar(), charSerializer, charDeserializer)
+    metamodelRegistry.addSerializerAndDeserializer(ASTLanguage.getInstance().char, charSerializer, charDeserializer)
     metamodelRegistry.addSerializerAndDeserializer(
-        ASTLanguage.getPosition(),
+        ASTLanguage.getInstance().position,
         positionSerializer,
         positionDeserializer,
     )
     metamodelRegistry.addSerializerAndDeserializer(
-        ASTLanguage.getTokensList(),
+        ASTLanguage.getInstance().tokensList,
         tokensListPrimitiveSerializer,
         tokensListPrimitiveDeserializer,
     )
@@ -89,7 +89,7 @@ val positionDeserializer =
         require(parts.size == 2) {
             "Position has an unexpected format: $serialized"
         }
-        Position(pointDeserializer.deserialize(parts[0]), pointDeserializer.deserialize(parts[1]))
+        Position(pointDeserializer.deserialize(parts[0])!!, pointDeserializer.deserialize(parts[1])!!)
     }
 
 //
@@ -119,7 +119,7 @@ val tokensListPrimitiveDeserializer =
                         require(parts.size == 2)
                         val category = parts[0]
                         val position = positionDeserializer.deserialize(parts[1])
-                        StarlasuToken(TokenCategory(category), position)
+                        StarlasuToken(TokenCategory(category), position!!)
                     }.toMutableList()
             }
         TokensList(tokens)

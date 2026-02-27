@@ -54,7 +54,8 @@ dependencies {
     implementation(project(":semantics"))
     implementation(libs.lionweb.kotlin)
     implementation(libs.lionweb.kotlin.client)
-    implementation(libs.starlasu.specs)
+    implementation(libs.starlasu.specs.languages) 
+implementation(libs.starlasu.specs.components)
 
     testImplementation(kotlin("test-junit5"))
     testImplementation(libs.commons.io)
