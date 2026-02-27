@@ -103,10 +103,10 @@ class LionWebModelConverter(
 ) {
     companion object {
         private val kFeaturesCache = mutableMapOf<Class<*>, Map<String, Feature>>()
-        private val lwFeaturesCache = mutableMapOf<Classifier<*>, Map<String, LWFeature<*>>>()
+        private val lwFeaturesCache = mutableMapOf<String, Map<String, LWFeature<*>>>()
 
         fun lwFeatureByName(classifier: Classifier<*>, featureName: String): LWFeature<*>? {
-            return lwFeaturesCache.getOrPut(classifier) {
+            return lwFeaturesCache.getOrPut(classifier.id!!) {
                 classifier.allFeatures().associateBy { it.name!! }
             }[featureName]
         }
@@ -211,7 +211,7 @@ class LionWebModelConverter(
                 val kFeatures = kFeaturesCache.getOrPut(kNode.javaClass) {
                     kNode.javaClass.kotlin.allFeatures().associateBy { it.name }
                 }
-                val lwFeatures = lwFeaturesCache.getOrPut(lwNode.classifier) {
+                val lwFeatures = lwFeaturesCache.getOrPut(lwNode.classifier.id!!) {
                     lwNode.classifier.allFeatures().associateBy { it.name!! }
                 }
                 lwFeatures.values.forEach { feature ->
