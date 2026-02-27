@@ -422,7 +422,7 @@ class LionWebModelConverter(
 
     fun importModelFromLionWeb(lwTree: LWNode): Any {
         val referencesPostponer = ReferencesPostponer(ignoreMissingReferences = this.ignoreMissingReferences)
-        lionWebTreeWalker.thisAndAllDescendants(lwTree).toList().myReversed().forEach { lwNode ->
+        lionWebTreeWalker.thisAndAllDescendantsLeavesFirst(lwTree).forEach { lwNode ->
             val kClass = synchronized(languageConverter) {
                 languageConverter.correspondingKolasuClass(lwNode.classifier)
             }
