@@ -18,7 +18,7 @@ dependencies {
     implementation(kotlin("reflect", libs.versions.kotlin.get()))
     implementation(libs.gson)
     api(libs.clikt)
-    api(libs.lionweb.java)
+    api(libs.lionweb.core)
 
     implementation(kotlin("test", libs.versions.kotlin.get()))
     testImplementation(kotlin("test-junit", libs.versions.kotlin.get()))

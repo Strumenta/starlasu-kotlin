@@ -21,7 +21,7 @@ dependencies {
     implementation(libs.starlasu.specs.languages)
     implementation(libs.starlasu.specs.components)
 
-    api(libs.lionweb.java)
+    api(libs.lionweb.core)
     api(libs.lionweb.kotlin)
 
     api(project(":core"))

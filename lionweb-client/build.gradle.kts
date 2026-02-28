@@ -33,7 +33,7 @@ testing {
                 implementation(libs.kotest.property)
                 implementation(libs.testcontainers.junit5)
                 implementation(libs.testcontainers.pg)
-                implementation(libs.lionweb.java.client.testing)
+                implementation(libs.lionweb.client.testing)
             }
 
             targets {
@@ -48,7 +48,7 @@ testing {
 }
 
 dependencies {
-    implementation(libs.lionweb.java)
+    implementation(libs.lionweb.core)
     implementation(project(":core"))
     implementation(project(":lionweb"))
     implementation(project(":semantics"))

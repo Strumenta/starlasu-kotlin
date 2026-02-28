@@ -1,6 +1,6 @@
 [versions]
 kotlin = "2.0.21"
-lwjava = "1.2.4"
+lwjava = "1.3.3"
 lwkotlin = "0.6.6"
 kotest= "5.9.1"
 dokka = "2.1.0"
@@ -20,10 +20,11 @@ release = { id ="net.researchgate.release", version = "3.1.0" }
 [libraries]
 guava = { group = "com.google.guava", name="guava", version="33.5.0-jre" } # Only used in tests
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
-lionweb-java = { group = "io.lionweb.lionweb-java", name = "lionweb-java-2024.1-core", version.ref = "lwjava" }
-lionweb-java-client-testing = { group = "io.lionweb.lionweb-java", name = "lionweb-java-2024.1-client-testing", version.ref = "lwjava" }
-lionweb-kotlin = { group = "io.lionweb.lionweb-kotlin", name = "lionweb-kotlin-2024.1-core", version.ref = "lwkotlin" }
-lionweb-kotlin-client = { group = "io.lionweb.lionweb-kotlin", name = "lionweb-kotlin-2024.1-client", version.ref = "lwkotlin" }
+lionweb-core = { group = "io.lionweb", name = "lionweb-2024.1-core", version.ref = "lwjava" }
+lionweb-emf = { group = "io.lionweb", name = "lionweb-2024.1-emf", version.ref = "lwjava" }
+lionweb-client-testing = { group = "io.lionweb", name = "lionweb-2024.1-client-testing", version.ref = "lwjava" }
+lionweb-kotlin-client = { group = "io.lionweb", name = "lionweb-2024.1-kotlin-client", version.ref = "lwjava" }
+lionweb-kotlin = { group = "io.lionweb", name = "lionweb-2024.1-kotlin-core", version.ref = "lwjava" }
 starlasu-specs-languages = { module="com.strumenta.starlasu.specs:languages", version.ref="specs" }
 starlasu-specs-components = { module="com.strumenta.starlasu.specs:components", version.ref="specs" }
 

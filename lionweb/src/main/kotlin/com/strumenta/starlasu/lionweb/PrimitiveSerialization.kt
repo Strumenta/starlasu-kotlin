@@ -6,6 +6,7 @@ import com.strumenta.starlasu.parsing.StarlasuToken
 import com.strumenta.starlasu.parsing.TokenCategory
 import io.lionweb.kotlin.DefaultMetamodelRegistry
 import io.lionweb.kotlin.MetamodelRegistry
+import io.lionweb.serialization.DataTypesValuesSerialization
 import io.lionweb.serialization.PrimitiveValuesSerialization.PrimitiveDeserializer
 import io.lionweb.serialization.PrimitiveValuesSerialization.PrimitiveSerializer
 import com.strumenta.starlasu.base.v2.ASTLanguage as ASTLanguage
@@ -34,11 +35,11 @@ class TokensList(
 // Char
 //
 
-val charSerializer = PrimitiveSerializer<Char> { value -> "$value" }
+val charSerializer = DataTypesValuesSerialization.DataTypeSerializer<Char> { value -> "$value" }
 val charDeserializer =
-    PrimitiveDeserializer<Char> { serialized ->
+    DataTypesValuesSerialization.DataTypeDeserializer<Char> { serialized ->
         if (serialized == null) {
-            return@PrimitiveDeserializer null
+            return@DataTypeDeserializer null
         }
         require(serialized.length == 1)
         serialized[0]
@@ -73,17 +74,17 @@ val pointDeserializer: PrimitiveDeserializer<Point> =
 //
 
 val positionSerializer =
-    PrimitiveSerializer<Position> { value ->
+    DataTypesValuesSerialization.DataTypeSerializer<Position> { value ->
         if (value == null) {
-            return@PrimitiveSerializer null
+            return@DataTypeSerializer null
         }
         "${pointSerializer.serialize((value as Position).start)}-${pointSerializer.serialize(value.end)}"
     }
 
 val positionDeserializer =
-    PrimitiveDeserializer<Position> { serialized ->
+    DataTypesValuesSerialization.DataTypeDeserializer<Position> { serialized ->
         if (serialized == null) {
-            return@PrimitiveDeserializer null
+            return@DataTypeDeserializer null
         }
         val parts = serialized.split("-")
         require(parts.size == 2) {
@@ -97,16 +98,16 @@ val positionDeserializer =
 //
 
 val tokensListPrimitiveSerializer =
-    PrimitiveSerializer<TokensList?> { value: TokensList? ->
+    DataTypesValuesSerialization.DataTypeSerializer<TokensList?> { value: TokensList? ->
         value?.tokens?.joinToString(";") { kt ->
             kt.category.type + "$" + positionSerializer.serialize(kt.position)
         }
     }
 
 val tokensListPrimitiveDeserializer =
-    PrimitiveDeserializer<TokensList?> { serialized ->
+    DataTypesValuesSerialization.DataTypeDeserializer<TokensList?> { serialized ->
         if (serialized == null) {
-            return@PrimitiveDeserializer null
+            return@DataTypeDeserializer null
         }
         val tokens =
             if (serialized.isEmpty()) {
