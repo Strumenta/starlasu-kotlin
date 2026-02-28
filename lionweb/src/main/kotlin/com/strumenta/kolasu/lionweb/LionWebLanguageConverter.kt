@@ -97,18 +97,23 @@ class LionWebLanguageConverter {
         // First we create all types
         kolasuLanguage.astClasses.forEach { astClass ->
             if (astClass.isConcept) {
-                val concept = Concept(lionwebLanguage.lionWebVersion, astClass.simpleName)
+                val concept = Concept(
+                    lionwebLanguage,
+                    astClass.simpleName,
+                    lionwebLanguage.id + "_" + astClass.simpleName
+                )
                 concept.isPartition = false
                 concept.key = lionwebLanguage.key + "_" + concept.name
-                concept.setID(lionwebLanguage.id + "_" + concept.name)
                 concept.isAbstract = astClass.isAbstract || astClass.isSealed
-                lionwebLanguage.addElement(concept)
                 registerMapping(astClass, concept)
             } else if (astClass.isConceptInterface) {
-                val conceptInterface = Interface(lionwebLanguage.lionWebVersion, astClass.simpleName)
+                val conceptInterface = Interface(
+                    lionwebLanguage,
+                    astClass.simpleName,
+                    lionwebLanguage.id + "_" + astClass.simpleName
+                )
                 conceptInterface.key = lionwebLanguage.key + "_" + conceptInterface.name
                 conceptInterface.setID(lionwebLanguage.id + "_" + conceptInterface.name)
-                lionwebLanguage.addElement(conceptInterface)
                 registerMapping(astClass, conceptInterface)
             }
         }

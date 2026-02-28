@@ -7,8 +7,8 @@ import com.strumenta.kolasu.parsing.TokenCategory
 import com.strumenta.starlasu.base.v1.ASTLanguage
 import io.lionweb.kotlin.DefaultMetamodelRegistry
 import io.lionweb.kotlin.MetamodelRegistry
-import io.lionweb.serialization.PrimitiveValuesSerialization.PrimitiveDeserializer
-import io.lionweb.serialization.PrimitiveValuesSerialization.PrimitiveSerializer
+import io.lionweb.serialization.DataTypesValuesSerialization.DataTypeDeserializer
+import io.lionweb.serialization.DataTypesValuesSerialization.DataTypeSerializer
 
 fun registerSerializersAndDeserializersInMetamodelRegistry(
     metamodelRegistry: MetamodelRegistry = DefaultMetamodelRegistry
@@ -25,7 +25,7 @@ fun registerSerializersAndDeserializersInMetamodelRegistry(
     )
     metamodelRegistry.addSerializerAndDeserializer(
         ASTLanguage.getInstance().tokensList,
-        tokensListPrimitiveSerializer,
+        tokensListDataTypeSerializer,
         tokensListPrimitiveDeserializer
     )
 }
@@ -36,10 +36,10 @@ class TokensList(val tokens: List<KolasuToken>)
 // Char
 //
 
-val charSerializer = PrimitiveSerializer<Char> { value -> "$value" }
-val charDeserializer = PrimitiveDeserializer<Char> { serialized ->
+val charSerializer = DataTypeSerializer<Char> { value -> "$value" }
+val charDeserializer = DataTypeDeserializer<Char> { serialized ->
     if (serialized == null) {
-        return@PrimitiveDeserializer null
+        return@DataTypeDeserializer null
     }
     require(serialized.length == 1)
     serialized[0]
@@ -49,18 +49,18 @@ val charDeserializer = PrimitiveDeserializer<Char> { serialized ->
 // Point
 //
 
-val pointSerializer: PrimitiveSerializer<Point> =
-    PrimitiveSerializer<Point> { value ->
+val pointSerializer: DataTypeSerializer<Point> =
+    DataTypeSerializer<Point> { value ->
         if (value == null) {
-            return@PrimitiveSerializer null
+            return@DataTypeSerializer null
         }
         "L${value.line}:${value.column}"
     }
 
-val pointDeserializer: PrimitiveDeserializer<Point> =
-    PrimitiveDeserializer<Point> { serialized ->
+val pointDeserializer: DataTypeDeserializer<Point> =
+    DataTypeDeserializer<Point> { serialized ->
         if (serialized == null) {
-            return@PrimitiveDeserializer null
+            return@DataTypeDeserializer null
         }
         require(serialized.startsWith("L"))
         require(serialized.removePrefix("L").isNotEmpty())
@@ -73,16 +73,16 @@ val pointDeserializer: PrimitiveDeserializer<Point> =
 // Position
 //
 
-val positionSerializer = PrimitiveSerializer<Position> { value ->
+val positionSerializer = DataTypeSerializer<Position> { value ->
     if (value == null) {
-        return@PrimitiveSerializer null
+        return@DataTypeSerializer null
     }
     "${pointSerializer.serialize((value as Position).start)}-${pointSerializer.serialize(value.end)}"
 }
 
-val positionDeserializer = PrimitiveDeserializer<Position> { serialized ->
+val positionDeserializer = DataTypeDeserializer<Position> { serialized ->
     if (serialized == null) {
-        return@PrimitiveDeserializer null
+        return@DataTypeDeserializer null
     }
     val parts = serialized.split("-")
     require(parts.size == 2) {
@@ -95,15 +95,15 @@ val positionDeserializer = PrimitiveDeserializer<Position> { serialized ->
 // Tokens List
 //
 
-val tokensListPrimitiveSerializer = PrimitiveSerializer<TokensList?> { value: TokensList? ->
+val tokensListDataTypeSerializer = DataTypeSerializer<TokensList?> { value: TokensList? ->
     value?.tokens?.joinToString(";") { kt ->
         kt.category.type + "$" + positionSerializer.serialize(kt.position)
     }
 }
 
-val tokensListPrimitiveDeserializer = PrimitiveDeserializer<TokensList?> { serialized ->
+val tokensListPrimitiveDeserializer = DataTypeDeserializer<TokensList?> { serialized ->
     if (serialized == null) {
-        return@PrimitiveDeserializer null
+        return@DataTypeDeserializer null
     }
     val tokens = if (serialized.isEmpty()) {
         mutableListOf()

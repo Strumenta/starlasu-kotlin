@@ -101,11 +101,11 @@ class LionWebModelConverter(
     var ignoreMissingReferences: Boolean = false
 ) {
     companion object {
-        private val kFeaturesCache = mutableMapOf<Class<*>, Map<String, Feature>>()
-        private val lwFeaturesCache = mutableMapOf<Classifier<*>, Map<String, LWFeature<*>>>()
+        private val kFeaturesCache = java.util.concurrent.ConcurrentHashMap<Class<*>, Map<String, Feature>>()
+        private val lwFeaturesCache = mutableMapOf<String, Map<String, LWFeature<*>>>()
 
         fun lwFeatureByName(classifier: Classifier<*>, featureName: String): LWFeature<*>? {
-            return lwFeaturesCache.getOrPut(classifier) {
+            return lwFeaturesCache.getOrPut(classifier.id!!) {
                 classifier.allFeatures().associateBy { it.name!! }
             }[featureName]
         }
@@ -210,7 +210,7 @@ class LionWebModelConverter(
                 val kFeatures = kFeaturesCache.getOrPut(kNode.javaClass) {
                     kNode.javaClass.kotlin.allFeatures().associateBy { it.name }
                 }
-                val lwFeatures = lwFeaturesCache.getOrPut(lwNode.classifier) {
+                val lwFeatures = lwFeaturesCache.getOrPut(lwNode.classifier.id!!) {
                     lwNode.classifier.allFeatures().associateBy { it.name!! }
                 }
                 lwFeatures.values.forEach { feature ->
@@ -421,7 +421,7 @@ class LionWebModelConverter(
 
     fun importModelFromLionWeb(lwTree: LWNode): Any {
         val referencesPostponer = ReferencesPostponer(ignoreMissingReferences = this.ignoreMissingReferences)
-        lionWebTreeWalker.thisAndAllDescendants(lwTree).toList().myReversed().forEach { lwNode ->
+        lionWebTreeWalker.thisAndAllDescendantsLeavesFirst(lwTree).forEach { lwNode ->
             val kClass = synchronized(languageConverter) {
                 languageConverter.correspondingKolasuClass(lwNode.classifier)
             }
@@ -514,7 +514,7 @@ class LionWebModelConverter(
 
     fun prepareSerialization(
         serialization: AbstractSerialization =
-            SerializationProvider.getStandardJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
+            SerializationProvider.getEfficientJsonSerialization(LIONWEB_VERSION_USED_BY_KOLASU)
     ): AbstractSerialization {
         registerSerializersAndDeserializersInMetamodelRegistry(metamodelRegistry)
         metamodelRegistry.prepareSerialization(serialization)
@@ -695,7 +695,10 @@ class LionWebModelConverter(
     private fun containmentValue(data: LWNode, containment: Containment): Any? {
         val lwChildren = data.getChildren(containment)
         if (containment.isMultiple) {
-            val kChildren = lwChildren.map { nodesMapping.byB(it)!! }
+            val kChildren = ArrayList<Any>(lwChildren.size)
+            for (child in lwChildren) {
+                kChildren.add(nodesMapping.byB(child)!!)
+            }
             return kChildren
         } else {
             // Given we navigate the tree in reverse the child should have been already
@@ -766,7 +769,7 @@ class LionWebModelConverter(
                     TODO()
                 }
             }
-        val params = mutableMapOf<KParameter, Any?>()
+        val params = HashMap<KParameter, Any?>(constructor.parameters.size)
         constructor.parameters.forEach { param ->
             val feature = lwFeatureByName(data.classifier, param.name!!)
             if (feature == null) {

@@ -21,8 +21,8 @@ dependencies {
     cliImplementation "com.github.ajalt.clikt:clikt:$clikt_version"
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5:$kotlin_version")
     testImplementation("org.junit.jupiter:junit-jupiter:5.7.1")
-    implementation(libs.lionweb.java)
-    implementation(libs.lionweb.java.emf)
+    implementation(libs.lionweb.core)
+    implementation(libs.lionweb.emf)
     implementation(libs.starlasu.specs.languages)
     implementation(libs.starlasu.specs.components)
     api(project(":core"))
