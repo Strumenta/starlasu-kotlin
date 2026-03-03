@@ -6,7 +6,6 @@ import com.strumenta.kolasu.language.Attribute
 import com.strumenta.kolasu.language.Containment
 import com.strumenta.kolasu.language.Feature
 import com.strumenta.kolasu.language.Reference
-import com.strumenta.kolasu.model.isReference
 import com.strumenta.kolasu.testing.IgnoreChildren
 import kotlin.reflect.KClass
 import kotlin.reflect.KClassifier
