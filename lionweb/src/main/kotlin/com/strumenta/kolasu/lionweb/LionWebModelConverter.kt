@@ -430,7 +430,6 @@ class LionWebModelConverter(
             try {
                 val instantiated = instantiate(kClass, lwNode, referencesPostponer)
                 if (instantiated is KNode) {
-                    starlasuTreeWalker.assignParents(instantiated)
                     // This mapping will eventually become superfluous because we will store the ID directly in the
                     // instantiated kNode
                     nodeIdProvider.registerMapping(instantiated, lwNode.id!!)
@@ -510,7 +509,11 @@ class LionWebModelConverter(
         placeholderNodes.entries.forEach { entry ->
             entry.value.invoke(entry.key)
         }
-        return nodesMapping.byB(lwTree)!!
+        val finalRootNode = nodesMapping.byB(b = lwTree)!!
+        if (finalRootNode is KNode) {
+            starlasuTreeWalker.assignParents(node = finalRootNode)
+        }
+        return finalRootNode
     }
 
     fun prepareSerialization(
