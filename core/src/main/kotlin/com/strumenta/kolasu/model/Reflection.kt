@@ -137,6 +137,17 @@ data class PropertyDescription(
 
     companion object {
 
+        // A thread-safe cache to store the heavy reflection results per property
+        private val propertyMetaCache = java.util.concurrent.ConcurrentHashMap<KProperty1<*, *>, CachedPropertyMeta>()
+
+        // Internal data class to hold the static metadata
+        private data class CachedPropertyMeta(
+            val multiplicity: Multiplicity,
+            val type: kotlin.reflect.KType,
+            val propertyType: PropertyType,
+            val derived: Boolean
+        )
+
         fun <N : Node> multiple(property: KProperty1<N, *>): Boolean {
             val propertyType = property.returnType
             val classifier = propertyType.classifier as? KClass<*>
@@ -157,24 +168,42 @@ data class PropertyDescription(
         }
 
         fun <N : Node> buildFor(property: KProperty1<N, *>, node: Node): PropertyDescription {
-            val multiplicity = multiplicity(property)
-            val provideNodes = providesNodes(property)
-            val type = if (property.isReference()) {
-                property.returnType.arguments[0].type!!
-            } else {
-                property.returnType
+            // computeIfAbsent guarantees reflection is executed ONLY ONCE per KProperty1
+            val meta = propertyMetaCache.computeIfAbsent(property) { prop ->
+
+                // 1. Calculate Multiplicity (this calls your existing optional/multiple functions)
+                val multiplicity = multiplicity(prop as KProperty1<N, *>)
+
+                // 2. Calculate Type
+                val type = if (prop.isReference()) {
+                    prop.returnType.arguments[0].type!!
+                } else {
+                    prop.returnType
+                }
+
+                // 3. Calculate PropertyType
+                val providesNodes = providesNodes(prop) // Do this reflection once!
+                val propType = when {
+                    prop.isReference() -> PropertyType.REFERENCE
+                    providesNodes -> PropertyType.CONTAINMENT
+                    else -> PropertyType.ATTRIBUTE
+                }
+
+                // 4. Calculate Derived
+                val derived = prop.findAnnotation<Derived>() != null
+
+                CachedPropertyMeta(multiplicity, type, propType, derived)
             }
+
+            // Return the new description instantly, no reflection involved!
+            // Only the valueProvider lambda is dynamic, because it captures the 'node' instance
             return PropertyDescription(
                 name = property.name,
-                multiplicity = multiplicity,
+                multiplicity = meta.multiplicity,
                 valueProvider = { property.get(node as N) },
-                when {
-                    property.isReference() -> PropertyType.REFERENCE
-                    provideNodes -> PropertyType.CONTAINMENT
-                    else -> PropertyType.ATTRIBUTE
-                },
-                derived = property.findAnnotation<Derived>() != null,
-                type = type
+                propertyType = meta.propertyType,
+                derived = meta.derived,
+                type = meta.type
             )
         }
     }
