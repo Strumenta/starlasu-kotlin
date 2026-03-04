@@ -151,7 +151,8 @@ data class PropertyDescription(
         fun <N : Node> multiple(property: KProperty1<N, *>): Boolean {
             val propertyType = property.returnType
             val classifier = propertyType.classifier as? KClass<*>
-            return (classifier?.isSubclassOf(Collection::class) == true)
+            // PERFORMANCE FIX: Use JVM native reflection instead of Kotlin's slow DFS isSubclassOf
+            return classifier?.java?.let { Collection::class.java.isAssignableFrom(it) } == true
         }
 
         fun <N : Node> optional(property: KProperty1<N, *>): Boolean {
@@ -240,7 +241,8 @@ fun providesNodes(kclass: KClass<*>?): Boolean {
  * @return can [this] class be considered an AST node?
  */
 fun KClass<*>.isANode(): Boolean {
-    return this.isSubclassOf(Node::class) || this.isMarkedAsNodeType()
+    // PERFORMANCE FIX: Use JVM native reflection
+    return Node::class.java.isAssignableFrom(this.java) || this.isMarkedAsNodeType()
 }
 
 val KClass<*>.isConcept: Boolean
