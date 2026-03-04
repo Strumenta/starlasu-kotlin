@@ -13,7 +13,6 @@ import kotlin.reflect.KProperty1
 import kotlin.reflect.KType
 import kotlin.reflect.KTypeProjection
 import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.superclasses
 import kotlin.reflect.full.withNullability
 
@@ -269,7 +268,8 @@ data class PropertyTypeDescription(
         fun buildFor(property: KProperty1<*, *>): PropertyTypeDescription {
             val propertyType = property.returnType
             val classifier = propertyType.classifier as? KClass<*>
-            val multiple = (classifier?.isSubclassOf(Collection::class) == true)
+            // PERFORMANCE FIX: Use JVM native reflection instead of Kotlin's slow DFS isSubclassOf
+            val multiple = classifier?.java?.let { Collection::class.java.isAssignableFrom(it) } == true
             val valueType: KType
             val provideNodes = if (multiple) {
                 valueType = propertyType.arguments[0].type!!
@@ -306,7 +306,9 @@ private fun providesNodes(kTypeProjection: KTypeProjection): Boolean {
 }
 
 fun <N : Any> KProperty1<N, *>.isContainment(): Boolean {
-    return if ((this.returnType.classifier as? KClass<*>)?.isSubclassOf(Collection::class) == true) {
+    // PERFORMANCE FIX: Use JVM native reflection instead of Kotlin's slow DFS isSubclassOf
+    val classifier = this.returnType.classifier as? KClass<*>
+    return if (classifier?.java?.let { Collection::class.java.isAssignableFrom(it) } == true) {
         providesNodes(this.returnType.arguments[0].type!!.classifier as KClass<out Node>)
     } else {
         providesNodes(this.returnType.classifier as KClass<out Node>)
@@ -323,7 +325,9 @@ fun <N : Any> KProperty1<N, *>.isAttribute(): Boolean {
 
 fun <N : Node> KProperty1<N, *>.containedType(): KClass<out Node> {
     require(isContainment())
-    return if ((this.returnType.classifier as? KClass<*>)?.isSubclassOf(Collection::class) == true) {
+    // PERFORMANCE FIX: Use JVM native reflection instead of Kotlin's slow DFS isSubclassOf
+    val classifier = this.returnType.classifier as? KClass<*>
+    return if (classifier?.java?.let { Collection::class.java.isAssignableFrom(it) } == true) {
         this.returnType.arguments[0].type!!.classifier as KClass<out Node>
     } else {
         this.returnType.classifier as KClass<out Node>
@@ -336,8 +340,10 @@ fun <N : Node> KProperty1<N, *>.referredType(): KClass<out Node> {
 }
 
 fun <N : Any> KProperty1<N, *>.asContainment(): Containment {
+    // PERFORMANCE FIX: Use JVM native reflection instead of Kotlin's slow DFS isSubclassOf
+    val classifier = this.returnType.classifier as? KClass<*>
     val multiplicity = when {
-        (this.returnType.classifier as? KClass<*>)?.isSubclassOf(Collection::class) == true -> {
+        classifier?.java?.let { Collection::class.java.isAssignableFrom(it) } == true -> {
             if (this.returnType.isMarkedNullable) {
                 throw IllegalStateException(
                     "Containments should not be defined as nullable collections " +
@@ -359,8 +365,10 @@ fun <N : Any> KProperty1<N, *>.asContainment(): Containment {
 }
 
 fun <N : Any> KProperty1<N, *>.asReference(): Reference {
+    // PERFORMANCE FIX: Use JVM native reflection instead of Kotlin's slow DFS isSubclassOf
+    val classifier = this.returnType.classifier as? KClass<*>
     val optional = when {
-        (this.returnType.classifier as? KClass<*>)?.isSubclassOf(Collection::class) == true -> {
+        classifier?.java?.let { Collection::class.java.isAssignableFrom(it) } == true -> {
             throw IllegalStateException()
         }
 
@@ -371,8 +379,10 @@ fun <N : Any> KProperty1<N, *>.asReference(): Reference {
 }
 
 fun <N : Any> KProperty1<N, *>.asAttribute(): Attribute {
+    // PERFORMANCE FIX: Use JVM native reflection instead of Kotlin's slow DFS isSubclassOf
+    val classifier = this.returnType.classifier as? KClass<*>
     val optional = when {
-        (this.returnType.classifier as? KClass<*>)?.isSubclassOf(Collection::class) == true -> {
+        classifier?.java?.let { Collection::class.java.isAssignableFrom(it) } == true -> {
             throw IllegalStateException("Attributes with a Collection type are not allowed (property $this)")
         }
 
