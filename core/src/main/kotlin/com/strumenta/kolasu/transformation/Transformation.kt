@@ -17,7 +17,6 @@ import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty1
 import kotlin.reflect.full.createInstance
 import kotlin.reflect.full.createType
-import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.superclasses
@@ -84,7 +83,8 @@ class NodeFactory<Source, Output : Node>(
 
     private fun getPropertyType(targetProperty: KProperty1<out Any, *>): KClass<out Node> {
         val returnType = targetProperty.asContainment().type
-        return if (returnType.isSubclassOf(Node::class)) {
+        // PERFORMANCE FIX: Use JVM native reflection instead of Kotlin's slow DFS isSubclassOf
+        return if (Node::class.java.isAssignableFrom(returnType.java)) {
             returnType as KClass<out Node>
         } else {
             Node::class
@@ -551,10 +551,14 @@ open class ASTTransformer @JvmOverloads constructor(
                     } else {
                         AbsentParameterValue
                     }
-                } else if ((kParameter.type.classifier as? KClass<*>)?.isSubclassOf(Collection::class) == true) {
-                    PresentParameterValue(transformIntoNodes(childSource))
                 } else {
-                    PresentParameterValue(transform(childSource))
+                    // PERFORMANCE FIX: Use JVM native reflection instead of Kotlin's slow DFS isSubclassOf
+                    val classifier = kParameter.type.classifier as? KClass<*>
+                    if (classifier?.java?.let { Collection::class.java.isAssignableFrom(it) } == true) {
+                        PresentParameterValue(transformIntoNodes(childSource))
+                    } else {
+                        PresentParameterValue(transform(childSource))
+                    }
                 }
             }
         }
