@@ -118,7 +118,7 @@ class LionWebModelConverter(
     var ignoreMissingReferences: Boolean = false,
 ) {
     companion object {
-        private val kFeaturesCache = java.util.concurrent.ConcurrentHashMap<Class<*>, Map<String, Feature>>()
+        private val kFeaturesCache = ConcurrentHashMap<Class<*>, Map<String, Feature>>()
         private val lwFeaturesCache = mutableMapOf<String, Map<String, LWFeature<*>>>()
 
         fun lwFeatureByName(

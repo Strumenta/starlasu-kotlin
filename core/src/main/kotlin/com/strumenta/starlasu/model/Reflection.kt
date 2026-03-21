@@ -14,7 +14,6 @@ import kotlin.reflect.KType
 import kotlin.reflect.KTypeProjection
 import kotlin.reflect.full.allSupertypes
 import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.withNullability
 
 fun <T : ASTNode> T.relevantMemberProperties(
@@ -119,10 +118,22 @@ data class PropertyDescription(
         get() = multiplicity == Multiplicity.MANY
 
     companion object {
+        // A thread-safe cache to store the heavy reflection results per property
+        private val propertyMetaCache = java.util.concurrent.ConcurrentHashMap<KProperty1<*, *>, CachedPropertyMeta>()
+
+        // Internal data class to hold the static metadata
+        private data class CachedPropertyMeta(
+            val multiplicity: Multiplicity,
+            val type: kotlin.reflect.KType,
+            val propertyType: PropertyType,
+            val derived: Boolean,
+        )
+
         fun <N : ASTNode> multiple(property: KProperty1<N, *>): Boolean {
             val propertyType = property.returnType
             val classifier = propertyType.classifier as? KClass<*>
-            return (classifier?.isSubclassOf(Collection::class) == true)
+            // PERFORMANCE FIX: Use JVM native reflection instead of Kotlin's slow DFS isSubclassOf
+            return classifier?.java?.let { Collection::class.java.isAssignableFrom(it) } == true
         }
 
         fun <N : ASTNode> optional(property: KProperty1<N, *>): Boolean {
@@ -151,25 +162,43 @@ data class PropertyDescription(
             property: KProperty1<N, *>,
             node: ASTNode,
         ): PropertyDescription {
-            val multiplicity = multiplicity(property)
-            val provideNodes = providesNodes(property)
-            val type =
-                if (property.isReference()) {
-                    property.returnType.arguments[0].type!!
-                } else {
-                    property.returnType
+            // computeIfAbsent guarantees reflection is executed ONLY ONCE per KProperty1
+            val meta =
+                propertyMetaCache.computeIfAbsent(property) { prop ->
+
+                    // 1. Calculate Multiplicity (this calls your existing optional/multiple functions)
+                    val multiplicity = multiplicity(prop as KProperty1<N, *>)
+
+                    // 2. Calculate Type
+                    val type =
+                        if (prop.isReference()) {
+                            prop.returnType.arguments[0].type!!
+                        } else {
+                            prop.returnType
+                        } // 3. Calculate PropertyType
+                    val providesNodes = providesNodes(prop) // Do this reflection once!
+                    val propType =
+                        when {
+                            prop.isReference() -> PropertyType.REFERENCE
+                            providesNodes -> PropertyType.CONTAINMENT
+                            else -> PropertyType.ATTRIBUTE
+                        }
+
+                    // 4. Calculate Derived
+                    val derived = prop.findAnnotation<Derived>() != null
+
+                    CachedPropertyMeta(multiplicity, type, propType, derived)
                 }
+
+            // Return the new description instantly, no reflection involved!
+            // Only the valueProvider lambda is dynamic, because it captures the 'node' instance
             return PropertyDescription(
                 name = property.name,
-                multiplicity = multiplicity,
+                multiplicity = meta.multiplicity,
                 valueProvider = { property.get(node as N) },
-                when {
-                    property.isReference() -> PropertyType.REFERENCE
-                    provideNodes -> PropertyType.CONTAINMENT
-                    else -> PropertyType.ATTRIBUTE
-                },
-                derived = property.findAnnotation<Derived>() != null,
-                type = type,
+                propertyType = meta.propertyType,
+                derived = meta.derived,
+                type = meta.type,
             )
         }
     }
@@ -203,7 +232,10 @@ fun providesNodes(kclass: KClass<*>?): Boolean = kclass?.isANode() ?: false
 /**
  * @return can [this] class be considered an AST node?
  */
-fun KClass<*>.isANode(): Boolean = this.isSubclassOf(ASTNode::class) || this.implementsASTNode()
+fun KClass<*>.isANode(): Boolean {
+    // PERFORMANCE FIX: Use JVM native reflection
+    return Node::class.java.isAssignableFrom(this.java) || this.implementsASTNode()
+}
 
 val KClass<*>.isConcept: Boolean
     get() = isANode() && !this.java.isInterface
@@ -226,7 +258,8 @@ data class PropertyTypeDescription(
         fun buildFor(property: KProperty1<*, *>): PropertyTypeDescription {
             val propertyType = property.returnType
             val classifier = propertyType.classifier as? KClass<*>
-            val multiple = (classifier?.isSubclassOf(Collection::class) == true)
+            // PERFORMANCE FIX: Use JVM native reflection instead of Kotlin's slow DFS isSubclassOf
+            val multiple = classifier?.java?.let { Collection::class.java.isAssignableFrom(it) } == true
             val valueType: KType
             val provideNodes =
                 if (multiple) {
@@ -263,8 +296,10 @@ private fun providesNodes(kTypeProjection: KTypeProjection): Boolean {
     }
 }
 
-fun <N : Any> KProperty1<N, *>.isContainment(): Boolean =
-    if ((this.returnType.classifier as? KClass<*>)?.isSubclassOf(Collection::class) == true) {
+fun <N : Any> KProperty1<N, *>.isContainment(): Boolean {
+    // PERFORMANCE FIX: Use JVM native reflection instead of Kotlin's slow DFS isSubclassOf
+    val classifier = this.returnType.classifier as? KClass<*>
+    return if (classifier?.java?.let { Collection::class.java.isAssignableFrom(it) } == true) {
         providesNodes(
             this.returnType.arguments[0]
                 .type!!
@@ -273,6 +308,7 @@ fun <N : Any> KProperty1<N, *>.isContainment(): Boolean =
     } else {
         providesNodes(this.returnType.classifier as KClass<out ASTNode>)
     }
+}
 
 fun <N : Any> KProperty1<N, *>.isReference(): Boolean = this.returnType.classifier == ReferenceByName::class
 
@@ -280,7 +316,9 @@ fun <N : Any> KProperty1<N, *>.isAttribute(): Boolean = !isContainment() && !isR
 
 fun <N : ASTNode> KProperty1<N, *>.containedType(): KClass<out ASTNode> {
     require(isContainment())
-    return if ((this.returnType.classifier as? KClass<*>)?.isSubclassOf(Collection::class) == true) {
+    // PERFORMANCE FIX: Use JVM native reflection instead of Kotlin's slow DFS isSubclassOf
+    val classifier = this.returnType.classifier as? KClass<*>
+    return if (classifier?.java?.let { Collection::class.java.isAssignableFrom(it) } == true) {
         this.returnType.arguments[0]
             .type!!
             .classifier as KClass<out ASTNode>
@@ -297,9 +335,11 @@ fun <N : ASTNode> KProperty1<N, *>.referredType(): KClass<out ASTNode> {
 }
 
 fun <N : Any> KProperty1<N, *>.asContainment(): Containment {
+    // PERFORMANCE FIX: Use JVM native reflection instead of Kotlin's slow DFS isSubclassOf
+    val classifier = this.returnType.classifier as? KClass<*>
     val multiplicity =
         when {
-            (this.returnType.classifier as? KClass<*>)?.isSubclassOf(Collection::class) == true -> {
+            classifier?.java?.let { Collection::class.java.isAssignableFrom(it) } == true -> {
                 if (this.returnType.isMarkedNullable) {
                     throw IllegalStateException(
                         "Containments should not be defined as nullable collections " +
@@ -324,9 +364,11 @@ fun <N : Any> KProperty1<N, *>.asContainment(): Containment {
 }
 
 fun <N : Any> KProperty1<N, *>.asReference(): Reference {
+    // PERFORMANCE FIX: Use JVM native reflection instead of Kotlin's slow DFS isSubclassOf
+    val classifier = this.returnType.classifier as? KClass<*>
     val optional =
         when {
-            (this.returnType.classifier as? KClass<*>)?.isSubclassOf(Collection::class) == true -> {
+            classifier?.java?.let { Collection::class.java.isAssignableFrom(it) } == true -> {
                 throw IllegalStateException()
             }
 
@@ -343,9 +385,11 @@ fun <N : Any> KProperty1<N, *>.asReference(): Reference {
 }
 
 fun <N : Any> KProperty1<N, *>.asAttribute(): Attribute {
+    // PERFORMANCE FIX: Use JVM native reflection instead of Kotlin's slow DFS isSubclassOf
+    val classifier = this.returnType.classifier as? KClass<*>
     val optional =
         when {
-            (this.returnType.classifier as? KClass<*>)?.isSubclassOf(Collection::class) == true -> {
+            classifier?.java?.let { Collection::class.java.isAssignableFrom(it) } == true -> {
                 throw IllegalStateException("Attributes with a Collection type are not allowed (property $this)")
             }
 
