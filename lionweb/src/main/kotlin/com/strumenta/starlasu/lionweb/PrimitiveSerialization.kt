@@ -7,8 +7,8 @@ import com.strumenta.starlasu.parsing.TokenCategory
 import io.lionweb.kotlin.DefaultMetamodelRegistry
 import io.lionweb.kotlin.MetamodelRegistry
 import io.lionweb.serialization.DataTypesValuesSerialization
-import io.lionweb.serialization.PrimitiveValuesSerialization.PrimitiveDeserializer
-import io.lionweb.serialization.PrimitiveValuesSerialization.PrimitiveSerializer
+import io.lionweb.serialization.DataTypesValuesSerialization.DataTypeDeserializer
+import io.lionweb.serialization.DataTypesValuesSerialization.DataTypeSerializer
 import com.strumenta.starlasu.base.v2.ASTLanguage as ASTLanguage
 
 fun registerSerializersAndDeserializersInMetamodelRegistry(
@@ -49,18 +49,18 @@ val charDeserializer =
 // Point
 //
 
-val pointSerializer: PrimitiveSerializer<Point> =
-    PrimitiveSerializer<Point> { value ->
+val pointSerializer: DataTypeSerializer<Point> =
+    DataTypeSerializer<Point> { value ->
         if (value == null) {
-            return@PrimitiveSerializer null
+            return@DataTypeSerializer null
         }
         "L${value.line}:${value.column}"
     }
 
-val pointDeserializer: PrimitiveDeserializer<Point> =
-    PrimitiveDeserializer<Point> { serialized ->
+val pointDeserializer: DataTypeDeserializer<Point> =
+    DataTypeDeserializer<Point> { serialized ->
         if (serialized == null) {
-            return@PrimitiveDeserializer null
+            return@DataTypeDeserializer null
         }
         require(serialized.startsWith("L"))
         require(serialized.removePrefix("L").isNotEmpty())
