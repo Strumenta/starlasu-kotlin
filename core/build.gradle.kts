@@ -56,6 +56,9 @@ tasks.named("compileKotlin") {
 tasks.named("dokkaHtml") {
     dependsOn("kaptKotlin")
 }
+tasks.named("dokkaJavadoc") {
+    dependsOn("kaptKotlin")
+}
 tasks.named("compileJava") {
     dependsOn("generateGrammarSource", "generateTestGrammarSource")
 }
