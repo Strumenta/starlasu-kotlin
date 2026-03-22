@@ -8,23 +8,14 @@ import java.util.WeakHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction1
 
+internal val defaultTreeWalker = CommonStarlasuTreeWalker()
+
 /**
  * Traverse the entire tree, deep first, starting from this Node.
  *
  * @return a Sequence representing the Nodes encountered.
  */
-fun Node.walk(): Sequence<Node> {
-    val stack: Stack<Node> = mutableStackOf(this)
-    return generateSequence {
-        if (stack.isEmpty()) {
-            null
-        } else {
-            val next: Node = stack.pop()
-            stack.pushAll(next.children)
-            next
-        }
-    }
-}
+fun Node.walk(): Sequence<Node> = defaultTreeWalker.walk(this)
 
 /**
  * Performs a post-order (or leaves-first) node traversal starting with a given node.
@@ -162,9 +153,7 @@ fun <T> Node.findAncestorOfType(klass: Class<T>): T? {
  * @return all direct children of this node.
  */
 val Node.children: List<Node>
-    get() {
-        return walkChildren().toList()
-    }
+    get() = defaultTreeWalker.walkChildren(this).toList()
 
 /**
  * @return all direct children of this node.

@@ -18,8 +18,36 @@ class CommonStarlasuTreeWalker : StarlasuTreeWalker {
     // We use java Class as key because they have faster hashCode/equals than KClass
     private val calculatorCaches = ConcurrentHashMap<Class<out Node>, Function1<Node, Sequence<Node>>>()
 
+    // Tracks which classes override getOriginalProperties() (e.g. Java nodes that use
+    // JavaBeans reflection instead of Kotlin memberProperties).
+    private val overridesOriginalPropertiesCache = ConcurrentHashMap<Class<out Node>, Boolean>()
+
+    private fun overridesOriginalProperties(javaClass: Class<out Node>): Boolean =
+        overridesOriginalPropertiesCache.computeIfAbsent(javaClass) { clz ->
+            try {
+                clz.getMethod("getOriginalProperties").declaringClass != Node::class.java
+            } catch (_: NoSuchMethodException) {
+                false
+            }
+        }
+
     override fun <N : Node> walkChildren(node: N): Sequence<Node> {
         return calculatorCaches.computeIfAbsent(node.javaClass) { javaClass ->
+            if (overridesOriginalProperties(javaClass)) {
+                // Fall back to the PropertyDescription path for classes that override
+                // getOriginalProperties() (e.g. Java nodes using JavaBeans reflection).
+                return@computeIfAbsent { n ->
+                    sequence {
+                        n.originalProperties.forEach { property ->
+                            when (val value = property.value) {
+                                is Node -> yield(value)
+                                is Collection<*> -> value.forEach { if (it is Node) yield(it) }
+                            }
+                        }
+                    }
+                }
+            }
+
             val kClass = javaClass.kotlin as KClass<N>
             val relevantProps = kClass.nodeOriginalProperties.filter { providesNodes(it) }
             val multiplicity = BooleanArray(relevantProps.size) { i ->
