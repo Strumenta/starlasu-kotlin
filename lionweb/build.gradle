@@ -29,7 +29,11 @@ dependencies {
     api(project(":core"))
     implementation(libs.starlasu.specs)
 
-    // JMH annotation processor for Kotlin (via kapt on the jmh source set)
+    // JMH: pin both core and annotation processor to the same version.
+    // The me.champeau.jmh plugin defaults to jmh-core:1.36; the 1.37 generator emits
+    // code referencing InfraControl.shouldYield which only exists in core 1.37, so we
+    // must override the core version explicitly.
+    jmhImplementation "org.openjdk.jmh:jmh-core:1.37"
     kaptJmh "org.openjdk.jmh:jmh-generator-annprocess:1.37"
     jmhImplementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     jmhImplementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
