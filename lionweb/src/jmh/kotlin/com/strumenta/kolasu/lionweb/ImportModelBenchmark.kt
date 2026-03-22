@@ -10,7 +10,6 @@ package com.strumenta.kolasu.lionweb
 
 import com.strumenta.kolasu.language.KolasuLanguage
 import com.strumenta.kolasu.model.assignParents
-import io.lionweb.model.Node as LWNode
 import org.openjdk.jmh.annotations.Benchmark
 import org.openjdk.jmh.annotations.BenchmarkMode
 import org.openjdk.jmh.annotations.Fork
@@ -27,6 +26,7 @@ import org.openjdk.jmh.profile.GCProfiler
 import org.openjdk.jmh.runner.Runner
 import org.openjdk.jmh.runner.options.OptionsBuilder
 import java.util.concurrent.TimeUnit
+import io.lionweb.model.Node as LWNode
 
 /**
  * Benchmarks [LionWebModelConverter.importModelFromLionWeb].
