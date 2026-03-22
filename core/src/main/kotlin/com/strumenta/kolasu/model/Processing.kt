@@ -145,7 +145,7 @@ fun Node.processConsideringDirectParent(operation: (Node, Node?) -> Unit, parent
  * @return all direct children of this node.
  */
 val Node.children: List<Node>
-    get() = defaultTreeWalker.walkChildren(this).toList()
+    get() = defaultTreeWalker.walkChildrenToList(this)
 
 /**
  * @return the next sibling node. Notice that children of a sibling collection are considered siblings
