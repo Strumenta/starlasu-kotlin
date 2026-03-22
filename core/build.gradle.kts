@@ -53,6 +53,9 @@ tasks.named("runKtlintCheckOverMainSourceSet") {
 tasks.named("compileKotlin") {
     dependsOn("generateGrammarSource")
 }
+tasks.named("dokkaHtml") {
+    dependsOn("kaptKotlin")
+}
 tasks.named("compileJava") {
     dependsOn("generateGrammarSource", "generateTestGrammarSource")
 }
