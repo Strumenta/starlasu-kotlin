@@ -122,3 +122,4 @@ signing {
 }
 
 tasks.findByName("dokkaJavadoc").dependsOn(":core:compileKotlin")
+tasks.findByName("dokkaJavadoc").dependsOn(":lionweb:kaptKotlin")

@@ -1,4 +1,4 @@
-# kolasu-lionweb
+# Module lionweb
 
 Integration module that converts between Kolasu ASTs and [LionWeb](https://lionweb.io) models.
 
