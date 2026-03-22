@@ -2,6 +2,7 @@ package com.strumenta.kolasu.lionweb
 
 import com.strumenta.kolasu.ids.IDGenerationException
 import com.strumenta.kolasu.ids.NodeIdProvider
+import com.strumenta.kolasu.ids.caching
 import com.strumenta.kolasu.language.Feature
 import com.strumenta.kolasu.language.KolasuLanguage
 import com.strumenta.kolasu.model.CompositeDestination
@@ -98,7 +99,11 @@ private val PlaceholderNodeType = ASTLanguage.getLanguage().getEnumerationByName
  *                       (through the HasID.id field).
  */
 class LionWebModelConverter(
-    var nodeIdProvider: NodeIdProvider = StructuralLionWebNodeIdProvider(),
+    // CachingNodeIDProvider wraps the structural provider so that recursive parent-ID lookups
+    // inside StructuralNodeIdProvider.id() are served from a cache instead of recomputing
+    // containingProperty() + indexInContainingProperty() up the entire ancestor chain every time
+    // (those calls allocate List<PropertyDescription> per invocation, ~356 MB on large models).
+    var nodeIdProvider: NodeIdProvider = StructuralLionWebNodeIdProvider().caching(),
     initialLanguageConverter: LionWebLanguageConverter = LionWebLanguageConverter(),
     val metamodelRegistry: MetamodelRegistry = DefaultMetamodelRegistry,
     var ignoreMissingReferences: Boolean = false
@@ -447,15 +452,35 @@ class LionWebModelConverter(
                 params.none { param -> param.name == prop.name }
             }
 
-            // Capture ctor and params in the lambda — no reflection at call time
+            // Using Array<Any?> + ctor.call(*array) instead of HashMap<KParameter,Any?> +
+            // ctor.callBy(map).  Eliminates per-invocation allocations:
+            //   • HashMap creation            (~407 MB/op on large models)
+            //   • KParameterImpl.getType()    (~888 MB/op) from isAssignableBy checks
+            //   • callBy internal processing  (~402 MB/op)
+            // All params are always provided from the LionWeb node, so positional call() is correct.
+            val paramsSize = params.size
             val factory: (LWNode, ReferencesPostponer) -> Any = { lwNode, postponer ->
-                val args = buildArgsMap(params, lwNode, postponer)
+                val argsArray = arrayOfNulls<Any>(paramsSize)
+                for (i in 0 until paramsSize) {
+                    val param = params[i]
+                    val feature = lwFeatureByName(lwNode.classifier, param.name!!)
+                        ?: throw IllegalStateException(
+                            "We could not find a feature named as the parameter ${param.name} " +
+                                "on classifier ${lwNode.classifier}"
+                        )
+                    argsArray[i] = when (feature) {
+                        is Property -> attributeValue(lwNode, feature)
+                        is Reference -> referenceValue(lwNode, feature, postponer)
+                        is Containment -> containmentValue(lwNode, feature)
+                        else -> throw IllegalStateException()
+                    }
+                }
                 val instance = try {
-                    ctor.callBy(args)
+                    ctor.call(*argsArray)
                 } catch (e: Exception) {
                     throw RuntimeException(
                         "Issue instantiating using constructor ${kc.qualifiedName}.$ctor with params " +
-                            "${args.map { "${it.key.name}=${it.value}" }}",
+                            "${params.mapIndexed { i, p -> "${p.name}=${argsArray[i]}" }}",
                         e
                     )
                 }
