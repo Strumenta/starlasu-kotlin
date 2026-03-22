@@ -1,9 +1,11 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm'
+    id 'org.jetbrains.kotlin.kapt'
     id "org.jlleitschuh.gradle.ktlint"
     id "maven-publish"
     id "signing"
     id "org.jetbrains.dokka"
+    id 'me.champeau.jmh' version '0.7.2'
 }
 
 java {
@@ -26,6 +28,11 @@ dependencies {
     }
     api(project(":core"))
     implementation(libs.starlasu.specs)
+
+    // JMH annotation processor for Kotlin (via kapt on the jmh source set)
+    kaptJmh "org.openjdk.jmh:jmh-generator-annprocess:1.37"
+    jmhImplementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    jmhImplementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
 }
 
 def isReleaseVersion = !version.toString().endsWith("SNAPSHOT")
