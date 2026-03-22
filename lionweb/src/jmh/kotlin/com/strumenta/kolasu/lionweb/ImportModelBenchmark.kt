@@ -9,6 +9,7 @@
 package com.strumenta.kolasu.lionweb
 
 import com.strumenta.kolasu.language.KolasuLanguage
+import com.strumenta.kolasu.model.SyntheticSource
 import com.strumenta.kolasu.model.assignParents
 import org.openjdk.jmh.annotations.Benchmark
 import org.openjdk.jmh.annotations.BenchmarkMode
@@ -95,6 +96,7 @@ open class ImportModelBenchmark {
         }.toMutableList()
         val root = BenchRoot(containers = containers)
         root.assignParents()
+        root.source = SyntheticSource("synth1")
         return root
     }
 
