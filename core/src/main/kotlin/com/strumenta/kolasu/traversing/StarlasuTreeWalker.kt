@@ -37,8 +37,11 @@ class CommonStarlasuTreeWalker : StarlasuTreeWalker {
      * Returns the direct children of [node] as a List.
      * Returns [emptyList] (singleton) for leaf nodes — no allocation.
      */
-    internal fun walkChildrenToList(node: Node): List<Node> =
-        calculatorCaches.computeIfAbsent(node.javaClass) { javaClass ->
+    internal fun walkChildrenToList(node: Node): List<Node> {
+        // Given that determining how to calculate children for a given node requires examining the class,
+        // we cache the examination part, and we get a lambda that, given a node will give us the children
+        // We then invoke such lambda on a given node
+        val calculator = calculatorCaches.computeIfAbsent(node.javaClass) { javaClass ->
             if (overridesOriginalProperties(javaClass)) {
                 // Fall back to the PropertyDescription path for classes that override
                 // getOriginalProperties() (e.g. Java nodes using JavaBeans reflection).
@@ -52,39 +55,41 @@ class CommonStarlasuTreeWalker : StarlasuTreeWalker {
                     }
                     result
                 }
-            }
+            } else {
+                @Suppress("UNCHECKED_CAST")
+                val kClass = javaClass.kotlin as KClass<Node>
+                val propsArray = kClass.nodeOriginalProperties.filter { providesNodes(it) }
+                    .toTypedArray() as Array<KProperty1<Node, *>>
+                val manyArray = BooleanArray(propsArray.size) { i ->
+                    multiplicity(propsArray[i]) == Multiplicity.MANY
+                }
 
-            @Suppress("UNCHECKED_CAST")
-            val kClass = javaClass.kotlin as KClass<Node>
-            val relevantProps = kClass.nodeOriginalProperties.filter { providesNodes(it) }
-            val many = BooleanArray(relevantProps.size) { i -> multiplicity(relevantProps[i]) == Multiplicity.MANY }
-
-            @Suppress("UNCHECKED_CAST")
-            val propsArray = relevantProps.toTypedArray() as Array<KProperty1<Node, *>>
-
-            return@computeIfAbsent { n ->
-                // Defer ArrayList creation until we actually find a child.
-                // Leaf nodes pay zero allocation cost (returns emptyList singleton).
-                var result: ArrayList<Node>? = null
-                for (i in propsArray.indices) {
-                    val value = propsArray[i].get(n)
-                    if (value != null) {
-                        if (many[i]) {
-                            @Suppress("UNCHECKED_CAST")
-                            val col = value as Collection<Node>
-                            if (col.isNotEmpty()) {
-                                if (result == null) result = ArrayList(col.size)
-                                result.addAll(col)
+                return@computeIfAbsent { n ->
+                    // Defer ArrayList creation until we actually find a child.
+                    // Leaf nodes pay zero allocation cost (returns emptyList singleton).
+                    var result: ArrayList<Node>? = null
+                    for (i in propsArray.indices) {
+                        val value = propsArray[i].get(n)
+                        if (value != null) {
+                            if (manyArray[i]) {
+                                @Suppress("UNCHECKED_CAST")
+                                val collectionValue = value as Collection<Node>
+                                if (collectionValue.isNotEmpty()) {
+                                    if (result == null) result = ArrayList(collectionValue.size)
+                                    result.addAll(collectionValue)
+                                }
+                            } else {
+                                if (result == null) result = ArrayList(2)
+                                result.add(value as Node)
                             }
-                        } else {
-                            if (result == null) result = ArrayList(2)
-                            result.add(value as Node)
                         }
                     }
+                    result ?: emptyList()
                 }
-                result ?: emptyList()
             }
-        }.invoke(node)
+        }
+        return calculator.invoke(node)
+    }
 
     override fun <N : Node> walkChildren(node: N): Sequence<Node> = walkChildrenToList(node).asSequence()
 
