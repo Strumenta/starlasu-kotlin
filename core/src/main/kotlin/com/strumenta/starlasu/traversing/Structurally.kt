@@ -24,7 +24,7 @@ fun ASTNode.walk(): Sequence<ASTNode> = defaultTreeWalker.walk(this)
  * stack-of-lists allocation.
  */
 fun ASTNode.walkLeavesFirst(): Sequence<ASTNode> {
-    val result = ArrayList<Node>(64)
+    val result = ArrayList<ASTNode>(64)
     defaultTreeWalker.collectLeavesFirst(this, result)
     return result.asSequence()
 }

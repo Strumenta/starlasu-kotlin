@@ -98,6 +98,9 @@ project.afterEvaluate {
     tasks.named("sourcesJar") {
         dependsOn("generateGrammarSource")
     }
+    tasks.named("kaptGenerateStubsKotlin") {
+        dependsOn("generateGrammarSource")
+    }
 }
 
 mavenPublishing {

@@ -4,6 +4,7 @@ import com.strumenta.starlasu.base.v1.MigrationLanguage
 import com.strumenta.starlasu.base.v2.ASTLanguage
 import com.strumenta.starlasu.ids.IDGenerationException
 import com.strumenta.starlasu.ids.NodeIdProvider
+import com.strumenta.starlasu.ids.caching
 import com.strumenta.starlasu.language.Feature
 import com.strumenta.starlasu.language.KolasuLanguage
 import com.strumenta.starlasu.model.ASTNode
@@ -587,9 +588,9 @@ class LionWebModelConverter(
             val feature = lwFeatureByName(data.classifier, property.name)
             if (property !is KMutableProperty<*>) {
                 if (property.isContainment() && property.asContainment().multiplicity == Multiplicity.MANY) {
-                    val currentValue = property.get(instance) as MutableList<KNode>
+                    val currentValue = property.get(instance) as MutableList<ASTNode>
                     currentValue.clear()
-                    val valueToSet = containmentValue(data, feature as Containment) as List<KNode>
+                    val valueToSet = containmentValue(data, feature as Containment) as List<ASTNode>
                     currentValue.addAll(valueToSet)
                 } else if (property.isReference()) {
                     val currentValue = property.get(instance) as ReferenceByName<PossiblyNamed>
@@ -686,7 +687,7 @@ class LionWebModelConverter(
             val kClass =
                 kClassCache.computeIfAbsent(lwNode.classifier) { classifier ->
                     synchronized(languageConverter) {
-                        languageConverter.correspondingKolasuClass(classifier)
+                        languageConverter.correspondingStartlasuClass(classifier)
                     } ?: throw RuntimeException(
                         "We do not have Starlasu AST class for LionWeb Concept $classifier",
                     )
