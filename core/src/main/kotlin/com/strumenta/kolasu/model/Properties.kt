@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.model
 
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 import kotlin.reflect.KVisibility
@@ -13,7 +14,9 @@ val <T : Any> Class<T>.nodeOriginalProperties: Collection<KProperty1<T, *>>
 val <T : Any> Class<T>.nodeDerivedProperties: Collection<KProperty1<T, *>>
     get() = this.kotlin.nodeDerivedProperties
 
-private val nodePropertiesCache = java.util.concurrent.ConcurrentHashMap<KClass<*>, Collection<KProperty1<*, *>>>()
+private val nodePropertiesCache = ConcurrentHashMap<KClass<*>, Collection<KProperty1<*, *>>>()
+private val nodeOriginalPropertiesCache = ConcurrentHashMap<KClass<*>, Collection<KProperty1<*, *>>>()
+private val nodeDerivedPropertiesCache = ConcurrentHashMap<KClass<*>, Collection<KProperty1<*, *>>>()
 
 @Suppress("UNCHECKED_CAST")
 val <T : Any> KClass<T>.nodeProperties: Collection<KProperty1<T, *>>
@@ -31,13 +34,17 @@ val <T : Any> KClass<T>.nodeProperties: Collection<KProperty1<T, *>>
             .toList()
     } as Collection<KProperty1<T, *>>
 
+@Suppress("UNCHECKED_CAST")
 val <T : Any> KClass<T>.nodeOriginalProperties: Collection<KProperty1<T, *>>
-    get() = nodeProperties
-        .filter { it.findAnnotation<Derived>() == null }
+    get() = nodeOriginalPropertiesCache.computeIfAbsent(this) { kClass ->
+        kClass.nodeProperties.filter { it.findAnnotation<Derived>() == null }
+    } as Collection<KProperty1<T, *>>
 
+@Suppress("UNCHECKED_CAST")
 val <T : Any> KClass<T>.nodeDerivedProperties: Collection<KProperty1<T, *>>
-    get() = nodeProperties
-        .filter { it.findAnnotation<Derived>() != null }
+    get() = nodeDerivedPropertiesCache.computeIfAbsent(this) { kClass ->
+        kClass.nodeProperties.filter { it.findAnnotation<Derived>() != null }
+    } as Collection<KProperty1<T, *>>
 
 /**
  * @return all properties of this node that are considered AST properties.

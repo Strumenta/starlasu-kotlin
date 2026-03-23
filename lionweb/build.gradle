@@ -1,9 +1,11 @@
 plugins {
     id 'org.jetbrains.kotlin.jvm'
+    id 'org.jetbrains.kotlin.kapt'
     id "org.jlleitschuh.gradle.ktlint"
     id "maven-publish"
     id "signing"
     id "org.jetbrains.dokka"
+    id 'me.champeau.jmh' version '0.7.2'
 }
 
 java {
@@ -26,6 +28,15 @@ dependencies {
     }
     api(project(":core"))
     implementation(libs.starlasu.specs)
+
+    // JMH: pin both core and annotation processor to the same version.
+    // The me.champeau.jmh plugin defaults to jmh-core:1.36; the 1.37 generator emits
+    // code referencing InfraControl.shouldYield which only exists in core 1.37, so we
+    // must override the core version explicitly.
+    jmhImplementation "org.openjdk.jmh:jmh-core:1.37"
+    kaptJmh "org.openjdk.jmh:jmh-generator-annprocess:1.37"
+    jmhImplementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    jmhImplementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
 }
 
 def isReleaseVersion = !version.toString().endsWith("SNAPSHOT")
@@ -111,3 +122,4 @@ signing {
 }
 
 tasks.findByName("dokkaJavadoc").dependsOn(":core:compileKotlin")
+tasks.findByName("dokkaJavadoc").dependsOn(":lionweb:kaptKotlin")

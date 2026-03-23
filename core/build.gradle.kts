@@ -1,10 +1,12 @@
 plugins {
     kotlin("jvm")
+    kotlin("kapt")
     alias(libs.plugins.ktlint)
     alias(libs.plugins.vanniktech.publish)
     id("antlr")
     id("idea")
     id("org.jetbrains.dokka")
+    id("me.champeau.jmh") version "0.7.2"
 }
 
 java {
@@ -31,6 +33,12 @@ dependencies {
     // To be removed in v1.7
     implementation("org.redundent:kotlin-xml-builder:1.7.3")
     implementation("com.github.doyaaaaaken:kotlin-csv-jvm:1.9.2")
+
+    // JMH: pin core and annotation processor to the same version.
+    jmhImplementation("org.openjdk.jmh:jmh-core:1.37")
+    kaptJmh("org.openjdk.jmh:jmh-generator-annprocess:1.37")
+    jmhImplementation(kotlin("stdlib", libs.versions.kotlin.get()))
+    jmhImplementation(kotlin("reflect", libs.versions.kotlin.get()))
 }
 
 tasks.named<AntlrTask>("generateTestGrammarSource") {
@@ -44,6 +52,12 @@ tasks.named("runKtlintCheckOverMainSourceSet") {
 }
 tasks.named("compileKotlin") {
     dependsOn("generateGrammarSource")
+}
+tasks.named("dokkaHtml") {
+    dependsOn("kaptKotlin")
+}
+tasks.named("dokkaJavadoc") {
+    dependsOn("kaptKotlin")
 }
 tasks.named("compileJava") {
     dependsOn("generateGrammarSource", "generateTestGrammarSource")

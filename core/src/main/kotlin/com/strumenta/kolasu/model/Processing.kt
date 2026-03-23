@@ -2,7 +2,7 @@
 
 package com.strumenta.kolasu.model
 
-import com.strumenta.kolasu.traversing.children
+import com.strumenta.kolasu.traversing.defaultTreeWalker
 import com.strumenta.kolasu.traversing.searchByType
 import com.strumenta.kolasu.traversing.walk
 import com.strumenta.kolasu.traversing.walkChildren
@@ -145,17 +145,7 @@ fun Node.processConsideringDirectParent(operation: (Node, Node?) -> Unit, parent
  * @return all direct children of this node.
  */
 val Node.children: List<Node>
-    get() {
-        val children = mutableListOf<Node>()
-        this.originalProperties.forEach { p ->
-            val v = p.value
-            when (v) {
-                is Node -> children.add(v)
-                is Collection<*> -> v.forEach { if (it is Node) children.add(it) }
-            }
-        }
-        return children
-    }
+    get() = defaultTreeWalker.walkChildrenToList(this)
 
 /**
  * @return the next sibling node. Notice that children of a sibling collection are considered siblings

@@ -2,6 +2,7 @@ package com.strumenta.kolasu.lionweb
 
 import com.strumenta.kolasu.ids.IDGenerationException
 import com.strumenta.kolasu.ids.NodeIdProvider
+import com.strumenta.kolasu.ids.caching
 import com.strumenta.kolasu.language.Feature
 import com.strumenta.kolasu.language.KolasuLanguage
 import com.strumenta.kolasu.model.CompositeDestination
@@ -96,7 +97,10 @@ private val PlaceholderNodeType = ASTLanguage.getLanguage().getEnumerationByName
  *                       (through the HasID.id field).
  */
 class LionWebModelConverter(
-    var nodeIdProvider: NodeIdProvider = StructuralLionWebNodeIdProvider(),
+    // CachingNodeIDProvider wraps the structural provider so that recursive parent-ID lookups
+    // inside StructuralNodeIdProvider.id() are served from a cache instead of recomputing
+    // containingProperty() + indexInContainingProperty() up the entire ancestor chain every time
+    var nodeIdProvider: NodeIdProvider = StructuralLionWebNodeIdProvider().caching(),
     initialLanguageConverter: LionWebLanguageConverter = LionWebLanguageConverter(),
     val metamodelRegistry: MetamodelRegistry = DefaultMetamodelRegistry,
     var ignoreMissingReferences: Boolean = false
@@ -113,6 +117,9 @@ class LionWebModelConverter(
     }
 
     private val languageConverter = initialLanguageConverter
+
+    private val kClassCache = ConcurrentHashMap<Classifier<*>, KClass<*>>()
+    private val factoryCache = ConcurrentHashMap<KClass<*>, (LWNode, ReferencesPostponer) -> Any>()
 
     /**
      * We mostly map Kolasu Nodes to LionWeb Nodes, but we may also map things that are not Kolasu Nodes but are nodes
@@ -420,15 +427,186 @@ class LionWebModelConverter(
         )
     }
 
+    private fun getOrBuildFactory(kClass: KClass<*>): (LWNode, ReferencesPostponer) -> Any {
+        return factoryCache.computeIfAbsent(kClass) { kc ->
+            // Check if this is a special object type (Issue, ParsingResult)
+            if (kc == Issue::class || kc == ParsingResult::class) {
+                // Special objects need full instantiate logic
+                val factory: (LWNode, ReferencesPostponer) -> Any = { lwNode, postponer ->
+                    instantiate(kc, lwNode, postponer)
+                }
+                return@computeIfAbsent factory
+            }
+
+            val ctor = kc.primaryConstructor
+                ?: kc.constructors.firstOrNull()
+                ?: throw RuntimeException("No constructor for $kc")
+            val params = ctor.parameters
+
+            // Capture ctor, params, and properties for post-construction
+            val propertiesNotSetAtConstructionTime = kc.nodeOriginalProperties.filter { prop ->
+                params.none { param -> param.name == prop.name }
+            }
+
+            val paramsSize = params.size
+            val factory: (LWNode, ReferencesPostponer) -> Any = { lwNode, postponer ->
+                val argsArray = arrayOfNulls<Any>(paramsSize)
+                for (i in 0 until paramsSize) {
+                    val param = params[i]
+                    val feature = lwFeatureByName(lwNode.classifier, param.name!!)
+                        ?: throw IllegalStateException(
+                            "We could not find a feature named as the parameter ${param.name} " +
+                                "on classifier ${lwNode.classifier}"
+                        )
+                    argsArray[i] = when (feature) {
+                        is Property -> attributeValue(lwNode, feature)
+                        is Reference -> referenceValue(lwNode, feature, postponer)
+                        is Containment -> containmentValue(lwNode, feature)
+                        else -> throw IllegalStateException()
+                    }
+                }
+                val instance = try {
+                    ctor.call(*argsArray)
+                } catch (e: Exception) {
+                    throw RuntimeException(
+                        "Issue instantiating using constructor ${kc.qualifiedName}.$ctor with params " +
+                            "${params.mapIndexed { i, p -> "${p.name}=${argsArray[i]}" }}",
+                        e
+                    )
+                }
+
+                // Handle properties not set at construction time
+                setPropertiesNotSetAtConstructionTime(
+                    instance,
+                    kc,
+                    propertiesNotSetAtConstructionTime,
+                    lwNode,
+                    postponer
+                )
+
+                instance
+            }
+            factory
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun setPropertiesNotSetAtConstructionTime(
+        instance: Any,
+        kClass: KClass<*>,
+        propertiesNotSetAtConstructionTime: List<*>,
+        data: Node,
+        referencesPostponer: ReferencesPostponer
+    ) {
+        propertiesNotSetAtConstructionTime.forEach { prop ->
+            val property = prop as kotlin.reflect.KProperty1<Any, *>
+            val feature = lwFeatureByName(data.classifier, property.name)
+            if (property !is KMutableProperty<*>) {
+                if (property.isContainment() && property.asContainment().multiplicity == Multiplicity.MANY) {
+                    val currentValue = property.get(instance) as MutableList<KNode>
+                    currentValue.clear()
+                    val valueToSet = containmentValue(data, feature as Containment) as List<KNode>
+                    currentValue.addAll(valueToSet)
+                } else if (property.isReference()) {
+                    val currentValue = property.get(instance) as ReferenceByName<PossiblyNamed>
+                    val valueToSet = referenceValue(data, feature as Reference, referencesPostponer, currentValue)
+                        as ReferenceByName<PossiblyNamed>
+                    currentValue.name = valueToSet.name
+                    currentValue.referred = valueToSet.referred
+                    currentValue.identifier = valueToSet.identifier
+                } else {
+                    throw java.lang.IllegalStateException(
+                        "Cannot set this property, as it is immutable: ${property.name} on $instance. " +
+                            "The properties set at construction time are available in the constructor"
+                    )
+                }
+            } else {
+                when {
+                    property.isAttribute() -> {
+                        val value = attributeValue(data, feature as Property)
+                        property.setter.call(instance, value)
+                    }
+                    property.isReference() -> {
+                        val valueToSet = referenceValue(data, feature as Reference, referencesPostponer)
+                            as ReferenceByName<PossiblyNamed>
+                        property.setter.call(instance, valueToSet)
+                    }
+                    property.isContainment() -> {
+                        try {
+                            val valueToSet = containmentValue(data, feature as Containment)
+                            property.setter.call(instance, valueToSet)
+                        } catch (e: java.lang.Exception) {
+                            throw RuntimeException("Unable to set containment $feature on node $instance", e)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun buildArgsMap(
+        params: List<KParameter>,
+        data: Node,
+        referencesPostponer: ReferencesPostponer
+    ): Map<KParameter, Any?> {
+        val argsMap = HashMap<KParameter, Any?>(params.size)
+        params.forEach { param ->
+            val feature = lwFeatureByName(data.classifier, param.name!!)
+            if (feature == null) {
+                throw java.lang.IllegalStateException(
+                    "We could not find a feature named as the parameter ${param.name} " +
+                        "on classifier ${data.classifier}"
+                )
+            } else {
+                when (feature) {
+                    is Property -> {
+                        val value = attributeValue(data, feature)
+                        if (!param.type.isAssignableBy(value)) {
+                            throw RuntimeException(
+                                "Cannot assign value $value (${value?.javaClass?.canonicalName}) to param " +
+                                    "${param.name} of type ${param.type}"
+                            )
+                        }
+                        argsMap[param] = value
+                    }
+                    is Reference -> {
+                        val value = referenceValue(data, feature, referencesPostponer)
+                        if (!param.type.isAssignableBy(value)) {
+                            throw RuntimeException(
+                                "Cannot assign value $value to param ${param.name} of type ${param.type}"
+                            )
+                        }
+                        argsMap[param] = value
+                    }
+                    is Containment -> {
+                        val value = containmentValue(data, feature)
+                        if (!param.type.isAssignableBy(value)) {
+                            throw RuntimeException(
+                                "Cannot assign value $value to param ${param.name} of type ${param.type}"
+                            )
+                        }
+                        argsMap[param] = value
+                    }
+                    else -> throw IllegalStateException()
+                }
+            }
+        }
+        return argsMap
+    }
+
     fun importModelFromLionWeb(lwTree: LWNode): Any {
         val referencesPostponer = ReferencesPostponer(ignoreMissingReferences = this.ignoreMissingReferences)
         lionWebTreeWalker.thisAndAllDescendantsLeavesFirst(lwTree).forEach { lwNode ->
-            val kClass = synchronized(languageConverter) {
-                languageConverter.correspondingKolasuClass(lwNode.classifier)
+            val kClass = kClassCache.computeIfAbsent(lwNode.classifier) { classifier ->
+                synchronized(languageConverter) {
+                    languageConverter.correspondingKolasuClass(classifier)
+                } ?: throw RuntimeException(
+                    "We do not have StarLasu AST class for LionWeb Concept $classifier"
+                )
             }
-                ?: throw RuntimeException("We do not have StarLasu AST class for LionWeb Concept ${lwNode.classifier}")
             try {
-                val instantiated = instantiate(kClass, lwNode, referencesPostponer)
+                val factory = getOrBuildFactory(kClass)
+                val instantiated = factory(lwNode, referencesPostponer)
                 if (instantiated is KNode) {
                     // This mapping will eventually become superfluous because we will store the ID directly in the
                     // instantiated kNode
