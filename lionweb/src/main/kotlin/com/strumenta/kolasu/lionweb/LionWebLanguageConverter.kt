@@ -48,6 +48,7 @@ class LionWebLanguageConverter {
     private val classesAndEnumerations = BiMap<EnumKClass, Enumeration>()
     private val classesAndPrimitiveTypes = BiMap<KClass<*>, PrimitiveType>()
     private val languages = BiMap<KolasuLanguage, LWLanguage>()
+    private val nodeTypeToClassifierCache = mutableMapOf<String, Classifier<*>>()
 
     init {
         val starLasuKLanguage = KolasuLanguage(ASTLanguage.getLanguage().name!!)
@@ -297,6 +298,7 @@ class LionWebLanguageConverter {
 
     private fun registerMapping(kolasuClass: KClass<*>, featuresContainer: Classifier<*>) {
         astClassesAndClassifiers.associate(kolasuClass, featuresContainer)
+        nodeTypeToClassifierCache.clear()
     }
 
     private fun toLWClassifier(kClass: KClass<*>): Classifier<*> {
@@ -304,11 +306,13 @@ class LionWebLanguageConverter {
     }
 
     private fun toLWClassifier(nodeType: String): Classifier<*> {
-        val kClass = astClassesAndClassifiers.`as`.find { it.qualifiedName == nodeType }
-            ?: throw IllegalArgumentException(
-                "Unknown nodeType $nodeType"
-            )
-        return toLWClassifier(kClass)
+        return nodeTypeToClassifierCache.getOrPut(nodeType) {
+            val kClass = astClassesAndClassifiers.`as`.find { it.qualifiedName == nodeType }
+                ?: throw IllegalArgumentException(
+                    "Unknown nodeType $nodeType"
+                )
+            toLWClassifier(kClass)
+        }
     }
 
     private fun toLWEnumeration(kClass: KClass<*>, lionwebLanguage: LWLanguage): Enumeration {
