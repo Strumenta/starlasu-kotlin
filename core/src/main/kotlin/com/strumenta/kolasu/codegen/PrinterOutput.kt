@@ -33,6 +33,9 @@ class PrinterOutput(
     private var onNewLine = true
     private var indentationBlock = "    "
     private var newLineStr = "\n"
+    private var lastChar: Char? = null
+    private val printerCache = mutableMapOf<KClass<*>, NodePrinter?>()
+    private val superclassCache = mutableMapOf<KClass<*>, KClass<*>?>()
 
     fun text() = sb.toString()
 
@@ -41,6 +44,9 @@ class PrinterOutput(
      * Avoids materializing the full output string.
      */
     fun lastNonWhitespaceChar(): Char? {
+        if (lastChar != null && !lastChar!!.isWhitespace()) {
+            return lastChar
+        }
         for (i in sb.indices.reversed()) {
             if (!sb[i].isWhitespace()) return sb[i]
         }
@@ -50,16 +56,20 @@ class PrinterOutput(
     private fun advancePoint(text: String) {
         var i = 0
         while (i < text.length) {
-            if (text[i] == '\n' || text[i] == '\r') {
+            val ch = text[i]
+            if (ch == '\n' || ch == '\r') {
                 currentLine++
                 currentColumn = 0
-                if (text[i] == '\r' && i < text.length - 1 && text[i + 1] == '\n') {
+                if (ch == '\r' && i < text.length - 1 && text[i + 1] == '\n') {
                     i++ // Count \r\n as a single line break
                 }
             } else {
                 currentColumn++
             }
             i++
+        }
+        if (text.isNotEmpty()) {
+            lastChar = text[text.length - 1]
         }
     }
 
@@ -101,10 +111,10 @@ class PrinterOutput(
     }
 
     fun ensureSpace() {
-        if (sb.isEmpty()) {
+        if (lastChar == null) {
             return
         }
-        if (!sb.last().isWhitespace()) {
+        if (!lastChar!!.isWhitespace()) {
             print(" ")
         }
     }
@@ -150,8 +160,10 @@ class PrinterOutput(
     private fun considerIndentation() {
         if (onNewLine) {
             onNewLine = false
-            (1..(indentationLevel)).forEach {
-                print(indentationBlock)
+            if (indentationLevel > 0) {
+                val indentation = indentationBlock.repeat(indentationLevel)
+                sb.append(indentation)
+                advancePoint(indentation)
             }
         }
     }
@@ -166,6 +178,11 @@ class PrinterOutput(
     }
 
     private fun findPrinter(ast: Node, kclass: KClass<*>): NodePrinter? {
+        // Check cache first
+        if (printerCache.containsKey(kclass)) {
+            return printerCache[kclass]
+        }
+
         val overrider = nodePrinterOverrider(ast)
         if (overrider != null) {
             return overrider
@@ -176,12 +193,26 @@ class PrinterOutput(
             nodePrinters[kclass]
         }
         if (properPrinter != null) {
+            printerCache[kclass] = properPrinter
             return properPrinter
         }
-        val superclass = kclass.superclasses.filter { !it.java.isInterface }.firstOrNull()
-        if (superclass != null) {
-            return getPrinter(ast, superclass)
+
+        // Cache superclass lookup
+        val superclass = if (superclassCache.containsKey(kclass)) {
+            superclassCache[kclass]
+        } else {
+            val sc = kclass.superclasses.filter { !it.java.isInterface }.firstOrNull()
+            superclassCache[kclass] = sc
+            sc
         }
+
+        if (superclass != null) {
+            val printer = getPrinter(ast, superclass)
+            printerCache[kclass] = printer
+            return printer
+        }
+
+        printerCache[kclass] = null
         return null
     }
 
