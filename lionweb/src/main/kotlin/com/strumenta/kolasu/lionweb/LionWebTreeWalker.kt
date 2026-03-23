@@ -40,10 +40,6 @@ class LionWebTreeWalker {
 
     /**
      * Returns all nodes in this subtree leaves-first (post-order).
-     *
-     * Previously backed by a recursive `suspend` coroutine inside `sequence { }`, which
-     * created a coroutine state-machine allocation for every node visited.  Now uses a
-     * plain recursive helper that fills an ArrayList directly — zero coroutine overhead.
      */
     fun thisAndAllDescendantsLeavesFirst(node: LWNode): List<LWNode> {
         val result = ArrayList<LWNode>(64)

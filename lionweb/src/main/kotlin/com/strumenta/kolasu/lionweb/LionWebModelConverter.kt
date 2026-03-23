@@ -87,8 +87,6 @@ private val PlaceholderNodeMessageProperty = PlaceholderNode.getPropertyByName("
 private val PlaceholderNodeTypeProperty = PlaceholderNode.getPropertyByName("type")!!
 private val PlaceholderNodeType = ASTLanguage.getLanguage().getEnumerationByName("PlaceholderNodeType")!!
 
-// Type alias removed - using inline function type instead due to private inner class access
-
 /**
  * This class is able to convert between Kolasu and LionWeb models, tracking the mapping.
  *
@@ -102,7 +100,6 @@ class LionWebModelConverter(
     // CachingNodeIDProvider wraps the structural provider so that recursive parent-ID lookups
     // inside StructuralNodeIdProvider.id() are served from a cache instead of recomputing
     // containingProperty() + indexInContainingProperty() up the entire ancestor chain every time
-    // (those calls allocate List<PropertyDescription> per invocation, ~356 MB on large models).
     var nodeIdProvider: NodeIdProvider = StructuralLionWebNodeIdProvider().caching(),
     initialLanguageConverter: LionWebLanguageConverter = LionWebLanguageConverter(),
     val metamodelRegistry: MetamodelRegistry = DefaultMetamodelRegistry,
@@ -121,7 +118,6 @@ class LionWebModelConverter(
 
     private val languageConverter = initialLanguageConverter
 
-    // Performance caches for importModelFromLionWeb
     private val kClassCache = ConcurrentHashMap<Classifier<*>, KClass<*>>()
     private val factoryCache = ConcurrentHashMap<KClass<*>, (LWNode, ReferencesPostponer) -> Any>()
 
@@ -452,12 +448,6 @@ class LionWebModelConverter(
                 params.none { param -> param.name == prop.name }
             }
 
-            // Using Array<Any?> + ctor.call(*array) instead of HashMap<KParameter,Any?> +
-            // ctor.callBy(map).  Eliminates per-invocation allocations:
-            //   • HashMap creation            (~407 MB/op on large models)
-            //   • KParameterImpl.getType()    (~888 MB/op) from isAssignableBy checks
-            //   • callBy internal processing  (~402 MB/op)
-            // All params are always provided from the LionWeb node, so positional call() is correct.
             val paramsSize = params.size
             val factory: (LWNode, ReferencesPostponer) -> Any = { lwNode, postponer ->
                 val argsArray = arrayOfNulls<Any>(paramsSize)
