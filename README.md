@@ -73,7 +73,26 @@ dependencies {
 }
 ```
 
----
+## Performance benchmarks
+
+The `lionweb` module contains JMH microbenchmarks for the model-conversion
+hot paths (`importModelFromLionWeb`, `exportModelToLionWeb`, tree traversal).
+
+```bash
+# Run all benchmarks
+./gradlew :lionweb:jmh
+
+# Run a specific class
+./gradlew :lionweb:jmh --include "ImportModelBenchmark"
+
+# Run with GCProfiler (allocation tracking) via the fat jar
+./gradlew :lionweb:jmhJar
+java -jar lionweb/build/libs/lionweb-jmh.jar ImportModelBenchmark
+```
+
+See [`lionweb/README.md`](lionweb/README.md) for the full benchmark documentation.
+
+## How to format code
 
 ## Code Formatting
 

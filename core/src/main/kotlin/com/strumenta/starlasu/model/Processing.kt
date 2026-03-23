@@ -2,7 +2,7 @@
 
 package com.strumenta.starlasu.model
 
-import com.strumenta.starlasu.traversing.children
+import com.strumenta.starlasu.traversing.defaultTreeWalker
 import com.strumenta.starlasu.traversing.searchByType
 import com.strumenta.starlasu.traversing.walk
 import com.strumenta.starlasu.traversing.walkChildren
@@ -162,17 +162,7 @@ fun ASTNode.processConsideringDirectParent(
  * @return all direct children of this node.
  */
 val ASTNode.children: List<ASTNode>
-    get() {
-        val children = mutableListOf<ASTNode>()
-        this.originalProperties.forEach { p ->
-            val v = p.value
-            when (v) {
-                is Node -> children.add(v)
-                is Collection<*> -> v.forEach { if (it is Node) children.add(it) }
-            }
-        }
-        return children
-    }
+    get() = defaultTreeWalker.walkChildrenToList(this)
 
 /**
  * @return the next sibling node. Notice that children of a sibling collection are considered siblings

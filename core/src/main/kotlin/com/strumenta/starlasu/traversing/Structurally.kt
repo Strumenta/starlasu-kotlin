@@ -3,81 +3,30 @@
 package com.strumenta.starlasu.traversing
 
 import com.strumenta.starlasu.model.ASTNode
-import java.util.ArrayDeque
 import java.util.WeakHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction1
+
+internal val defaultTreeWalker = CommonStarlasuTreeWalker()
 
 /**
  * Traverse the entire tree, deep first, starting from this Node.
  *
  * @return a Sequence representing the Nodes encountered.
  */
-fun ASTNode.walk(): Sequence<ASTNode> {
-    val stack: Stack<ASTNode> = mutableStackOf(this)
-    return generateSequence {
-        if (stack.isEmpty()) {
-            null
-        } else {
-            val next: ASTNode = stack.pop()
-            stack.pushAll(next.children)
-            next
-        }
-    }
-}
+fun ASTNode.walk(): Sequence<ASTNode> = defaultTreeWalker.walk(this)
 
 /**
  * Performs a post-order (or leaves-first) node traversal starting with a given node.
+ *
+ * Uses a recursive accumulator via [CommonStarlasuTreeWalker.collectLeavesFirst] so that
+ * child lists are obtained once per node (from the cached walker) with no intermediate
+ * stack-of-lists allocation.
  */
 fun ASTNode.walkLeavesFirst(): Sequence<ASTNode> {
-    val nodesStack: Stack<List<ASTNode>> = mutableStackOf()
-    val cursorStack: Stack<Int> = ArrayDeque()
-    var done = false
-
-    fun nextFromLevel(): ASTNode {
-        val nodes: List<ASTNode> = nodesStack.peek()
-        val cursor = cursorStack.pop()
-        cursorStack.push(cursor + 1)
-        return nodes[cursor]
-    }
-
-    fun fillStackToLeaf(node: ASTNode) {
-        var currentNode: ASTNode = node
-        while (true) {
-            val childNodes: List<ASTNode> = currentNode.children
-            if (childNodes.isEmpty()) {
-                break
-            }
-            nodesStack.push(childNodes)
-            cursorStack.push(0)
-            currentNode = childNodes[0]
-        }
-    }
-    fillStackToLeaf(this)
-    return generateSequence {
-        if (done) {
-            null
-        } else {
-            val nodes: List<ASTNode> = nodesStack.peek()
-            val cursor = cursorStack.peek()
-            val levelHasNext = cursor < nodes.size
-            if (levelHasNext) {
-                val node: ASTNode = nodes[cursor]
-                fillStackToLeaf(node)
-                nextFromLevel()
-            } else {
-                nodesStack.pop()
-                cursorStack.pop()
-                val hasNext = !nodesStack.isEmpty()
-                if (hasNext) {
-                    nextFromLevel()
-                } else {
-                    done = true
-                    this
-                }
-            }
-        }
-    }
+    val result = ArrayList<Node>(64)
+    defaultTreeWalker.collectLeavesFirst(this, result)
+    return result.asSequence()
 }
 
 /**
@@ -160,9 +109,7 @@ fun <T> ASTNode.findAncestorOfType(klass: Class<T>): T? = walkAncestors().filter
  * @return all direct children of this node.
  */
 val ASTNode.children: List<ASTNode>
-    get() {
-        return walkChildren().toList()
-    }
+    get() = defaultTreeWalker.walkChildrenToList(this)
 
 /**
  * @return all direct children of this node.
