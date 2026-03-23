@@ -1,8 +1,10 @@
 package com.strumenta.kolasu.codegen
 
 import com.strumenta.kolasu.model.Node
+import com.strumenta.kolasu.model.Point
 import com.strumenta.kolasu.model.Position
-import com.strumenta.kolasu.model.START_POINT
+import com.strumenta.kolasu.model.START_COLUMN
+import com.strumenta.kolasu.model.START_LINE
 import com.strumenta.kolasu.model.TextFileDestination
 import com.strumenta.kolasu.transformation.PlaceholderASTTransformation
 import kotlin.reflect.KClass
@@ -25,13 +27,41 @@ class PrinterOutput(
     private val placeholderNodePrinter: NodePrinter? = null
 ) {
     private val sb = StringBuilder()
-    private var currentPoint = START_POINT
+    private var currentLine = START_LINE
+    private var currentColumn = START_COLUMN
     private var indentationLevel = 0
     private var onNewLine = true
     private var indentationBlock = "    "
     private var newLineStr = "\n"
 
     fun text() = sb.toString()
+
+    /**
+     * Returns the last non-whitespace character in the current output, or null if none exists.
+     * Avoids materializing the full output string.
+     */
+    fun lastNonWhitespaceChar(): Char? {
+        for (i in sb.indices.reversed()) {
+            if (!sb[i].isWhitespace()) return sb[i]
+        }
+        return null
+    }
+
+    private fun advancePoint(text: String) {
+        var i = 0
+        while (i < text.length) {
+            if (text[i] == '\n' || text[i] == '\r') {
+                currentLine++
+                currentColumn = 0
+                if (text[i] == '\r' && i < text.length - 1 && text[i + 1] == '\n') {
+                    i++ // Count \r\n as a single line break
+                }
+            } else {
+                currentColumn++
+            }
+            i++
+        }
+    }
 
     fun println() {
         println("")
@@ -40,7 +70,7 @@ class PrinterOutput(
     fun println(text: String = "") {
         print(text)
         sb.append(newLineStr)
-        currentPoint += newLineStr
+        advancePoint(newLineStr)
         onNewLine = true
     }
 
@@ -62,20 +92,19 @@ class PrinterOutput(
         if (!needPrintln || text.isNotBlank()) {
             considerIndentation()
         }
-        require(adaptedText.lines().size < 2 || allowMultiLine) { "Given text span multiple lines: $adaptedText" }
+        require(!adaptedText.contains('\n') || allowMultiLine) { "Given text span multiple lines: $adaptedText" }
         sb.append(adaptedText)
-        currentPoint += adaptedText
+        advancePoint(adaptedText)
         if (needPrintln) {
             println()
         }
     }
 
     fun ensureSpace() {
-        val text = this.text()
-        if (text.isEmpty()) {
+        if (sb.isEmpty()) {
             return
         }
-        if (!text.last().isWhitespace()) {
+        if (!sb.last().isWhitespace()) {
             print(" ")
         }
     }
@@ -191,9 +220,9 @@ class PrinterOutput(
     }
 
     fun associate(ast: Node, generation: PrinterOutput.() -> Unit) {
-        val startPoint = currentPoint
+        val startPoint = Point(currentLine, currentColumn)
         generation()
-        val endPoint = currentPoint
+        val endPoint = Point(currentLine, currentColumn)
         val nodePositionInGeneratedCode = Position(startPoint, endPoint)
         ast.destination = TextFileDestination(position = nodePositionInGeneratedCode)
     }
