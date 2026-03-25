@@ -58,11 +58,14 @@ val pointDeserializer: DataTypeDeserializer<Point> =
         if (serialized == null) {
             return@DataTypeDeserializer null
         }
-        require(serialized.startsWith("L"))
-        require(serialized.removePrefix("L").isNotEmpty())
-        val parts = serialized.removePrefix("L").split(":")
-        require(parts.size == 2)
-        Point(parts[0].toInt(), parts[1].toInt())
+        require(serialized.length > 1 && serialized[0] == 'L') {
+            "Point string must start with 'L', got: $serialized"
+        }
+        val colonIdx = serialized.indexOf(':', 1)
+        require(colonIdx > 1) { "Point string missing ':', got: $serialized" }
+        val line = serialized.substring(1, colonIdx).toInt()
+        val column = serialized.substring(colonIdx + 1).toInt()
+        Point(line, column)
     }
 
 //
@@ -80,11 +83,16 @@ val positionDeserializer = DataTypeDeserializer<Position> { serialized ->
     if (serialized == null) {
         return@DataTypeDeserializer null
     }
-    val parts = serialized.split("-")
-    require(parts.size == 2) {
+    // Format: L{line}:{col}-L{line}:{col}. Since line≥1 and col≥0, no negative signs appear,
+    // so "-L" is the unique separator between start and end points.
+    val sepIdx = serialized.indexOf("-L")
+    require(sepIdx > 0) {
         "Position has an unexpected format: $serialized"
     }
-    Position(pointDeserializer.deserialize(parts[0])!!, pointDeserializer.deserialize(parts[1])!!)
+    // Parse start/end points from substrings without allocating intermediate List
+    val startStr = serialized.substring(0, sepIdx)
+    val endStr = serialized.substring(sepIdx + 1)
+    Position(pointDeserializer.deserialize(startStr)!!, pointDeserializer.deserialize(endStr)!!)
 }
 
 //
