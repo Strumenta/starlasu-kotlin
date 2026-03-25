@@ -32,13 +32,23 @@ abstract class ASTCodeGenerator<R : Node> {
     }
 
     fun printToString(ast: R, initialCapacity: Int = 4096): String {
-        val printerOutput = PrinterOutput(this.nodePrinters, nodePrinterOverrider, placeholderNodePrinter, initialCapacity)
+        val printerOutput = PrinterOutput(
+            this.nodePrinters,
+            nodePrinterOverrider,
+            placeholderNodePrinter,
+            initialCapacity
+        )
         configurePrinter(printerOutput)
         return printerOutput.apply { this.print(ast, prefix, postfix) }.text()
     }
 
     fun printToFile(root: R, file: File, initialCapacity: Int = 4096) {
-        val printerOutput = PrinterOutput(this.nodePrinters, nodePrinterOverrider, placeholderNodePrinter, initialCapacity)
+        val printerOutput = PrinterOutput(
+            this.nodePrinters,
+            nodePrinterOverrider,
+            placeholderNodePrinter,
+            initialCapacity
+        )
         configurePrinter(printerOutput)
         printerOutput.apply { this.print(root, prefix, postfix) }
         file.bufferedWriter().use { printerOutput.writeTo(it) }
