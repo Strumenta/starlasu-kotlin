@@ -40,12 +40,12 @@ import java.util.concurrent.TimeUnit
 open class PrimitiveSerializationBenchmark {
 
     // Pre-serialized strings to avoid measuring serialization in the deserialization benchmarks
-    private lateinit var pointSmall: String       // "L1:0"
-    private lateinit var pointLarge: String       // "L9999:9999"
-    private lateinit var pointTypical: String     // "L42:100"
-    private lateinit var positionSmall: String    // "L1:0-L1:0"
-    private lateinit var positionTypical: String  // "L3:5-L27:200"
-    private lateinit var positionLarge: String    // "L9999:9999-L9999:9999"
+    private lateinit var pointSmall: String // "L1:0"
+    private lateinit var pointLarge: String // "L9999:9999"
+    private lateinit var pointTypical: String // "L42:100"
+    private lateinit var positionSmall: String // "L1:0-L1:0"
+    private lateinit var positionTypical: String // "L3:5-L27:200"
+    private lateinit var positionLarge: String // "L9999:9999-L9999:9999"
 
     // Reference objects for the serializer benchmarks
     private val pointRef = Point(42, 100)

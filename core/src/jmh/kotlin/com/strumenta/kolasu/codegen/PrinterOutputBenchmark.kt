@@ -1,7 +1,6 @@
 package com.strumenta.kolasu.codegen
 
 import com.strumenta.kolasu.model.Node
-import com.strumenta.kolasu.model.ReferenceByName
 import org.openjdk.jmh.annotations.Benchmark
 import org.openjdk.jmh.annotations.BenchmarkMode
 import org.openjdk.jmh.annotations.Fork
