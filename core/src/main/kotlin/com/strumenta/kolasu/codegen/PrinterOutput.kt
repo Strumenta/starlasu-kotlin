@@ -24,9 +24,10 @@ fun interface NodePrinter {
 class PrinterOutput(
     private val nodePrinters: Map<KClass<*>, NodePrinter>,
     private var nodePrinterOverrider: (node: Node) -> NodePrinter? = { _ -> null },
-    private val placeholderNodePrinter: NodePrinter? = null
+    private val placeholderNodePrinter: NodePrinter? = null,
+    initialCapacity: Int = 4096
 ) {
-    private val sb = StringBuilder()
+    private val sb = StringBuilder(initialCapacity)
     private var currentLine = START_LINE
     private var currentColumn = START_COLUMN
     private var indentationLevel = 0
