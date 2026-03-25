@@ -38,7 +38,10 @@ abstract class ASTCodeGenerator<R : Node> {
     }
 
     fun printToFile(root: R, file: File) {
-        file.writeText(printToString(root))
+        val printerOutput = PrinterOutput(this.nodePrinters, nodePrinterOverrider, placeholderNodePrinter)
+        configurePrinter(printerOutput)
+        printerOutput.apply { this.print(root, prefix, postfix) }
+        file.bufferedWriter().use { printerOutput.writeTo(it) }
     }
 
     protected open fun configurePrinter(printerOutput: PrinterOutput) {}

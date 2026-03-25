@@ -40,6 +40,14 @@ class PrinterOutput(
     fun text() = sb.toString()
 
     /**
+     * Writes the generated output directly to [writer] without creating an intermediate String copy.
+     * Prefer this over [text] when writing to a file or stream.
+     */
+    fun writeTo(writer: java.io.Writer) {
+        writer.append(sb)
+    }
+
+    /**
      * Returns the last non-whitespace character in the current output, or null if none exists.
      * Avoids materializing the full output string.
      */
