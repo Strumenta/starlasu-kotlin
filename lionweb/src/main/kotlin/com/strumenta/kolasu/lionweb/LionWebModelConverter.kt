@@ -107,10 +107,10 @@ class LionWebModelConverter(
 ) {
     companion object {
         private val kFeaturesCache = ConcurrentHashMap<Class<*>, Map<String, Feature>>()
-        private val lwFeaturesCache = mutableMapOf<String, Map<String, LWFeature<*>>>()
+        private val lwFeaturesCache = ConcurrentHashMap<String, Map<String, LWFeature<*>>>()
 
         fun lwFeatureByName(classifier: Classifier<*>, featureName: String): LWFeature<*>? {
-            return lwFeaturesCache.getOrPut(classifier.id!!) {
+            return lwFeaturesCache.computeIfAbsent(classifier.id!!) {
                 classifier.allFeatures().associateBy { it.name!! }
             }[featureName]
         }
@@ -218,7 +218,7 @@ class LionWebModelConverter(
                 val kFeatures = kFeaturesCache.getOrPut(kNode.javaClass) {
                     kNode.javaClass.kotlin.allFeatures().associateBy { it.name }
                 }
-                val lwFeatures = lwFeaturesCache.getOrPut(lwNode.classifier.id!!) {
+                val lwFeatures = lwFeaturesCache.computeIfAbsent(lwNode.classifier.id!!) {
                     lwNode.classifier.allFeatures().associateBy { it.name!! }
                 }
                 lwFeatures.values.forEach { feature ->

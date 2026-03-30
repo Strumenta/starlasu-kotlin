@@ -7,6 +7,7 @@ import com.strumenta.kolasu.language.Containment
 import com.strumenta.kolasu.language.Feature
 import com.strumenta.kolasu.language.Reference
 import com.strumenta.kolasu.testing.IgnoreChildren
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KClassifier
 import kotlin.reflect.KProperty1
@@ -392,7 +393,7 @@ fun <N : Any> KProperty1<N, *>.asAttribute(): Attribute {
     return Attribute(this.name, optional, this.returnType.withNullability(false))
 }
 
-private val featuresCache = mutableMapOf<KClass<*>, List<Feature>>()
+private val featuresCache = ConcurrentHashMap<KClass<*>, List<Feature>>()
 
 fun <N : Any> KClass<N>.allFeatures(): List<Feature> {
     val res = mutableListOf<Feature>()
@@ -411,9 +412,9 @@ fun <N : Any> KClass<N>.isInherited(feature: Feature): Boolean {
 }
 
 fun <N : Any> KClass<N>.declaredFeatures(includeDerived: Boolean = false): List<Feature> {
-    if (!featuresCache.containsKey(this)) {
+    return featuresCache.computeIfAbsent(this) {
         // Named can be used also for things which are not Node, so we treat it as a special case
-        featuresCache[this] = if (!isANode() && this != Named::class) {
+        if (!isANode() && this != Named::class) {
             emptyList()
         } else {
             val inheritedNamed =
@@ -441,5 +442,4 @@ fun <N : Any> KClass<N>.declaredFeatures(includeDerived: Boolean = false): List<
             }
         }
     }
-    return featuresCache[this]!!
 }
