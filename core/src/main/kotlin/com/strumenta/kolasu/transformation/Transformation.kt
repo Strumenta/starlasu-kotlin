@@ -584,7 +584,7 @@ open class ASTTransformer @JvmOverloads constructor(
         // values for all its parameters
         val emptyLikeConstructor = target.constructors.find { it.parameters.all { param -> param.isOptional } }
         // Pre-compute the preferred constructor once at registration time (not per-node invocation)
-        val capturedPreferredConstructor = if (emptyLikeConstructor == null) target.preferredConstructor() else null
+        val capturedPreferredConstructor = emptyLikeConstructor ?: target.preferredConstructor()
         val nodeFactory = NodeFactory.single(
             { source: S, _, thisFactory ->
                 if (target.isSealed) {
