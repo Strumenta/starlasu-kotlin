@@ -412,34 +412,35 @@ fun <N : Any> KClass<N>.isInherited(feature: Feature): Boolean {
 }
 
 fun <N : Any> KClass<N>.declaredFeatures(includeDerived: Boolean = false): List<Feature> {
-    return featuresCache.computeIfAbsent(this) {
-        // Named can be used also for things which are not Node, so we treat it as a special case
-        if (!isANode() && this != Named::class) {
-            emptyList()
-        } else {
-            val inheritedNamed =
-                supertypes.map { (it.classifier as? KClass<*>)?.allFeatures()?.map { it.name } ?: emptyList() }
-                    .flatten()
-                    .toSet()
-            val notInheritedProps = (if (includeDerived) nodeProperties else nodeOriginalProperties)
-                .filter { it.name !in inheritedNamed }
-            notInheritedProps.map {
-                when {
-                    it.isAttribute() -> {
-                        it.asAttribute()
-                    }
-
-                    it.isReference() -> {
-                        it.asReference()
-                    }
-
-                    it.isContainment() -> {
-                        it.asContainment()
-                    }
-
-                    else -> throw IllegalStateException()
+    featuresCache[this]?.let { return it }
+    // Named can be used also for things which are not Node, so we treat it as a special case
+    val computed = if (!isANode() && this != Named::class) {
+        emptyList()
+    } else {
+        val inheritedNamed =
+            supertypes.map { (it.classifier as? KClass<*>)?.allFeatures()?.map { it.name } ?: emptyList() }
+                .flatten()
+                .toSet()
+        val notInheritedProps = (if (includeDerived) nodeProperties else nodeOriginalProperties)
+            .filter { it.name !in inheritedNamed }
+        notInheritedProps.map {
+            when {
+                it.isAttribute() -> {
+                    it.asAttribute()
                 }
+
+                it.isReference() -> {
+                    it.asReference()
+                }
+
+                it.isContainment() -> {
+                    it.asContainment()
+                }
+
+                else -> throw IllegalStateException()
             }
         }
     }
+    // putIfAbsent returns the existing value if another thread won the race, otherwise null
+    return featuresCache.putIfAbsent(this, computed) ?: computed
 }
