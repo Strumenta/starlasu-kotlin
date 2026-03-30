@@ -1,8 +1,10 @@
 package com.strumenta.kolasu.codegen
 
 import com.strumenta.kolasu.model.Node
+import com.strumenta.kolasu.model.Point
 import com.strumenta.kolasu.model.Position
-import com.strumenta.kolasu.model.START_POINT
+import com.strumenta.kolasu.model.START_COLUMN
+import com.strumenta.kolasu.model.START_LINE
 import com.strumenta.kolasu.model.TextFileDestination
 import com.strumenta.kolasu.transformation.PlaceholderASTTransformation
 import kotlin.reflect.KClass
@@ -22,16 +24,63 @@ fun interface NodePrinter {
 class PrinterOutput(
     private val nodePrinters: Map<KClass<*>, NodePrinter>,
     private var nodePrinterOverrider: (node: Node) -> NodePrinter? = { _ -> null },
-    private val placeholderNodePrinter: NodePrinter? = null
+    private val placeholderNodePrinter: NodePrinter? = null,
+    initialCapacity: Int = 4096
 ) {
-    private val sb = StringBuilder()
-    private var currentPoint = START_POINT
+    private val sb = StringBuilder(initialCapacity)
+    private var currentLine = START_LINE
+    private var currentColumn = START_COLUMN
     private var indentationLevel = 0
     private var onNewLine = true
     private var indentationBlock = "    "
     private var newLineStr = "\n"
+    private var lastChar: Char? = null
+    private val printerCache = mutableMapOf<KClass<*>, NodePrinter?>()
+    private val superclassCache = mutableMapOf<KClass<*>, KClass<*>?>()
 
     fun text() = sb.toString()
+
+    /**
+     * Writes the generated output directly to [writer] without creating an intermediate String copy.
+     * Prefer this over [text] when writing to a file or stream.
+     */
+    fun writeTo(writer: java.io.Writer) {
+        writer.append(sb)
+    }
+
+    /**
+     * Returns the last non-whitespace character in the current output, or null if none exists.
+     * Avoids materializing the full output string.
+     */
+    fun lastNonWhitespaceChar(): Char? {
+        if (lastChar != null && !lastChar!!.isWhitespace()) {
+            return lastChar
+        }
+        for (i in sb.indices.reversed()) {
+            if (!sb[i].isWhitespace()) return sb[i]
+        }
+        return null
+    }
+
+    private fun advancePoint(text: String) {
+        var i = 0
+        while (i < text.length) {
+            val ch = text[i]
+            if (ch == '\n' || ch == '\r') {
+                currentLine++
+                currentColumn = 0
+                if (ch == '\r' && i < text.length - 1 && text[i + 1] == '\n') {
+                    i++ // Count \r\n as a single line break
+                }
+            } else {
+                currentColumn++
+            }
+            i++
+        }
+        if (text.isNotEmpty()) {
+            lastChar = text[text.length - 1]
+        }
+    }
 
     fun println() {
         println("")
@@ -40,7 +89,7 @@ class PrinterOutput(
     fun println(text: String = "") {
         print(text)
         sb.append(newLineStr)
-        currentPoint += newLineStr
+        advancePoint(newLineStr)
         onNewLine = true
     }
 
@@ -62,20 +111,19 @@ class PrinterOutput(
         if (!needPrintln || text.isNotBlank()) {
             considerIndentation()
         }
-        require(adaptedText.lines().size < 2 || allowMultiLine) { "Given text span multiple lines: $adaptedText" }
+        require(!adaptedText.contains('\n') || allowMultiLine) { "Given text span multiple lines: $adaptedText" }
         sb.append(adaptedText)
-        currentPoint += adaptedText
+        advancePoint(adaptedText)
         if (needPrintln) {
             println()
         }
     }
 
     fun ensureSpace() {
-        val text = this.text()
-        if (text.isEmpty()) {
+        if (lastChar == null) {
             return
         }
-        if (!text.last().isWhitespace()) {
+        if (!lastChar!!.isWhitespace()) {
             print(" ")
         }
     }
@@ -121,8 +169,10 @@ class PrinterOutput(
     private fun considerIndentation() {
         if (onNewLine) {
             onNewLine = false
-            (1..(indentationLevel)).forEach {
-                print(indentationBlock)
+            if (indentationLevel > 0) {
+                val indentation = indentationBlock.repeat(indentationLevel)
+                sb.append(indentation)
+                advancePoint(indentation)
             }
         }
     }
@@ -137,6 +187,11 @@ class PrinterOutput(
     }
 
     private fun findPrinter(ast: Node, kclass: KClass<*>): NodePrinter? {
+        // Check cache first
+        if (printerCache.containsKey(kclass)) {
+            return printerCache[kclass]
+        }
+
         val overrider = nodePrinterOverrider(ast)
         if (overrider != null) {
             return overrider
@@ -147,12 +202,26 @@ class PrinterOutput(
             nodePrinters[kclass]
         }
         if (properPrinter != null) {
+            printerCache[kclass] = properPrinter
             return properPrinter
         }
-        val superclass = kclass.superclasses.filter { !it.java.isInterface }.firstOrNull()
-        if (superclass != null) {
-            return getPrinter(ast, superclass)
+
+        // Cache superclass lookup
+        val superclass = if (superclassCache.containsKey(kclass)) {
+            superclassCache[kclass]
+        } else {
+            val sc = kclass.superclasses.filter { !it.java.isInterface }.firstOrNull()
+            superclassCache[kclass] = sc
+            sc
         }
+
+        if (superclass != null) {
+            val printer = getPrinter(ast, superclass)
+            printerCache[kclass] = printer
+            return printer
+        }
+
+        printerCache[kclass] = null
         return null
     }
 
@@ -191,9 +260,9 @@ class PrinterOutput(
     }
 
     fun associate(ast: Node, generation: PrinterOutput.() -> Unit) {
-        val startPoint = currentPoint
+        val startPoint = Point(currentLine, currentColumn)
         generation()
-        val endPoint = currentPoint
+        val endPoint = Point(currentLine, currentColumn)
         val nodePositionInGeneratedCode = Position(startPoint, endPoint)
         ast.destination = TextFileDestination(position = nodePositionInGeneratedCode)
     }

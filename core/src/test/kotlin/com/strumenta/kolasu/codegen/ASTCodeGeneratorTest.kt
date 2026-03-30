@@ -87,6 +87,35 @@ class ASTCodeGeneratorTest {
     }
 
     @Test
+    fun printToFileProducesSameOutputAsPrintToString() {
+        val cu = KCompilationUnit(
+            KPackageDecl("my.pkg"),
+            mutableListOf(KImport("my.thing")),
+            mutableListOf(KFunctionDeclaration("bar"))
+        )
+        val printer = KotlinPrinter()
+        val expected = printer.printToString(cu)
+        val tempFile = java.io.File.createTempFile("kolasu_test", ".kt").also { it.deleteOnExit() }
+        printer.printToFile(cu, tempFile)
+        assertEquals(expected, tempFile.readText())
+    }
+
+    @Test
+    fun customInitialCapacityDoesNotAffectOutput() {
+        val cu = KCompilationUnit(
+            KPackageDecl("my.pkg"),
+            mutableListOf(KImport("my.thing")),
+            mutableListOf(KFunctionDeclaration("bar"))
+        )
+        val printer = KotlinPrinter()
+        val defaultOutput = printer.printToString(cu)
+        val smallCapacity = printer.printToString(cu, initialCapacity = 8)
+        val largeCapacity = printer.printToString(cu, initialCapacity = 65536)
+        assertEquals(defaultOutput, smallCapacity)
+        assertEquals(defaultOutput, largeCapacity)
+    }
+
+    @Test
     fun printTransformationFailure() {
         val failedNode = KImport("my.imported.stuff")
         failedNode.origin = FailingASTTransformation(failedNode, "Something made BOOM!")

@@ -48,6 +48,8 @@ class LionWebLanguageConverter {
     private val classesAndEnumerations = BiMap<EnumKClass, Enumeration>()
     private val classesAndPrimitiveTypes = BiMap<KClass<*>, PrimitiveType>()
     private val languages = BiMap<KolasuLanguage, LWLanguage>()
+    private val qualifiedNameToClassifier = java.util.concurrent.ConcurrentHashMap<String, Classifier<*>>()
+    private val classifierKeyIndex = java.util.concurrent.ConcurrentHashMap<String, KClass<*>>()
 
     init {
         val starLasuKLanguage = KolasuLanguage(ASTLanguage.getLanguage().name!!)
@@ -288,15 +290,15 @@ class LionWebLanguageConverter {
     }
 
     fun correspondingKolasuClass(classifier: Classifier<*>): KClass<*>? {
-        return this.astClassesAndClassifiers.bsToAsMap.entries.find {
-            it.key.key == classifier.key &&
-                it.key.language!!.id == classifier.language!!.id &&
-                it.key.language!!.version == classifier.language!!.version
-        }?.value
+        val key = "${classifier.language?.id}:${classifier.language?.version}:${classifier.key}"
+        return classifierKeyIndex[key]
     }
 
     private fun registerMapping(kolasuClass: KClass<*>, featuresContainer: Classifier<*>) {
         astClassesAndClassifiers.associate(kolasuClass, featuresContainer)
+        kolasuClass.qualifiedName?.let { qualifiedNameToClassifier[it] = featuresContainer }
+        val key = "${featuresContainer.language?.id}:${featuresContainer.language?.version}:${featuresContainer.key}"
+        classifierKeyIndex[key] = kolasuClass
     }
 
     private fun toLWClassifier(kClass: KClass<*>): Classifier<*> {
@@ -304,11 +306,8 @@ class LionWebLanguageConverter {
     }
 
     private fun toLWClassifier(nodeType: String): Classifier<*> {
-        val kClass = astClassesAndClassifiers.`as`.find { it.qualifiedName == nodeType }
-            ?: throw IllegalArgumentException(
-                "Unknown nodeType $nodeType"
-            )
-        return toLWClassifier(kClass)
+        return qualifiedNameToClassifier[nodeType]
+            ?: throw IllegalArgumentException("Unknown nodeType $nodeType")
     }
 
     private fun toLWEnumeration(kClass: KClass<*>, lionwebLanguage: LWLanguage): Enumeration {

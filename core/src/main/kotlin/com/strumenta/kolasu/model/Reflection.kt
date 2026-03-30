@@ -7,6 +7,7 @@ import com.strumenta.kolasu.language.Containment
 import com.strumenta.kolasu.language.Feature
 import com.strumenta.kolasu.language.Reference
 import com.strumenta.kolasu.testing.IgnoreChildren
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KClassifier
 import kotlin.reflect.KProperty1
@@ -392,7 +393,7 @@ fun <N : Any> KProperty1<N, *>.asAttribute(): Attribute {
     return Attribute(this.name, optional, this.returnType.withNullability(false))
 }
 
-private val featuresCache = mutableMapOf<KClass<*>, List<Feature>>()
+private val featuresCache = ConcurrentHashMap<KClass<*>, List<Feature>>()
 
 fun <N : Any> KClass<N>.allFeatures(): List<Feature> {
     val res = mutableListOf<Feature>()
@@ -411,35 +412,35 @@ fun <N : Any> KClass<N>.isInherited(feature: Feature): Boolean {
 }
 
 fun <N : Any> KClass<N>.declaredFeatures(includeDerived: Boolean = false): List<Feature> {
-    if (!featuresCache.containsKey(this)) {
-        // Named can be used also for things which are not Node, so we treat it as a special case
-        featuresCache[this] = if (!isANode() && this != Named::class) {
-            emptyList()
-        } else {
-            val inheritedNamed =
-                supertypes.map { (it.classifier as? KClass<*>)?.allFeatures()?.map { it.name } ?: emptyList() }
-                    .flatten()
-                    .toSet()
-            val notInheritedProps = (if (includeDerived) nodeProperties else nodeOriginalProperties)
-                .filter { it.name !in inheritedNamed }
-            notInheritedProps.map {
-                when {
-                    it.isAttribute() -> {
-                        it.asAttribute()
-                    }
-
-                    it.isReference() -> {
-                        it.asReference()
-                    }
-
-                    it.isContainment() -> {
-                        it.asContainment()
-                    }
-
-                    else -> throw IllegalStateException()
+    featuresCache[this]?.let { return it }
+    // Named can be used also for things which are not Node, so we treat it as a special case
+    val computed = if (!isANode() && this != Named::class) {
+        emptyList()
+    } else {
+        val inheritedNamed =
+            supertypes.map { (it.classifier as? KClass<*>)?.allFeatures()?.map { it.name } ?: emptyList() }
+                .flatten()
+                .toSet()
+        val notInheritedProps = (if (includeDerived) nodeProperties else nodeOriginalProperties)
+            .filter { it.name !in inheritedNamed }
+        notInheritedProps.map {
+            when {
+                it.isAttribute() -> {
+                    it.asAttribute()
                 }
+
+                it.isReference() -> {
+                    it.asReference()
+                }
+
+                it.isContainment() -> {
+                    it.asContainment()
+                }
+
+                else -> throw IllegalStateException()
             }
         }
     }
-    return featuresCache[this]!!
+    // putIfAbsent returns the existing value if another thread won the race, otherwise null
+    return featuresCache.putIfAbsent(this, computed) ?: computed
 }

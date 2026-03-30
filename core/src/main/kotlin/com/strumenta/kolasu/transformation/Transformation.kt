@@ -583,6 +583,8 @@ open class ASTTransformer @JvmOverloads constructor(
         // We are looking for any constructor with does not take parameters or have default
         // values for all its parameters
         val emptyLikeConstructor = target.constructors.find { it.parameters.all { param -> param.isOptional } }
+        // Pre-compute the preferred constructor once at registration time (not per-node invocation)
+        val capturedPreferredConstructor = if (emptyLikeConstructor == null) target.preferredConstructor() else null
         val nodeFactory = NodeFactory.single(
             { source: S, _, thisFactory ->
                 if (target.isSealed) {
@@ -614,7 +616,7 @@ open class ASTTransformer @JvmOverloads constructor(
                 // so we should really check the value that `childrenSetAtConstruction` time has when we actually invoke
                 // the factory.
                 val instance = if (thisFactory.childrenSetAtConstruction) {
-                    val constructor = target.preferredConstructor()
+                    val constructor = capturedPreferredConstructor!!
                     val constructorParamValues = constructor.parameters.map { it to getConstructorParameterValue(it) }
                         .filter { it.second is PresentParameterValue }
                         .associate { it.first to (it.second as PresentParameterValue).value }
