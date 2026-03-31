@@ -123,13 +123,13 @@ class LionWebModelConverter(
 ) {
     companion object {
         private val kFeaturesCache = ConcurrentHashMap<Class<*>, Map<String, Feature>>()
-        private val lwFeaturesCache = mutableMapOf<String, Map<String, LWFeature<*>>>()
+        private val lwFeaturesCache = ConcurrentHashMap<String, Map<String, LWFeature<*>>>()
 
         fun lwFeatureByName(
             classifier: Classifier<*>,
             featureName: String,
         ): LWFeature<*>? =
-            lwFeaturesCache.getOrPut(classifier.id!!) {
+            lwFeaturesCache.computeIfAbsent(classifier.id!!) {
                 classifier.allFeatures().associateBy { it.name!! }
             }[featureName]
     }
@@ -242,7 +242,7 @@ class LionWebModelConverter(
                             .associateBy { it.name }
                     }
                 val lwFeatures =
-                    lwFeaturesCache.getOrPut(lwNode.classifier.id!!) {
+                    lwFeaturesCache.computeIfAbsent(lwNode.classifier.id!!) {
                         lwNode.classifier.allFeatures().associateBy { it.name!! }
                     }
                 lwFeatures.values.forEach { feature ->
@@ -687,7 +687,7 @@ class LionWebModelConverter(
             val kClass =
                 kClassCache.computeIfAbsent(lwNode.classifier) { classifier ->
                     synchronized(languageConverter) {
-                        languageConverter.correspondingStartlasuClass(classifier)
+                        languageConverter.correspondingStarlasuClass(classifier)
                     } ?: throw RuntimeException(
                         "We do not have Starlasu AST class for LionWeb Concept $classifier",
                     )
@@ -890,6 +890,12 @@ class LionWebModelConverter(
             nodesMapping: BiMap<Any, LWNode>,
             externalNodeResolver: NodeResolver,
         ) {
+            // Build O(1) ID→LWNode index once
+            val allLwNodes = nodesMapping.bs
+            val lwNodesById: Map<String, LWNode> =
+                HashMap<String, LWNode>(allLwNodes.size * 2).also { map ->
+                    allLwNodes.forEach { node -> node.id?.let { id -> map[id] = node } }
+                }
             values.forEach { entry ->
                 if (entry.value == null) {
                     entry.key.referred = null
@@ -910,7 +916,7 @@ class LionWebModelConverter(
                 }
             }
             originValues.forEach { entry ->
-                val lwNode = nodesMapping.bs.find { it.id == entry.value }
+                val lwNode = lwNodesById[entry.value]
                 if (lwNode != null) {
                     val correspondingSNode = nodesMapping.byB(lwNode) as SNode
                     // TODO keep also position
@@ -927,7 +933,7 @@ class LionWebModelConverter(
             destinationValues.forEach { entry ->
                 val values =
                     entry.value.mapNotNull { targetID ->
-                        val lwNode = nodesMapping.bs.find { it.id == targetID }
+                        val lwNode = lwNodesById[targetID]
                         if (lwNode != null) {
                             nodesMapping.byB(lwNode) as SNode
                         } else {
@@ -1233,10 +1239,10 @@ class LionWebModelConverter(
             }
         }
 
-    private fun findConcept(kNode: ASTNode): Concept =
-        synchronized(languageConverter) {
-            languageConverter.correspondingConcept(kNode.nodeType)
-        }
+    private fun findConcept(sNode: ASTNode): Concept {
+        // No external synchronization needed: qualifiedNameToClassifier is a ConcurrentHashMap
+        return languageConverter.correspondingConcept(sNode.nodeType)
+    }
 
     private fun associateNodes(
         kNode: Any,

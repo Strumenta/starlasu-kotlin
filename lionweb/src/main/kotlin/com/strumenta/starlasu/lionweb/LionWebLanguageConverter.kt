@@ -1,6 +1,5 @@
 package com.strumenta.starlasu.lionweb
 
-import com.strumenta.starlasu.base.v2.ASTLanguage
 import com.strumenta.starlasu.language.Attribute
 import com.strumenta.starlasu.language.Containment
 import com.strumenta.starlasu.language.KolasuLanguage
@@ -39,6 +38,7 @@ import io.lionweb.language.Property
 import kotlin.reflect.KClass
 import kotlin.reflect.KType
 import kotlin.reflect.full.createType
+import com.strumenta.starlasu.base.v2.ASTLanguage as ASTLanguage
 
 /**
  * This class is able to convert between Starlasu and LionWeb languages, tracking the mapping.
@@ -48,6 +48,8 @@ class LionWebLanguageConverter {
     private val classesAndEnumerations = BiMap<EnumKClass, Enumeration>()
     private val classesAndPrimitiveTypes = BiMap<KClass<*>, PrimitiveType>()
     private val languages = BiMap<KolasuLanguage, LWLanguage>()
+    private val qualifiedNameToClassifier = java.util.concurrent.ConcurrentHashMap<String, Classifier<*>>()
+    private val classifierKeyIndex = java.util.concurrent.ConcurrentHashMap<String, KClass<*>>()
 
     init {
         val starLasuKLanguage = KolasuLanguage(ASTLanguage.getInstance().name!!)
@@ -286,32 +288,27 @@ class LionWebLanguageConverter {
 
     fun correspondingConcept(nodeType: String): Concept = toLWClassifier(nodeType) as Concept
 
-    fun correspondingStartlasuClass(classifier: Classifier<*>): KClass<*>? =
-        this.astClassesAndClassifiers.bsToAsMap.entries
-            .find {
-                it.key.key == classifier.key &&
-                    it.key.language!!.id == classifier.language!!.id &&
-                    it.key.language!!.version == classifier.language!!.version
-            }?.value
+    fun correspondingStarlasuClass(classifier: Classifier<*>): KClass<*>? {
+        val key = "${classifier.language?.id}:${classifier.language?.version}:${classifier.key}"
+        return classifierKeyIndex[key]
+    }
 
     private fun registerMapping(
         starlasuClass: KClass<*>,
         featuresContainer: Classifier<*>,
     ) {
         astClassesAndClassifiers.associate(starlasuClass, featuresContainer)
+        starlasuClass.qualifiedName?.let { qualifiedNameToClassifier[it] = featuresContainer }
+        val key = "${featuresContainer.language?.id}:${featuresContainer.language?.version}:${featuresContainer.key}"
+        classifierKeyIndex[key] = starlasuClass
     }
 
     private fun toLWClassifier(kClass: KClass<*>): Classifier<*> =
         astClassesAndClassifiers.byA(kClass) ?: throw IllegalArgumentException("Unknown KClass $kClass")
 
-    private fun toLWClassifier(nodeType: String): Classifier<*> {
-        val kClass =
-            astClassesAndClassifiers.`as`.find { it.qualifiedName == nodeType }
-                ?: throw IllegalArgumentException(
-                    "Unknown nodeType $nodeType",
-                )
-        return toLWClassifier(kClass)
-    }
+    private fun toLWClassifier(nodeType: String): Classifier<*> =
+        qualifiedNameToClassifier[nodeType]
+            ?: throw IllegalArgumentException("Unknown nodeType $nodeType")
 
     private fun toLWEnumeration(
         kClass: KClass<*>,
