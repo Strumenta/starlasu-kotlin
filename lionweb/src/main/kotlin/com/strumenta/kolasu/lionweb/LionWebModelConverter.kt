@@ -129,6 +129,7 @@ class LionWebModelConverter(
      * and cause issues when nodes are cached and changes happening between two conversions are ignored.
      */
     private val nodesMapping = BiMap<Any, LWNode>(usingIdentity = true)
+    private val lwNodeById = ConcurrentHashMap<String, LWNode>()
     private val primitiveValueSerializations = ConcurrentHashMap<KClass<*>, PrimitiveValueSerialization<*>>()
     private val starlasuTreeWalker = CommonStarlasuTreeWalker()
     var lionWebTreeWalker = LionWebTreeWalker()
@@ -681,7 +682,7 @@ class LionWebModelConverter(
                 }
             }
         }
-        referencesPostponer.populateReferences(nodesMapping, externalNodeResolver)
+        referencesPostponer.populateReferences(nodesMapping, lwNodeById, externalNodeResolver)
         // We want to handle the origin for placeholder nodes AFTER references, to override the origins
         // set during the population of references
         placeholderNodes.entries.forEach { entry ->
@@ -777,12 +778,12 @@ class LionWebModelConverter(
             values[referenceByName] = referred
         }
 
-        fun populateReferences(nodesMapping: BiMap<Any, LWNode>, externalNodeResolver: NodeResolver) {
-            // Build O(1) ID→LWNode index once
-            val allLwNodes = nodesMapping.bs
-            val lwNodesById: Map<String, LWNode> = HashMap<String, LWNode>(allLwNodes.size * 2).also { map ->
-                allLwNodes.forEach { node -> node.id?.let { id -> map[id] = node } }
-            }
+        fun populateReferences(
+            nodesMapping: BiMap<Any, LWNode>,
+            lwNodeById: Map<String, LWNode>,
+            externalNodeResolver: NodeResolver
+        ) {
+            val lwNodesById: Map<String, LWNode> = lwNodeById
 
             values.forEach { entry ->
                 if (entry.value == null) {
@@ -1108,6 +1109,7 @@ class LionWebModelConverter(
             kNode.id = lwNode.id
         }
         nodesMapping.associate(kNode, lwNode)
+        lwNode.id?.let { lwNodeById[it] = lwNode }
     }
 
     fun exportIssueToLionweb(issue: Issue, id: String? = null): IssueNode {

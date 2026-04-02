@@ -7,13 +7,13 @@ import java.util.IdentityHashMap
  */
 class BiMap<A, B>(val usingIdentity: Boolean = false) {
     val `as`: Set<A>
-        get() = synchronized(this) { HashSet(_asToBs.keys) }
+        get() = synchronized(this) { _asToBs.keys }
     val bs: Set<B>
-        get() = synchronized(this) { HashSet(_bsToAs.keys) }
+        get() = synchronized(this) { _bsToAs.keys }
     val asToBsMap: Map<A, B>
-        get() = synchronized(this) { HashMap(_asToBs) }
+        get() = _asToBs
     val bsToAsMap: Map<B, A>
-        get() = synchronized(this) { HashMap(_bsToAs) }
+        get() = _bsToAs
 
     private val _asToBs = if (usingIdentity) IdentityHashMap() else mutableMapOf<A, B>()
     private val _bsToAs = if (usingIdentity) IdentityHashMap() else mutableMapOf<B, A>()
