@@ -10,7 +10,6 @@ import com.strumenta.kolasu.model.Documentation
 import com.strumenta.kolasu.model.EntityDeclaration
 import com.strumenta.kolasu.model.EntityGroupDeclaration
 import com.strumenta.kolasu.model.Expression
-import com.strumenta.kolasu.model.Multiplicity
 import com.strumenta.kolasu.model.Named
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.Parameter
