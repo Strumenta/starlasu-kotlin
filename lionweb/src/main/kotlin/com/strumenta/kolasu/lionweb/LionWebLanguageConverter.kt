@@ -177,8 +177,8 @@ class LionWebLanguageConverter {
                             featuresContainer.id + "_" + it.name
                         )
                         cont.key = featuresContainer.key + "_" + cont.name
-                        cont.setOptional(true)
-                        cont.setMultiple(it.multiplicity == Multiplicity.MANY)
+                        cont.setOptional(it.multiplicity.optional)
+                        cont.setMultiple(it.multiplicity.multiple)
                         cont.setType(toLWClassifier(it.type))
                         featuresContainer.addFeature(cont)
                     }
