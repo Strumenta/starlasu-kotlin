@@ -22,8 +22,8 @@ fun registerSerializersAndDeserializersInMetamodelRegistry(
     )
     metamodelRegistry.addSerializerAndDeserializer(
         ASTLanguage.getInstance().tokensList,
-        tokensListPrimitiveSerializer,
-        tokensListPrimitiveDeserializer,
+        tokensListDataTypeSerializer,
+        tokensListDataTypeDeserializer,
     )
 }
 
@@ -97,15 +97,15 @@ val positionDeserializer =
 // Tokens List
 //
 
-val tokensListPrimitiveSerializer =
-    DataTypesValuesSerialization.DataTypeSerializer<TokensList?> { value: TokensList? ->
+val tokensListDataTypeSerializer =
+    DataTypeSerializer<TokensList?> { value: TokensList? ->
         value?.tokens?.joinToString(";") { kt ->
             kt.category.type + "$" + positionSerializer.serialize(kt.position)
         }
     }
 
-val tokensListPrimitiveDeserializer =
-    DataTypesValuesSerialization.DataTypeDeserializer<TokensList?> { serialized ->
+val tokensListDataTypeDeserializer =
+    DataTypeDeserializer<TokensList?> { serialized ->
         if (serialized == null) {
             return@DataTypeDeserializer null
         }
