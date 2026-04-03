@@ -7,7 +7,7 @@ jvm = "11"
 antlr = "4.13.2"
 gson = "2.13.2"
 clikt = "5.0.3"
-specs = "0.7.2"
+specs = "0.7.3"
 testcontainers = "1.21.3"
 
 [plugins]
