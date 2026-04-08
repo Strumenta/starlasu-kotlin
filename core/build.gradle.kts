@@ -28,8 +28,6 @@ dependencies {
     implementation(kotlin("reflect", libs.versions.kotlin.get()))
     implementation(kotlin("test-junit", libs.versions.kotlin.get()))
     implementation(libs.gson)
-
-    testImplementation(kotlin("test-junit", libs.versions.kotlin.get()))
     // To be removed in v1.7
     implementation("org.redundent:kotlin-xml-builder:1.7.3")
     implementation("com.github.doyaaaaaken:kotlin-csv-jvm:1.9.2")
