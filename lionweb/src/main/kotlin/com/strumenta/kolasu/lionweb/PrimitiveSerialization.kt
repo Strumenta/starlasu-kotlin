@@ -26,7 +26,47 @@ fun registerSerializersAndDeserializersInMetamodelRegistry(
     )
 }
 
-class TokensList(val tokens: List<KolasuToken>)
+/**
+ * Wraps a list of [KolasuToken].
+ *
+ * When constructed via [TokensList.fromRaw] the token list is parsed **lazily** — the raw
+ * serialized string is kept as-is and the actual [KolasuToken] objects are only created on the
+ * first access to [tokens].  Pipeline stages that never read the token list therefore pay zero
+ * deserialization cost.
+ *
+ * When constructed with a pre-built [List] (e.g. during export) the list is returned directly
+ * without any extra parsing.
+ */
+class TokensList private constructor(
+    private val eagerList: List<KolasuToken>?,
+    private val raw: String?
+) {
+    /** Construct an eager [TokensList] from an already-parsed list (used during export). */
+    constructor(tokens: List<KolasuToken>) : this(tokens, null)
+
+    val tokens: List<KolasuToken> by lazy {
+        eagerList ?: parseRaw(raw!!)
+    }
+
+    companion object {
+        /** Construct a [TokensList] that parses [raw] only on first [tokens] access. */
+        internal fun fromRaw(raw: String): TokensList = TokensList(null, raw)
+
+        private fun parseRaw(raw: String): List<KolasuToken> =
+            if (raw.isEmpty()) {
+                emptyList()
+            } else {
+                raw.split(";").map {
+                    val dollarIdx = it.indexOf('$')
+                    require(dollarIdx > 0) { "Invalid token entry: $it" }
+                    KolasuToken(
+                        TokenCategory(it.substring(0, dollarIdx)),
+                        positionDeserializer.deserialize(it.substring(dollarIdx + 1))!!
+                    )
+                }
+            }
+    }
+}
 
 //
 // Char
@@ -44,6 +84,24 @@ val charDeserializer = DataTypeDeserializer<Char> { serialized ->
 //
 // Point
 //
+
+/**
+ * LRU cache that interns [Point] instances during deserialization.
+ *
+ * A source file has a bounded set of distinct (line, column) pairs — typically far fewer than
+ * the number of AST nodes — so interning them eliminates the majority of [Point] allocations.
+ * The cache key encodes the pair as a single [Long] to avoid boxing.
+ * Capacity is capped at 1 024 entries; older entries are evicted automatically.
+ */
+private val pointCache: MutableMap<Long, Point> =
+    object : LinkedHashMap<Long, Point>(1024 * 10 / 7, 0.7f, true) {
+        override fun removeEldestEntry(eldest: Map.Entry<Long, Point>): Boolean = size > 1024
+    }
+
+private fun internPoint(line: Int, column: Int): Point {
+    val key = (line.toLong() shl 32) or (column.toLong() and 0xFFFFFFFFL)
+    return pointCache.getOrPut(key) { Point(line, column) }
+}
 
 val pointSerializer: DataTypeSerializer<Point> =
     DataTypeSerializer<Point> { value ->
@@ -65,7 +123,7 @@ val pointDeserializer: DataTypeDeserializer<Point> =
         require(colonIdx > 1) { "Point string missing ':', got: $serialized" }
         val line = serialized.substring(1, colonIdx).toInt()
         val column = serialized.substring(colonIdx + 1).toInt()
-        Point(line, column)
+        internPoint(line, column)
     }
 
 //
@@ -109,16 +167,5 @@ val tokensListPrimitiveDeserializer = DataTypeDeserializer<TokensList?> { serial
     if (serialized == null) {
         return@DataTypeDeserializer null
     }
-    val tokens = if (serialized.isEmpty()) {
-        mutableListOf()
-    } else {
-        serialized.split(";").map {
-            val parts = it.split("$")
-            require(parts.size == 2)
-            val category = parts[0]
-            val position = positionDeserializer.deserialize(parts[1])
-            KolasuToken(TokenCategory(category), position!!)
-        }.toMutableList()
-    }
-    TokensList(tokens)
+    TokensList.fromRaw(serialized)
 }
