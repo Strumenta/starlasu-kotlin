@@ -3,7 +3,6 @@ package com.strumenta.kolasu.model
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
-import kotlin.reflect.KVisibility
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberProperties
 
@@ -21,7 +20,7 @@ private val nodeDerivedPropertiesCache = ConcurrentHashMap<KClass<*>, Collection
 @Suppress("UNCHECKED_CAST")
 val <T : Any> KClass<T>.nodeProperties: Collection<KProperty1<T, *>>
     get() = nodePropertiesCache.computeIfAbsent(this) { kClass ->
-        kClass.memberProperties.asSequence()
+        kClass.memberProperties
             .filter { it.visibility == kotlin.reflect.KVisibility.PUBLIC }
             .filter { it.findAnnotation<Internal>() == null }
             .filter { it.findAnnotation<Link>() == null }
@@ -31,7 +30,6 @@ val <T : Any> KClass<T>.nodeProperties: Collection<KProperty1<T, *>>
                 }
                 it
             }
-            .toList()
     } as Collection<KProperty1<T, *>>
 
 @Suppress("UNCHECKED_CAST")

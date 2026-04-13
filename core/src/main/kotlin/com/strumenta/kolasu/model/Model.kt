@@ -181,14 +181,14 @@ open class Node() : Origin, Destination, Serializable, HasID {
 
     fun getChildren(propertyName: String, includeDerived: Boolean = false): List<Node> {
         checkFeatureName(propertyName)
-        val property = (if (includeDerived) properties else originalProperties)
+        val property = (if (includeDerived) nodeProperties else nodeOriginalProperties)
             .find { it.name == propertyName }
         require(property != null) {
             "Property $propertyName not found in node of type ${this.nodeType} " +
                 "(considering derived properties? $includeDerived)"
         }
         return when (
-            val rawValue = property!!.value
+            val rawValue = PropertyDescription.buildFor(property, this).value
         ) {
             null -> {
                 emptyList()
