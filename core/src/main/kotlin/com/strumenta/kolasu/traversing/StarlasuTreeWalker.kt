@@ -8,6 +8,7 @@ import com.strumenta.kolasu.model.providesNodes
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
+import kotlin.reflect.jvm.javaField
 
 interface StarlasuTreeWalker {
     fun <N : Node> walkChildren(node: N): Sequence<Node>
@@ -25,13 +26,14 @@ class CommonStarlasuTreeWalker : StarlasuTreeWalker {
     private val overridesOriginalPropertiesCache = ConcurrentHashMap<Class<out Node>, Boolean>()
 
     private fun overridesOriginalProperties(javaClass: Class<out Node>): Boolean =
-        overridesOriginalPropertiesCache.computeIfAbsent(javaClass) { clz ->
-            try {
-                clz.getMethod("getOriginalProperties").declaringClass != Node::class.java
-            } catch (_: NoSuchMethodException) {
-                false
+        overridesOriginalPropertiesCache[javaClass]
+            ?: overridesOriginalPropertiesCache.computeIfAbsent(javaClass) { clz ->
+                try {
+                    clz.getMethod("getOriginalProperties").declaringClass != Node::class.java
+                } catch (_: NoSuchMethodException) {
+                    false
+                }
             }
-        }
 
     /**
      * Returns the direct children of [node] as a List.
@@ -41,53 +43,69 @@ class CommonStarlasuTreeWalker : StarlasuTreeWalker {
         // Given that determining how to calculate children for a given node requires examining the class,
         // we cache the examination part, and we get a lambda that, given a node will give us the children
         // We then invoke such lambda on a given node
-        val calculator = calculatorCaches.computeIfAbsent(node.javaClass) { javaClass ->
-            if (overridesOriginalProperties(javaClass)) {
-                // Fall back to the PropertyDescription path for classes that override
-                // getOriginalProperties() (e.g. Java nodes using JavaBeans reflection).
-                return@computeIfAbsent { n ->
-                    val result = ArrayList<Node>()
-                    n.originalProperties.forEach { property ->
-                        when (val value = property.value) {
-                            is Node -> result.add(value)
-                            is Collection<*> -> value.forEach { if (it is Node) result.add(it) }
-                        }
-                    }
-                    result
-                }
-            } else {
-                @Suppress("UNCHECKED_CAST")
-                val kClass = javaClass.kotlin as KClass<Node>
-                val propsArray = kClass.nodeOriginalProperties.filter { providesNodes(it) }
-                    .toTypedArray() as Array<KProperty1<Node, *>>
-                val manyArray = BooleanArray(propsArray.size) { i ->
-                    multiplicity(propsArray[i]) == Multiplicity.MANY
-                }
-
-                return@computeIfAbsent { n ->
-                    // Defer ArrayList creation until we actually find a child.
-                    // Leaf nodes pay zero allocation cost (returns emptyList singleton).
-                    var result: ArrayList<Node>? = null
-                    for (i in propsArray.indices) {
-                        val value = propsArray[i].get(n)
-                        if (value != null) {
-                            if (manyArray[i]) {
-                                @Suppress("UNCHECKED_CAST")
-                                val collectionValue = value as Collection<Node>
-                                if (collectionValue.isNotEmpty()) {
-                                    if (result == null) result = ArrayList(collectionValue.size)
-                                    result.addAll(collectionValue)
-                                }
-                            } else {
-                                if (result == null) result = ArrayList(2)
-                                result.add(value as Node)
+        val calculator = calculatorCaches[node.javaClass]
+            ?: calculatorCaches.computeIfAbsent(node.javaClass) { javaClass ->
+                if (overridesOriginalProperties(javaClass)) {
+                    // Fall back to the PropertyDescription path for classes that override
+                    // getOriginalProperties() (e.g. Java nodes using JavaBeans reflection).
+                    return@computeIfAbsent { n ->
+                        val result = ArrayList<Node>()
+                        n.originalProperties.forEach { property ->
+                            when (val value = property.value) {
+                                is Node -> result.add(value)
+                                is Collection<*> -> value.forEach { if (it is Node) result.add(it) }
                             }
                         }
+                        result
                     }
-                    result ?: emptyList()
+                } else {
+                    @Suppress("UNCHECKED_CAST")
+                    val kClass = javaClass.kotlin as KClass<Node>
+                    val props = kClass.nodeOriginalProperties.filter { providesNodes(it) }
+                    val manyArray = BooleanArray(props.size) { i ->
+                        multiplicity(props.elementAt(i)) == Multiplicity.MANY
+                    }
+
+                    // Precompute a raw accessor for each property.
+                    // KProperty1.javaField returns the backing field for simple `val` properties.
+                    // Fall back to KProperty1.get() only for computed / delegated properties.
+                    @Suppress("UNCHECKED_CAST")
+                    val accessors: Array<(Node) -> Any?> = props.map { prop ->
+                        val field = (prop as KProperty1<Node, *>).javaField
+                        if (field != null) {
+                            field.isAccessible = true
+                            // Field.get(instance) — no vararg Object[] allocation
+                            { n: Node -> field.get(n) }
+                        } else {
+                            // Computed or delegated property: fall back to KProperty1.get()
+                            { n: Node -> prop.get(n) }
+                        }
+                    }.toTypedArray()
+
+                    return@computeIfAbsent { n ->
+                        // Defer ArrayList creation until we actually find a child.
+                        // Leaf nodes pay zero allocation cost (returns emptyList singleton).
+                        var result: ArrayList<Node>? = null
+                        for (i in accessors.indices) {
+                            val value = accessors[i](n)
+                            if (value != null) {
+                                if (manyArray[i]) {
+                                    @Suppress("UNCHECKED_CAST")
+                                    val collectionValue = value as Collection<Node>
+                                    if (collectionValue.isNotEmpty()) {
+                                        if (result == null) result = ArrayList(collectionValue.size)
+                                        result.addAll(collectionValue)
+                                    }
+                                } else {
+                                    if (result == null) result = ArrayList(2)
+                                    result.add(value as Node)
+                                }
+                            }
+                        }
+                        result ?: emptyList()
+                    }
                 }
             }
-        }
         return calculator.invoke(node)
     }
 
