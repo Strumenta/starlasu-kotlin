@@ -22,7 +22,6 @@ dependencies {
     implementation(libs.starlasu.specs)
     implementation("org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
-    implementation("org.jetbrains.kotlin:kotlin-test:$kotlinVersion")
     implementation(libs.gson)
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
 }

@@ -26,10 +26,9 @@ dependencies {
     implementation(libs.starlasu.specs)
     implementation(kotlin("stdlib", libs.versions.kotlin.get()))
     implementation(kotlin("reflect", libs.versions.kotlin.get()))
-    implementation(kotlin("test", libs.versions.kotlin.get()))
-    implementation(libs.gson)
-
+    compileOnly(kotlin("test-junit", libs.versions.kotlin.get()))
     testImplementation(kotlin("test-junit", libs.versions.kotlin.get()))
+    implementation(libs.gson)
     // To be removed in v1.7
     implementation("org.redundent:kotlin-xml-builder:1.7.3")
     implementation("com.github.doyaaaaaken:kotlin-csv-jvm:1.9.2")
