@@ -23,8 +23,18 @@ open class Node() : Origin, Destination, Serializable, HasID {
     @Internal
     override var id: String? = null
 
+    @Volatile
+    private var _annotations: CopyOnWriteArrayList<AnnotationInstance>? = null
+
     @Internal
-    val annotations: MutableList<AnnotationInstance> = CopyOnWriteArrayList()
+    val annotations: MutableList<AnnotationInstance>
+        get() {
+            val a = _annotations
+            if (a != null) return a
+            return synchronized(this) {
+                _annotations ?: CopyOnWriteArrayList<AnnotationInstance>().also { _annotations = it }
+            }
+        }
 
     @Internal
     protected var positionOverride: Position? = null
