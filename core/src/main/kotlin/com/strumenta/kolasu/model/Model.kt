@@ -191,27 +191,20 @@ open class Node() : Origin, Destination, Serializable, HasID {
 
     fun getChildren(propertyName: String, includeDerived: Boolean = false): List<Node> {
         checkFeatureName(propertyName)
-        val property = (if (includeDerived) properties else originalProperties)
-            .find { it.name == propertyName }
-        require(property != null) {
+        val props = if (includeDerived) nodeProperties else nodeOriginalProperties
+        for (prop in props) {
+            if (prop.name != propertyName) continue
+            return when (val v = prop.get(this)) {
+                null -> emptyList()
+                is Collection<*> -> v.filterIsInstance<Node>()
+                is Node -> listOf(v)
+                else -> emptyList()
+            }
+        }
+        throw IllegalArgumentException(
             "Property $propertyName not found in node of type ${this.nodeType} " +
                 "(considering derived properties? $includeDerived)"
-        }
-        return when (
-            val rawValue = property!!.value
-        ) {
-            null -> {
-                emptyList()
-            }
-
-            is List<*> -> {
-                rawValue as List<Node>
-            }
-
-            else -> {
-                listOf(rawValue as Node)
-            }
-        }
+        )
     }
 
     fun getReference(reference: Reference): ReferenceByName<*>? {
@@ -242,7 +235,10 @@ open class Node() : Origin, Destination, Serializable, HasID {
     }
 
     fun getAttributeValue(name: String): Any? {
-        return properties.find { it.name == name }!!.value
+        for (prop in nodeProperties) {
+            if (prop.name == name) return prop.get(this)
+        }
+        error("Property $name not found in node of type ${this.nodeType}")
     }
 }
 
