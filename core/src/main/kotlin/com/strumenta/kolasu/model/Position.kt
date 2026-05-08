@@ -51,16 +51,30 @@ data class Point(val line: Int, val column: Int) : Comparable<Point>, Serializab
      * Translate the Point to an offset in the original code stream.
      */
     fun offset(code: String): Int {
-        val lines = code.split("\r\n", "\n", "\r")
-        require(lines.size >= line) {
-            "The point does not exist in the given text. It indicates line $line but there are only ${lines.size} lines"
+        var lineCount = 1
+        var pos = 0
+        while (pos < code.length && lineCount < line) {
+            when {
+                code[pos] == '\r' && pos + 1 < code.length && code[pos + 1] == '\n' -> {
+                    pos += 2; lineCount++
+                }
+                code[pos] == '\r' || code[pos] == '\n' -> {
+                    pos++; lineCount++
+                }
+                else -> pos++
+            }
         }
-        require(lines[line - 1].length >= column) {
-            "The column does not exist in the given text. Line $line has ${lines[line - 1].length} columns, " +
-                "the point indicates column $column"
+        require(lineCount >= line) {
+            "The point does not exist in the given text. " +
+                "It indicates line $line but there are only $lineCount lines"
         }
-        val newLines = this.line - 1
-        return lines.subList(0, this.line - 1).foldRight(0) { it, acc -> it.length + acc } + newLines + column
+        var lineEnd = pos
+        while (lineEnd < code.length && code[lineEnd] != '\r' && code[lineEnd] != '\n') lineEnd++
+        require(lineEnd - pos >= column) {
+            "The column does not exist in the given text. " +
+                "Line $line has ${lineEnd - pos} columns, the point indicates column $column"
+        }
+        return pos + column
     }
 
     /**
