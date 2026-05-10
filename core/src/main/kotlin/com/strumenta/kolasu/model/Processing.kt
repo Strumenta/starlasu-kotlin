@@ -11,6 +11,7 @@ import kotlin.reflect.KFunction1
 import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KParameter
 import kotlin.reflect.KProperty
+import kotlin.reflect.KProperty1
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
 
@@ -218,18 +219,28 @@ val Node.previousSamePropertySibling: Node?
 /**
  * Return the property containing this Node, if any. Null should be returned for root nodes.
  */
+@Suppress("UNCHECKED_CAST")
 fun Node.containingProperty(): PropertyDescription? {
-    if (this.parent == null) {
-        return null
-    }
-    return this.parent!!.properties.find { p ->
-        val v = p.value
-        when {
+    val p = this.parent ?: return null
+    for (prop in p.nodeOriginalProperties) {
+        val v = (prop as KProperty1<Node, *>).get(p)
+        val found = when {
             v is Collection<*> -> v.any { it === this }
             v === this -> true
             else -> false
         }
-    } ?: throw IllegalStateException("No containing property for $this with parent ${this.parent}")
+        if (found) return PropertyDescription.buildFor(prop, p)
+    }
+    for (prop in p.nodeDerivedProperties) {
+        val v = (prop as KProperty1<Node, *>).get(p)
+        val found = when {
+            v is Collection<*> -> v.any { it === this }
+            v === this -> true
+            else -> false
+        }
+        if (found) return PropertyDescription.buildFor(prop, p)
+    }
+    throw IllegalStateException("No containing property for $this with parent $p")
 }
 
 /**

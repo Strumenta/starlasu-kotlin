@@ -625,7 +625,10 @@ class LionWebModelConverter(
                     // instantiated kNode
                     nodeIdProvider.registerMapping(instantiated, lwNode.id!!)
                     instantiated.id = lwNode.id
-                    instantiated.annotations.addAll(lwNode.annotations)
+                    val lwAnnotations = lwNode.annotations
+                    if (lwAnnotations.isNotEmpty()) {
+                        instantiated.annotations.addAll(lwAnnotations)
+                    }
                 }
                 associateNodes(instantiated, lwNode)
             } catch (e: RuntimeException) {
