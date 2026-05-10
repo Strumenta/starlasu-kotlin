@@ -56,6 +56,7 @@ import io.lionweb.serialization.AbstractSerialization
 import io.lionweb.serialization.JsonSerialization
 import io.lionweb.serialization.SerializationProvider
 import io.lionweb.utils.CommonChecks
+import java.lang.invoke.MethodHandles
 import java.util.IdentityHashMap
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
@@ -63,6 +64,7 @@ import kotlin.reflect.KMutableProperty
 import kotlin.reflect.KParameter
 import kotlin.reflect.KType
 import kotlin.reflect.full.primaryConstructor
+import kotlin.reflect.jvm.javaConstructor
 import com.strumenta.starlasu.base.v1.ASTLanguageV1 as ASTLanguage
 import io.lionweb.language.Feature as LWFeature
 
@@ -450,8 +452,18 @@ class LionWebModelConverter(
             }
 
             val paramsSize = params.size
+            val javaCtor = ctor.javaConstructor
+                ?: throw RuntimeException("No Java constructor for $kc")
+            javaCtor.isAccessible = true
+            val mh = MethodHandles.lookup()
+                .unreflectConstructor(javaCtor)
+                .asSpreader(Array<Any>::class.java, paramsSize)
+
+            // One reusable array per thread — eliminates both Object[] allocations per node.
+            val threadLocalArgs = ThreadLocal.withInitial<Array<Any?>> { arrayOfNulls(paramsSize) }
+
             val factory: (LWNode, ReferencesPostponer) -> Any = { lwNode, postponer ->
-                val argsArray = arrayOfNulls<Any>(paramsSize)
+                val argsArray = threadLocalArgs.get()
                 for (i in 0 until paramsSize) {
                     val param = params[i]
                     val feature = lwFeatureByName(lwNode.classifier, param.name!!)
@@ -467,11 +479,11 @@ class LionWebModelConverter(
                     }
                 }
                 val instance = try {
-                    ctor.call(*argsArray)
-                } catch (e: Exception) {
+                    mh.invoke(argsArray)
+                } catch (e: Throwable) {
+                    val paramDiag = params.mapIndexed { i, p -> "${p.name}=${argsArray[i]}" }
                     throw RuntimeException(
-                        "Issue instantiating using constructor ${kc.qualifiedName}.$ctor with params " +
-                            "${params.mapIndexed { i, p -> "${p.name}=${argsArray[i]}" }}",
+                        "Issue instantiating using constructor ${kc.qualifiedName}.$ctor with params $paramDiag",
                         e
                     )
                 }
