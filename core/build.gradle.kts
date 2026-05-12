@@ -73,6 +73,9 @@ tasks.named("runKtlintFormatOverTestSourceSet") {
 tasks.named("sourcesJar") {
     dependsOn("generateGrammarSource")
 }
+tasks.matching { it.name == "kaptGenerateStubsKotlin" }.configureEach {
+    dependsOn("generateGrammarSource")
+}
 tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin").configure {
     source(sourceSets["main"].allJava, sourceSets["main"].kotlin)
 }

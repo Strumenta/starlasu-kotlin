@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.lionweb
 
+import org.jetbrains.kotlin.K1Deprecation
 import org.jetbrains.kotlin.cli.jvm.compiler.EnvironmentConfigFiles
 import org.jetbrains.kotlin.cli.jvm.compiler.KotlinCoreEnvironment
 import org.jetbrains.kotlin.com.intellij.openapi.util.Disposer
@@ -53,6 +54,7 @@ class KotlinCodeProcessor {
         return set
     }
 
+    @OptIn(K1Deprecation::class)
     private fun parse(code: String): KtFile {
         val disposable = Disposer.newDisposable()
         try {

@@ -66,7 +66,9 @@ subprojects {
     }
 
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-        kotlinOptions.jvmTarget = project.property("jvm_version").toString()
+        compilerOptions.jvmTarget.set(
+            org.jetbrains.kotlin.gradle.dsl.JvmTarget.fromTarget(project.property("jvm_version").toString())
+        )
     }
 
     tasks.withType<Sign>().configureEach {

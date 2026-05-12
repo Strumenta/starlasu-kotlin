@@ -70,7 +70,7 @@ inline fun <reified T : Node> ASTTransformer.translateOptional(original: Any?): 
  * }
  * ```
  */
-fun <T> ParseTreeToASTTransformer.translateOnlyChild(parent: ParserRuleContext): T {
+inline fun <reified T : Node> ParseTreeToASTTransformer.translateOnlyChild(parent: ParserRuleContext): T {
     return translateCasted(parent.onlyChild)
 }
 
