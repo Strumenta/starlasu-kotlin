@@ -11,7 +11,7 @@ plugins {
 val kspVersion = extra["kspVersion"] as String
 val kotlin_version = extra["kotlin_version"] as String
 val lionwebGenGradlePluginID = extra["lionwebGenGradlePluginID"] as String
-val completeKspVersion = kspVersion
+val completeKspVersion = if (kspVersion.contains("-")) kspVersion else "$kotlin_version-$kspVersion"
 val lionwebJavaVersion = libs.versions.lwjava.get()
 
 dependencies {
