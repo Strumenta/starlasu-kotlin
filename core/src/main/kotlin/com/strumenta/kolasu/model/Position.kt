@@ -50,9 +50,18 @@ data class Point(val line: Int, val column: Int) : Comparable<Point>, Serializab
     /**
      * Translate the Point to an offset in the original code stream.
      */
-    fun offset(code: String): Int {
-        var lineCount = 1
-        var pos = 0
+    fun offset(code: String): Int = offsetFrom(code, START_COLUMN, START_LINE)
+
+    /**
+     * Like [offset] but starts scanning from [fromCharOffset] (which is the start of [fromLine])
+     * instead of from the beginning of the string. Use this to continue a scan already in progress,
+     * avoiding re-scanning from position 0.
+     *
+     * Precondition: [fromLine] <= [line].
+     */
+    fun offsetFrom(code: String, fromCharOffset: Int, fromLine: Int): Int {
+        var lineCount = fromLine
+        var pos = fromCharOffset
         while (pos < code.length && lineCount < line) {
             when {
                 code[pos] == '\r' && pos + 1 < code.length && code[pos + 1] == '\n' -> {
@@ -189,17 +198,52 @@ data class Position(val start: Point, val end: Point, var source: Source? = null
     }
 
     /**
-     * Given the whole code extract the portion of text corresponding to this position
+     * Given the whole code extract the portion of text corresponding to this position.
      */
     fun text(wholeText: String): String {
-        return wholeText.substring(start.offset(wholeText), end.offset(wholeText))
+        // Optimization: rather than calling Point.offset twice (which would scan from the beginning
+        // of the string independently for each point), this performs a single pass. The loop below
+        // scans to the start of start.line and captures the intermediate scan state
+        // (lineStartPos, lineCount). That state is then passed to Point.offsetFrom for end,
+        // which continues scanning from where we stopped instead of restarting from position 0.
+        // The loop is intentionally duplicated from offsetFrom to avoid the allocation that a shared
+        // helper returning scan state would require.
+        var lineCount = START_LINE
+        var lineStartPos = START_COLUMN
+        while (lineStartPos < wholeText.length && lineCount < start.line) {
+            when {
+                wholeText[lineStartPos] == '\r' && lineStartPos + 1 < wholeText.length &&
+                    wholeText[lineStartPos + 1] == '\n' -> { lineStartPos += 2; lineCount++ }
+                wholeText[lineStartPos] == '\r' || wholeText[lineStartPos] == '\n' -> { lineStartPos++; lineCount++ }
+                else -> lineStartPos++
+            }
+        }
+        val startOffset = lineStartPos + start.column
+        val endOffset = end.offsetFrom(wholeText, lineStartPos, lineCount)
+        return wholeText.substring(startOffset, endOffset)
     }
 
     /**
      * The length in characters of the text under this position in the provided source.
      * @param code the source text.
      */
-    fun length(code: String) = end.offset(code) - start.offset(code)
+    fun length(code: String): Int {
+        // See text() for the optimization rationale. The scan loop is duplicated here
+        // to avoid allocating a shared scan-state object on what can be a hot path.
+        var lineCount = START_LINE
+        var lineStartPos = START_COLUMN
+        while (lineStartPos < code.length && lineCount < start.line) {
+            when {
+                code[lineStartPos] == '\r' && lineStartPos + 1 < code.length &&
+                    code[lineStartPos + 1] == '\n' -> { lineStartPos += 2; lineCount++ }
+                code[lineStartPos] == '\r' || code[lineStartPos] == '\n' -> { lineStartPos++; lineCount++ }
+                else -> lineStartPos++
+            }
+        }
+        val startOffset = lineStartPos + start.column
+        val endOffset = end.offsetFrom(code, lineStartPos, lineCount)
+        return endOffset - startOffset
+    }
 
     fun isEmpty(): Boolean = start == end
 
