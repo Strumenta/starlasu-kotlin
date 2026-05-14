@@ -33,13 +33,13 @@ data class FileDefinition private constructor(override val name: String, val spe
     Named {
     companion object {
         operator fun invoke(name: String, specifiedPosition: Position? = null): FileDefinition {
-            return FileDefinition(name.toUpperCase(), specifiedPosition)
+            return FileDefinition(name.uppercase(), specifiedPosition)
         }
     }
 
     var internalFormatName: String? = null
         set(value) {
-            field = value?.toUpperCase()
+            field = value?.uppercase()
         }
 }
 
