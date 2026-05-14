@@ -6,7 +6,7 @@ import com.strumenta.kolasu.language.Reference
 import com.strumenta.kolasu.traversing.walk
 import io.lionweb.model.AnnotationInstance
 import java.io.Serializable
-import java.util.concurrent.CopyOnWriteArrayList
+import java.util.Collections
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
 
@@ -24,7 +24,7 @@ open class Node() : Origin, Destination, Serializable, HasID {
     override var id: String? = null
 
     @Internal
-    val annotations: MutableList<AnnotationInstance> = CopyOnWriteArrayList()
+    val annotations: MutableList<AnnotationInstance> = Collections.synchronizedList(ArrayList())
 
     @Internal
     protected var positionOverride: Position? = null
