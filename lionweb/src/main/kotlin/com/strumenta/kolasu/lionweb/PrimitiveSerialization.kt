@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.lionweb
 
+import com.strumenta.kolasu.interning.intern
 import com.strumenta.kolasu.model.Point
 import com.strumenta.kolasu.model.Position
 import com.strumenta.kolasu.parsing.KolasuToken
@@ -60,7 +61,7 @@ class TokensList private constructor(
                     val dollarIdx = it.indexOf('$')
                     require(dollarIdx > 0) { "Invalid token entry: $it" }
                     KolasuToken(
-                        TokenCategory(it.substring(0, dollarIdx)),
+                        TokenCategory.intern(it.substring(0, dollarIdx)),
                         positionDeserializer.deserialize(it.substring(dollarIdx + 1))!!
                     )
                 }
@@ -85,24 +86,6 @@ val charDeserializer = DataTypeDeserializer<Char> { serialized ->
 // Point
 //
 
-/**
- * LRU cache that interns [Point] instances during deserialization.
- *
- * A source file has a bounded set of distinct (line, column) pairs — typically far fewer than
- * the number of AST nodes — so interning them eliminates the majority of [Point] allocations.
- * The cache key encodes the pair as a single [Long] to avoid boxing.
- * Capacity is capped at 1 024 entries; older entries are evicted automatically.
- */
-private val pointCache: MutableMap<Long, Point> =
-    object : LinkedHashMap<Long, Point>(1024 * 10 / 7, 0.7f, true) {
-        override fun removeEldestEntry(eldest: Map.Entry<Long, Point>): Boolean = size > 1024
-    }
-
-private fun internPoint(line: Int, column: Int): Point {
-    val key = (line.toLong() shl 32) or (column.toLong() and 0xFFFFFFFFL)
-    return pointCache.getOrPut(key) { Point(line, column) }
-}
-
 val pointSerializer: DataTypeSerializer<Point> =
     DataTypeSerializer<Point> { value ->
         if (value == null) {
@@ -123,7 +106,7 @@ val pointDeserializer: DataTypeDeserializer<Point> =
         require(colonIdx > 1) { "Point string missing ':', got: $serialized" }
         val line = serialized.substring(1, colonIdx).toInt()
         val column = serialized.substring(colonIdx + 1).toInt()
-        internPoint(line, column)
+        Point.intern(line, column)
     }
 
 //
@@ -134,7 +117,7 @@ val positionSerializer = DataTypeSerializer<Position> { value ->
     if (value == null) {
         return@DataTypeSerializer null
     }
-    "${pointSerializer.serialize((value as Position).start)}-${pointSerializer.serialize(value.end)}"
+    "${pointSerializer.serialize(value.start)}-${pointSerializer.serialize(value.end)}"
 }
 
 val positionDeserializer = DataTypeDeserializer<Position> { serialized ->

@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.model
 
+import com.strumenta.kolasu.interning.PointInterner
 import java.io.File
 import java.io.Serializable
 import java.net.URL
@@ -38,6 +39,21 @@ data class Point(val line: Int, val column: Int) : Comparable<Point>, Serializab
         fun checkColumn(column: Int) {
             require(column >= START_COLUMN) { "Column should be equal or greater than 0, was $column" }
         }
+
+        // Global bounded interner. 500 K entries ≈ 25 MB worst-case, far cheaper than millions of duplicates.
+        private val globalInterner = PointInterner(500_000)
+
+        /**
+         * Returns a canonical [Point] equal to `Point(line, column)`, reusing a previously interned
+         * instance if one exists. Use this in all hot construction paths (token positions, etc.).
+         *
+         * The underlying cache is bounded; once full, fresh instances are returned without caching
+         * rather than blocking or throwing.
+         */
+        fun intern(line: Int, column: Int): Point = globalInterner.intern(line, column)
+
+        /** Canonical instance for the most common point in any source file. */
+        val START: Point = intern(START_LINE, START_COLUMN)
     }
 
     override fun toString() = "Line $line, Column $column"
@@ -105,7 +121,7 @@ data class Point(val line: Int, val column: Int) : Comparable<Point>, Serializab
     fun isSameOrAfter(other: Point) = this >= other
 
     operator fun plus(length: Int): Point {
-        return Point(this.line, this.column + length)
+        return intern(this.line, this.column + length)
     }
 
     operator fun plus(text: String): Point {
@@ -127,7 +143,7 @@ data class Point(val line: Int, val column: Int) : Comparable<Point>, Serializab
             }
             i++
         }
-        return Point(line, column)
+        return intern(line, column)
     }
 
     val asPosition: Position
@@ -343,11 +359,11 @@ fun Position.stripPosition(text: String): Position {
 }
 
 fun Position.advanceStart(): Position {
-    return Position(Point(start.line, start.column + 1), end)
+    return Position(Point.intern(start.line, start.column + 1), end)
 }
 
 fun Position.recedeEnd(): Position {
-    return Position(start, Point(end.line, end.column - 1))
+    return Position(start, Point.intern(end.line, end.column - 1))
 }
 
 private fun <K, V> createLeastRecentlyUsedMap(maxEntries: Int = 100): Map<K, V> {

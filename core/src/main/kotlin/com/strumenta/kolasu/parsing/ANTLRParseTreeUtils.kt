@@ -122,7 +122,7 @@ val Token.length
     get() = if (this.type == Token.EOF) 0 else text.length
 
 val Token.startPoint: Point
-    get() = Point(this.line, this.charPositionInLine)
+    get() = Point.intern(this.line, this.charPositionInLine)
 
 val Token.endPoint: Point
     get() = if (this.type == Token.EOF) startPoint else startPoint + this.text
