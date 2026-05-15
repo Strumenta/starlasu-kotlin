@@ -1,0 +1,240 @@
+package com.strumenta.kolasu.interning
+
+import com.strumenta.kolasu.model.Point
+import com.strumenta.kolasu.parsing.TokenCategory
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
+import org.junit.Test as test
+
+class PointInternerTest {
+
+    @test
+    fun `interned points are equal to directly constructed points`() {
+        val interner = PointInterner()
+        val p = interner.intern(5, 12)
+        assertEquals(Point(5, 12), p)
+        assertEquals(5, p.line)
+        assertEquals(12, p.column)
+    }
+
+    @test
+    fun `interning the same coordinates twice returns the same instance`() {
+        val interner = PointInterner()
+        val a = interner.intern(3, 7)
+        val b = interner.intern(3, 7)
+        assertSame(a, b)
+    }
+
+    @test
+    fun `interning different coordinates returns different instances`() {
+        val interner = PointInterner()
+        val a = interner.intern(1, 0)
+        val b = interner.intern(1, 1)
+        assertFalse(a === b)
+        assertEquals(Point(1, 0), a)
+        assertEquals(Point(1, 1), b)
+    }
+
+    @test
+    fun `intern(point) overload returns same instance as intern(line, col)`() {
+        val interner = PointInterner()
+        val direct = interner.intern(10, 4)
+        val fromPoint = interner.intern(Point(10, 4))
+        assertSame(direct, fromPoint)
+    }
+
+    @test
+    fun `interned point has correct compareTo behaviour`() {
+        val interner = PointInterner()
+        val p1 = interner.intern(1, 0)
+        val p2 = interner.intern(2, 0)
+        assertTrue(p1 < p2)
+    }
+
+    @test
+    fun `hit rate increases with repeated requests`() {
+        val interner = PointInterner()
+        interner.intern(1, 0)
+        interner.intern(1, 0)
+        interner.intern(1, 0)
+        interner.intern(2, 0)
+        assertEquals(2, interner.hits)
+        assertEquals(2, interner.misses)
+        assertEquals(0.5, interner.hitRate)
+    }
+
+    @test
+    fun `cache does not grow beyond maxSize`() {
+        val maxSize = 100
+        val interner = PointInterner(maxSize)
+        for (i in 1..200) {
+            interner.intern(i, 0)
+        }
+        assertTrue(interner.size <= maxSize)
+    }
+
+    @test
+    fun `points beyond maxSize are still correct even if not interned`() {
+        val maxSize = 10
+        val interner = PointInterner(maxSize)
+        for (i in 1..20) interner.intern(i, 0)
+        val p = interner.intern(99, 0)
+        assertEquals(Point(99, 0), p)
+    }
+
+    @test
+    fun `report returns non-empty string`() {
+        val interner = PointInterner()
+        interner.intern(1, 0)
+        assertNotNull(interner.report())
+        assertTrue(interner.report().isNotBlank())
+    }
+
+    @test
+    fun `concurrent access produces consistent results`() {
+        val interner = PointInterner()
+        val threads = 8
+        val callsPerThread = 10_000
+        val executor = Executors.newFixedThreadPool(threads)
+        val latch = CountDownLatch(threads)
+        val wrongCount = AtomicInteger(0)
+
+        repeat(threads) { t ->
+            executor.submit {
+                try {
+                    for (i in 0 until callsPerThread) {
+                        val line = (i % 100) + 1
+                        val col = i % 50
+                        val p = interner.intern(line, col)
+                        if (p.line != line || p.column != col) wrongCount.incrementAndGet()
+                        // Second call must return the same value (possibly not same instance if evicted,
+                        // but must be equal)
+                        val p2 = interner.intern(line, col)
+                        if (p2.line != line || p2.column != col) wrongCount.incrementAndGet()
+                    }
+                } finally {
+                    latch.countDown()
+                }
+            }
+        }
+        latch.await()
+        executor.shutdown()
+        assertEquals(0, wrongCount.get(), "Some interned points had wrong coordinates")
+    }
+
+    @test
+    fun `multiple interners are independent`() {
+        val a = PointInterner()
+        val b = PointInterner()
+        val pa = a.intern(1, 0)
+        val pb = b.intern(1, 0)
+        assertEquals(pa, pb)
+        // They may or may not be the same instance — that's fine, they are independent caches.
+        assertEquals(1, a.size)
+        assertEquals(1, b.size)
+    }
+}
+
+class TokenCategoryInternerTest {
+
+    @test
+    fun `canonicalize returns companion constant for known types`() {
+        val fresh = TokenCategory("Keyword")
+        val canonical = fresh.canonicalize()
+        assertSame(TokenCategory.KEYWORD, canonical)
+    }
+
+    @test
+    fun `canonicalize is idempotent for companion constants`() {
+        val canonical = TokenCategory.KEYWORD.canonicalize()
+        assertSame(TokenCategory.KEYWORD, canonical)
+    }
+
+    @test
+    fun `canonicalize returns receiver for unknown types`() {
+        val custom = TokenCategory("MyLanguageSpecificToken")
+        val result = custom.canonicalize()
+        assertSame(custom, result)
+    }
+
+    @test
+    fun `companion intern returns canonical constant`() {
+        val result = TokenCategory.intern("Comment")
+        assertSame(TokenCategory.COMMENT, result)
+    }
+
+    @test
+    fun `companion intern constructs new instance for unknown types`() {
+        val result = TokenCategory.intern("Exotic")
+        assertEquals(TokenCategory("Exotic"), result)
+    }
+
+    @test
+    fun `all ten known categories canonicalize correctly`() {
+        val cases = listOf(
+            "Comment" to TokenCategory.COMMENT,
+            "Keyword" to TokenCategory.KEYWORD,
+            "Numeric literal" to TokenCategory.NUMERIC_LITERAL,
+            "String literal" to TokenCategory.STRING_LITERAL,
+            "Other literal" to TokenCategory.OTHER_LITERAL,
+            "Plain text" to TokenCategory.PLAIN_TEXT,
+            "Whitespace" to TokenCategory.WHITESPACE,
+            "Identifier" to TokenCategory.IDENTIFIER,
+            "Punctuation" to TokenCategory.PUNCTUATION,
+            "Operator" to TokenCategory.OPERATOR,
+        )
+        for ((type, expected) in cases) {
+            val result = TokenCategory(type).canonicalize()
+            assertSame(expected, result, "Expected canonical constant for type '$type'")
+        }
+    }
+
+    @test
+    fun `canonicalized category equals original`() {
+        val fresh = TokenCategory("Whitespace")
+        val canonical = fresh.canonicalize()
+        assertEquals(fresh, canonical)
+    }
+}
+
+class InternStatsTest {
+
+    @test
+    fun `records total and distinct correctly`() {
+        val stats = InternStats<String>("test")
+        stats.record("a")
+        stats.record("b")
+        stats.record("a")
+        assertEquals(3L, stats.totalCount)
+        assertEquals(2, stats.distinctCount)
+    }
+
+    @test
+    fun `duplication ratio is correct`() {
+        val stats = InternStats<Int>("test")
+        repeat(4) { stats.record(1) }
+        repeat(1) { stats.record(2) }
+        // 5 total, 2 distinct → ratio = 1 - 2/5 = 0.6
+        assertEquals(0.6, stats.duplicationRatio, 0.001)
+    }
+
+    @test
+    fun `zero duplication when all values are unique`() {
+        val stats = InternStats<Int>("test")
+        (1..10).forEach { stats.record(it) }
+        assertEquals(0.0, stats.duplicationRatio, 0.001)
+    }
+
+    @test
+    fun `report is non-empty`() {
+        val stats = InternStats<String>("test")
+        stats.record("x")
+        assertTrue(stats.report().isNotBlank())
+    }
+}
