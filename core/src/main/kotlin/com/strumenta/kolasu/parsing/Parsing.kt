@@ -1,5 +1,6 @@
 package com.strumenta.kolasu.parsing
 
+import com.strumenta.kolasu.interning.canonicalize
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.model.Point
 import com.strumenta.kolasu.model.Position
@@ -83,10 +84,13 @@ data class TokenCategory(val type: String) {
  * A token is a portion of text that has been assigned a category.
  */
 open class KolasuToken(
-    open val category: TokenCategory,
+    category: TokenCategory,
     open val position: Position,
     open val text: String? = null
-) : Serializable
+) : Serializable {
+    // Canonicalize so callers using TokenCategory("Keyword") share the companion constant.
+    open val category: TokenCategory = category.canonicalize()
+}
 
 /**
  * A [KolasuToken] generated from a [Token]. The [token] contains additional information that is specific to ANTLR,
@@ -251,7 +255,7 @@ fun Lexer.injectErrorCollectorInLexer(issues: MutableList<Issue>) {
                 Issue(
                     IssueType.LEXICAL,
                     errorMessage ?: "unspecified",
-                    position = Point(line, charPositionInLine).asPosition
+                    position = Point.intern(line, charPositionInLine).asPosition
                 )
             )
         }
@@ -269,7 +273,7 @@ fun Parser.injectErrorCollectorInParser(issues: MutableList<Issue>) {
             errorMessage: String?,
             recognitionException: RecognitionException?
         ) {
-            val startPoint = Point(line, charPositionInLine)
+            val startPoint = Point.intern(line, charPositionInLine)
             var endPoint = startPoint
             if (offendingSymbol is CommonToken) {
                 endPoint = offendingSymbol.endPoint

@@ -11,3 +11,5 @@ data class CompositeDestination(val elements: List<Destination>) : Destination, 
 data class TextFileDestination(val position: Position?) : Destination, Serializable
 
 object DroppedDestination : Destination
+
+data class LWDestination(val nodeId: String) : Destination
