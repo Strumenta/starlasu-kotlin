@@ -12,4 +12,8 @@ data class TextFileDestination(val position: Position?) : Destination, Serializa
 
 object DroppedDestination : Destination
 
-data class LWDestination(val nodeId: String) : Destination
+/**
+ * We use this as a lightweight alternative, as it does not need us to keep a reference
+ * to a Node.
+ */
+data class NodeIDDestination(val nodeId: String) : Destination

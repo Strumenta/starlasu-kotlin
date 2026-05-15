@@ -8,8 +8,8 @@ import com.strumenta.kolasu.language.KolasuLanguage
 import com.strumenta.kolasu.model.CompositeDestination
 import com.strumenta.kolasu.model.Destination
 import com.strumenta.kolasu.model.DroppedDestination
-import com.strumenta.kolasu.model.LWDestination
 import com.strumenta.kolasu.model.Multiplicity
+import com.strumenta.kolasu.model.NodeIDDestination
 import com.strumenta.kolasu.model.Position
 import com.strumenta.kolasu.model.PossiblyNamed
 import com.strumenta.kolasu.model.ReferenceByName
@@ -304,7 +304,7 @@ class LionWebModelConverter(
                                                 destination.elements.forEach { element -> processDestination(element) }
                                             }
 
-                                            is LWDestination -> {
+                                            is NodeIDDestination -> {
                                                 destinationIDs.add(
                                                     destination.nodeId
                                                 )
@@ -321,10 +321,13 @@ class LionWebModelConverter(
                                     }
                                     processDestination(kNode.destination!!)
                                 }
-                                val referenceValues = destinationNodes.map { destinationNode ->
-                                    val targetID = destinationNode.id ?: myIDManager.nodeId(destinationNode)
-                                    ReferenceValue(ProxyNode(targetID), null)
-                                } + destinationIDs.map { nodeId -> ReferenceValue(ProxyNode(nodeId), null) }
+                                val referenceValues = buildList(destinationNodes.size + destinationIDs.size) {
+                                    destinationNodes.forEach { destinationNode ->
+                                        val targetID = destinationNode.id ?: myIDManager.nodeId(destinationNode)
+                                        add(ReferenceValue(ProxyNode(targetID), null))
+                                    }
+                                    destinationIDs.forEach { nodeId -> add(ReferenceValue(ProxyNode(nodeId), null)) }
+                                }
                                 lwNode.setReferenceValues(ASTNodeTranspiledNodes, referenceValues)
                             } else {
                                 val kReference = (

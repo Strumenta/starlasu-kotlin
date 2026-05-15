@@ -3,7 +3,6 @@ package com.strumenta.kolasu.interning
 import com.strumenta.kolasu.model.Point
 import com.strumenta.kolasu.parsing.TokenCategory
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicLong
 
 /**
  * Canonicalizes [Point] instances so that equal points share the same object.
@@ -36,9 +35,6 @@ class PointInterner(val maxSize: Int = DEFAULT_MAX_SIZE) {
     // Overflow for pathological cases (line > 65535 or col > 65535). Negligible in practice.
     private val overflow = ConcurrentHashMap<Long, Point>(4)
 
-    private val _hits = AtomicLong(0)
-    private val _misses = AtomicLong(0)
-
     /** Returns a canonical [Point] equal to `Point(line, column)`. */
     fun intern(line: Int, column: Int): Point =
         if (line in 1..0xFFFF && column in 0..0xFFFF) {
@@ -49,19 +45,15 @@ class PointInterner(val maxSize: Int = DEFAULT_MAX_SIZE) {
 
     private fun internPrimary(line: Int, column: Int): Point {
         if (primary.size >= maxSize) {
-            _misses.incrementAndGet()
             return Point(line, column)
         }
         val key = (line shl 16) or column
         val existing = primary[key]
         if (existing != null) {
-            _hits.incrementAndGet()
             return existing
         }
         val point = Point(line, column)
-        val winner = primary.putIfAbsent(key, point) ?: point
-        if (winner === point) _misses.incrementAndGet() else _hits.incrementAndGet()
-        return winner
+        return primary.putIfAbsent(key, point) ?: point
     }
 
     private fun internOverflow(line: Int, column: Int): Point {
@@ -74,30 +66,6 @@ class PointInterner(val maxSize: Int = DEFAULT_MAX_SIZE) {
 
     /** Number of distinct Points currently held in both caches. */
     val size: Int get() = primary.size + overflow.size
-
-    /** Total number of [intern] calls that found an existing entry. */
-    val hits: Long get() = _hits.get()
-
-    /** Total number of [intern] calls that created a new entry (or skipped due to full cache). */
-    val misses: Long get() = _misses.get()
-
-    /** Fraction of calls satisfied from the cache. Returns NaN if no calls have been made. */
-    val hitRate: Double
-        get() {
-            val total = hits + misses
-            return if (total == 0L) Double.NaN else hits.toDouble() / total
-        }
-
-    /** Human-readable summary of cache utilisation. */
-    fun report(): String {
-        val total = hits + misses
-        return buildString {
-            append("PointInterner: size=${size}/$maxSize")
-            append(", calls=$total")
-            append(", hits=$hits")
-            append(", hitRate=${if (total > 0) "%.1f%%".format(hitRate * 100) else "n/a"}")
-        }
-    }
 
     companion object {
         /** Default upper bound: ~64 K distinct points (≈ 2–3 MB, far cheaper than millions of duplicates). */
@@ -120,7 +88,7 @@ private val KNOWN_TOKEN_CATEGORIES: Map<String, TokenCategory> by lazy {
         TokenCategory.WHITESPACE,
         TokenCategory.IDENTIFIER,
         TokenCategory.PUNCTUATION,
-        TokenCategory.OPERATOR,
+        TokenCategory.OPERATOR
     ).associateBy { it.type }
 }
 

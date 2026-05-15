@@ -86,7 +86,6 @@ val charDeserializer = DataTypeDeserializer<Char> { serialized ->
 // Point
 //
 
-
 val pointSerializer: DataTypeSerializer<Point> =
     DataTypeSerializer<Point> { value ->
         if (value == null) {
