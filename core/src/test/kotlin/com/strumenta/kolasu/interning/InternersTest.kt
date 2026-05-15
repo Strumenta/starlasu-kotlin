@@ -139,6 +139,50 @@ class PointInternerTest {
         assertEquals(1, a.size)
         assertEquals(1, b.size)
     }
+
+    @test
+    fun `no hash collisions for typical source code coordinates`() {
+        // Regression: the Long-key encoding caused col XOR line hash, concentrating 500K entries
+        // into ~10K buckets (49 entries/bucket average, all tree nodes).
+        // Int key (line shl 16 or col) with ConcurrentHashMap spread produces distinct bucket per pair.
+        val interner = PointInterner(maxSize = 50_000)
+        // Fill with coordinates typical of source code
+        for (line in 1..200) {
+            for (col in 0..100) {
+                interner.intern(line, col)
+            }
+        }
+        // 200 * 101 = 20,200 entries — each should be a cache hit on second access
+        var hits = 0
+        for (line in 1..200) {
+            for (col in 0..100) {
+                val a = interner.intern(line, col)
+                val b = interner.intern(line, col)
+                assertSame(a, b)
+                hits++
+            }
+        }
+        // All second-pass lookups should be cache hits
+        assertTrue(interner.hits >= hits.toLong(), "Expected at least $hits cache hits, got ${interner.hits}")
+    }
+
+    @test
+    fun `overflow path handles large line and column values`() {
+        val interner = PointInterner()
+        val p = interner.intern(70000, 0)
+        assertEquals(Point(70000, 0), p)
+        val p2 = interner.intern(70000, 0)
+        assertSame(p, p2)
+    }
+
+    @test
+    fun `overflow path handles large column values`() {
+        val interner = PointInterner()
+        val p = interner.intern(1, 70000)
+        assertEquals(Point(1, 70000), p)
+        val p2 = interner.intern(1, 70000)
+        assertSame(p, p2)
+    }
 }
 
 class TokenCategoryInternerTest {
