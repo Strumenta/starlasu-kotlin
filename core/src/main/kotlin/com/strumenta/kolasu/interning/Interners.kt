@@ -8,9 +8,19 @@ import java.util.concurrent.atomic.AtomicLong
 /**
  * Canonicalizes [Point] instances so that equal points share the same object.
  *
- * Points are pure-value immutable objects (two ints) that appear millions of times
- * in large pipelines. A bounded cache reduces allocations without risk: the cache
- * simply evicts new points once full rather than blocking or throwing.
+ * **Key design: Int-packed keys to avoid hash collisions**
+ *
+ * The naive approach of using `Long` as a map key causes a severe hash-collision problem.
+ * `Long.hashCode()` is defined as `(int)(value ^ (value >>> 32))`. For a key packed as
+ * `(line << 32) | col`, this yields `hashCode = col XOR line`. For typical source code
+ * (line ≤ 10 000, col ≤ 120) only ~10 000 distinct hash values exist, so 500 K entries
+ * spread across 10 K buckets → 49 entries/bucket average. `ConcurrentHashMap` treefies
+ * buckets above 8 entries, producing ~500 K `TreeNode` objects and O(log 49) lookups.
+ *
+ * This implementation uses an `Int` key = `(line shl 16) or column` for the common case
+ * (line ≤ 65 535, col ≤ 65 535). `Int.hashCode()` returns the int itself, and
+ * `ConcurrentHashMap`'s spread function computes `key XOR (key >>> 16) = ((line shl 16)|col) XOR line`,
+ * which is injective over the domain → every entry lands in a distinct bucket → no tree nodes.
  *
  * **Lifecycle:** prefer one interner per pipeline run, not a long-lived singleton,
  * so the cached Points can be collected with the pipeline's other objects.
@@ -19,34 +29,51 @@ import java.util.concurrent.atomic.AtomicLong
  */
 class PointInterner(val maxSize: Int = DEFAULT_MAX_SIZE) {
 
-    private val cache = ConcurrentHashMap<Long, Point>(minOf(maxSize, 8192))
+    // Primary cache: int key = (line shl 16) or column — valid for line ≤ 65535, col ≤ 65535.
+    // Covers virtually all real source code with excellent hash distribution (no tree nodes).
+    private val primary = ConcurrentHashMap<Int, Point>(minOf(maxSize, 8192))
+
+    // Overflow for pathological cases (line > 65535 or col > 65535). Negligible in practice.
+    private val overflow = ConcurrentHashMap<Long, Point>(4)
+
     private val _hits = AtomicLong(0)
     private val _misses = AtomicLong(0)
 
     /** Returns a canonical [Point] equal to `Point(line, column)`. */
-    fun intern(line: Int, column: Int): Point {
-        // If cache is full, skip interning to avoid unbounded growth.
-        if (cache.size >= maxSize) {
+    fun intern(line: Int, column: Int): Point =
+        if (line in 1..0xFFFF && column in 0..0xFFFF) {
+            internPrimary(line, column)
+        } else {
+            internOverflow(line, column)
+        }
+
+    private fun internPrimary(line: Int, column: Int): Point {
+        if (primary.size >= maxSize) {
             _misses.incrementAndGet()
             return Point(line, column)
         }
-        val key = line.toLong().shl(32) or column.toLong()
-        val existing = cache[key]
+        val key = (line shl 16) or column
+        val existing = primary[key]
         if (existing != null) {
             _hits.incrementAndGet()
             return existing
         }
         val point = Point(line, column)
-        val winner = cache.putIfAbsent(key, point) ?: point
+        val winner = primary.putIfAbsent(key, point) ?: point
         if (winner === point) _misses.incrementAndGet() else _hits.incrementAndGet()
         return winner
+    }
+
+    private fun internOverflow(line: Int, column: Int): Point {
+        val key = line.toLong().shl(32) or column.toLong().and(0xFFFFFFFFL)
+        return overflow.getOrPut(key) { Point(line, column) }
     }
 
     /** Convenience overload that interns an already-constructed [Point]. */
     fun intern(point: Point): Point = intern(point.line, point.column)
 
-    /** Number of distinct Points currently held in the cache. */
-    val size: Int get() = cache.size
+    /** Number of distinct Points currently held in both caches. */
+    val size: Int get() = primary.size + overflow.size
 
     /** Total number of [intern] calls that found an existing entry. */
     val hits: Long get() = _hits.get()
@@ -65,7 +92,7 @@ class PointInterner(val maxSize: Int = DEFAULT_MAX_SIZE) {
     fun report(): String {
         val total = hits + misses
         return buildString {
-            append("PointInterner: size=${cache.size}/$maxSize")
+            append("PointInterner: size=${size}/$maxSize")
             append(", calls=$total")
             append(", hits=$hits")
             append(", hitRate=${if (total > 0) "%.1f%%".format(hitRate * 100) else "n/a"}")
@@ -73,7 +100,7 @@ class PointInterner(val maxSize: Int = DEFAULT_MAX_SIZE) {
     }
 
     companion object {
-        /** Default upper bound: ~64 K distinct points (≈ 2–3 MB, plenty for large codebases). */
+        /** Default upper bound: ~64 K distinct points (≈ 2–3 MB, far cheaper than millions of duplicates). */
         const val DEFAULT_MAX_SIZE = 65_536
     }
 }
