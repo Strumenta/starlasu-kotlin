@@ -6,8 +6,10 @@ import com.strumenta.kolasu.ids.caching
 import com.strumenta.kolasu.language.Feature
 import com.strumenta.kolasu.language.KolasuLanguage
 import com.strumenta.kolasu.model.CompositeDestination
+import com.strumenta.kolasu.model.Destination
 import com.strumenta.kolasu.model.DroppedDestination
 import com.strumenta.kolasu.model.Multiplicity
+import com.strumenta.kolasu.model.NodeIDDestination
 import com.strumenta.kolasu.model.Position
 import com.strumenta.kolasu.model.PossiblyNamed
 import com.strumenta.kolasu.model.ReferenceByName
@@ -290,31 +292,41 @@ class LionWebModelConverter(
                                 }
                             } else if (feature == ASTNodeTranspiledNodes) {
                                 val destinationNodes = mutableListOf<KNode>()
+                                val destinationIDs = mutableListOf<String>()
                                 if (kNode.destination != null) {
-                                    when (kNode.destination) {
-                                        is KNode -> {
-                                            destinationNodes.add(kNode.destination as KNode)
-                                        }
+                                    fun processDestination(destination: Destination) {
+                                        when (destination) {
+                                            is KNode -> {
+                                                destinationNodes.add(destination)
+                                            }
 
-                                        is CompositeDestination -> {
-                                            destinationNodes.addAll(
-                                                (kNode.destination as CompositeDestination).elements
-                                                    .filterIsInstance<KNode>()
-                                            )
-                                        }
+                                            is CompositeDestination -> {
+                                                destination.elements.forEach { element -> processDestination(element) }
+                                            }
 
-                                        DroppedDestination -> {
-                                            val annotation = DynamicAnnotationInstance(
-                                                myIDManager.nodeId(kNode) + "-dropped",
-                                                MigrationLanguage.getDroppedElement()
-                                            )
-                                            lwNode.addAnnotation(annotation)
+                                            is NodeIDDestination -> {
+                                                destinationIDs.add(
+                                                    destination.nodeId
+                                                )
+                                            }
+
+                                            DroppedDestination -> {
+                                                val annotation = DynamicAnnotationInstance(
+                                                    myIDManager.nodeId(kNode) + "-dropped",
+                                                    MigrationLanguage.getDroppedElement()
+                                                )
+                                                lwNode.addAnnotation(annotation)
+                                            }
                                         }
                                     }
+                                    processDestination(kNode.destination!!)
                                 }
-                                val referenceValues = destinationNodes.map { destinationNode ->
-                                    val targetID = destinationNode.id ?: myIDManager.nodeId(destinationNode)
-                                    ReferenceValue(ProxyNode(targetID), null)
+                                val referenceValues = buildList(destinationNodes.size + destinationIDs.size) {
+                                    destinationNodes.forEach { destinationNode ->
+                                        val targetID = destinationNode.id ?: myIDManager.nodeId(destinationNode)
+                                        add(ReferenceValue(ProxyNode(targetID), null))
+                                    }
+                                    destinationIDs.forEach { nodeId -> add(ReferenceValue(ProxyNode(nodeId), null)) }
                                 }
                                 lwNode.setReferenceValues(ASTNodeTranspiledNodes, referenceValues)
                             } else {

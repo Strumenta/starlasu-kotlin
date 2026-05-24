@@ -207,5 +207,5 @@ fun JsonObject.decodeAsPosition(): Position {
 private fun JsonObject.decodeAsPoint(): Point {
     val line = this["line"]!!.asInt
     val column = this["column"]!!.asInt
-    return Point(line, column)
+    return Point.intern(line, column)
 }
