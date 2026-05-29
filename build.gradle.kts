@@ -10,8 +10,8 @@ plugins {
     alias(libs.plugins.vanniktech.publish)
     id("idea")
     id("signing")
-    id("org.jetbrains.dokka") version libs.versions.dokka.get()
-    id("org.jetbrains.dokka-javadoc") version libs.versions.dokka.get()
+    alias(libs.plugins.dokka)
+    alias(libs.plugins.dokka.javadoc)
     id("java-library")
     alias(libs.plugins.release)
 }

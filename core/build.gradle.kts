@@ -8,7 +8,7 @@ plugins {
     id("signing")
     id("org.jetbrains.dokka")
     id("org.jetbrains.dokka-javadoc")
-    id("me.champeau.jmh") version "0.7.2"
+    alias(libs.plugins.jmh)
 }
 
 dependencies {
@@ -16,20 +16,19 @@ dependencies {
     implementation(libs.antlr.runtime)
     implementation(libs.starlasu.specs.languages)
     implementation(libs.starlasu.specs.components)
-    implementation(kotlin("stdlib", libs.versions.kotlin.get()))
-    implementation(kotlin("reflect", libs.versions.kotlin.get()))
+    implementation(libs.kotlin.stdlib)
+    implementation(libs.kotlin.reflect)
     implementation(libs.gson)
     api(libs.clikt)
     api(libs.lionweb.core)
 
-    implementation(kotlin("test", libs.versions.kotlin.get()))
-    testImplementation(kotlin("test-junit", libs.versions.kotlin.get()))
+    implementation(libs.kotlin.test)
+    testImplementation(libs.kotlin.test.junit)
 
-    // JMH: pin core and annotation processor to the same version.
-    jmhImplementation("org.openjdk.jmh:jmh-core:1.37")
-    kaptJmh("org.openjdk.jmh:jmh-generator-annprocess:1.37")
-    jmhImplementation(kotlin("stdlib", libs.versions.kotlin.get()))
-    jmhImplementation(kotlin("reflect", libs.versions.kotlin.get()))
+    jmhImplementation(libs.jmh.core)
+    kaptJmh(libs.jmh.annprocess)
+    jmhImplementation(libs.kotlin.stdlib)
+    jmhImplementation(libs.kotlin.reflect)
 }
 
 tasks.named<AntlrTask>("generateTestGrammarSource") {

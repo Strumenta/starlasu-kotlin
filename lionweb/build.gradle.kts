@@ -1,6 +1,6 @@
 plugins {
     kotlin("jvm")
-    id("org.jlleitschuh.gradle.ktlint")
+    alias(libs.plugins.ktlint)
     alias(libs.plugins.vanniktech.publish)
     id("signing")
     id("org.jetbrains.dokka")
@@ -13,10 +13,10 @@ java {
 }
 
 dependencies {
-    implementation(kotlin("stdlib", libs.versions.kotlin.get()))
-    implementation(kotlin("reflect", libs.versions.kotlin.get()))
+    implementation(libs.kotlin.stdlib)
+    implementation(libs.kotlin.reflect)
     "cliImplementation"(libs.clikt)
-    testImplementation(kotlin("test-junit", libs.versions.kotlin.get()))
+    testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.gson)
     implementation(libs.starlasu.specs.languages)
     implementation(libs.starlasu.specs.components)
