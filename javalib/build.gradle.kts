@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm")
-    id("org.jlleitschuh.gradle.ktlint")
+    alias(libs.plugins.ktlint)
     alias(libs.plugins.vanniktech.publish)
     id("antlr")
     id("idea")
@@ -12,8 +12,8 @@ plugins {
 
 dependencies {
     implementation(project(":core"))
-    implementation("org.jetbrains.kotlin:kotlin-reflect:${libs.versions.kotlin.get()}")
-    testImplementation(kotlin("test-junit", libs.versions.kotlin.get()))
+    implementation(libs.kotlin.reflect)
+    testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.guava)
 }
 

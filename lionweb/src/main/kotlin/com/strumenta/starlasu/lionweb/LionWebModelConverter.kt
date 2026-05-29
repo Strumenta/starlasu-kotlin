@@ -308,6 +308,7 @@ class LionWebModelConverter(
                                 )
                             } else if (feature == ASTV2.transpiledNodes || feature == ASTV1.transpiledNodes) {
                                 val destinationNodes = mutableListOf<SNode>()
+                                val destinationIDs = mutableListOf<String>()
                                 if (kNode.destination != null) {
                                     when (kNode.destination) {
                                         is SNode -> {
@@ -333,9 +334,14 @@ class LionWebModelConverter(
                                     }
                                 }
                                 val referenceValues =
-                                    destinationNodes.map { destinationNode ->
-                                        val targetID = destinationNode.id ?: myIDManager.id(destinationNode)
-                                        ReferenceValue(ProxyNode(targetID), null)
+                                    buildList(destinationNodes.size + destinationIDs.size) {
+                                        destinationNodes.forEach { destinationNode ->
+                                            val targetID = destinationNode.id ?: myIDManager.id(destinationNode)
+                                            add(ReferenceValue(ProxyNode(targetID), null))
+                                        }
+                                        destinationIDs.forEach { nodeId ->
+                                            add(ReferenceValue(ProxyNode(nodeId), null))
+                                        }
                                     }
                                 lwNode.setReferenceValues(feature, referenceValues)
                             } else {
