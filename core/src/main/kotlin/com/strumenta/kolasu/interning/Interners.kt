@@ -1,7 +1,7 @@
 package com.strumenta.kolasu.interning
 
-import com.strumenta.kolasu.model.Point
-import com.strumenta.kolasu.parsing.TokenCategory
+import com.strumenta.starlasu.model.Point
+import com.strumenta.starlasu.parsing.TokenCategory
 import java.util.concurrent.ConcurrentHashMap
 
 /**

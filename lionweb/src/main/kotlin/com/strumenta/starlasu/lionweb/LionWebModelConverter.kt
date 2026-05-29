@@ -332,7 +332,6 @@ class LionWebModelConverter(
                                             lwNode.addAnnotation(annotation)
                                         }
                                     }
-                                    processDestination(kNode.destination!!)
                                 }
                                 val referenceValues =
                                     buildList(destinationNodes.size + destinationIDs.size) {
