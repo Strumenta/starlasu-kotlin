@@ -323,25 +323,26 @@ class LionWebModelConverter(
                                             )
                                         }
 
-                                            DroppedDestination -> {
-                                                val annotation =
+                                        DroppedDestination -> {
+                                            val annotation =
                                                 DynamicAnnotationInstance(
                                                     myIDManager.id(kNode) + "-dropped",
                                                     MigrationLanguage.getInstance().droppedElement,
                                                 )
-                                                lwNode.addAnnotation(annotation)
-                                            }
+                                            lwNode.addAnnotation(annotation)
                                         }
                                     }
                                     processDestination(kNode.destination!!)
                                 }
                                 val referenceValues =
-                                   buildList(destinationNodes.size + destinationIDs.size) {
-                                    destinationNodes.forEach { destinationNode ->
-                                        val targetID = destinationNode.id ?: myIDManager.id(destinationNode)
-                                        add(ReferenceValue(ProxyNode(targetID), null))
-                                    }
-                                    destinationIDs.forEach { nodeId -> add(ReferenceValue(ProxyNode(nodeId), null)) }
+                                    buildList(destinationNodes.size + destinationIDs.size) {
+                                        destinationNodes.forEach { destinationNode ->
+                                            val targetID = destinationNode.id ?: myIDManager.id(destinationNode)
+                                            add(ReferenceValue(ProxyNode(targetID), null))
+                                        }
+                                        destinationIDs.forEach { nodeId ->
+                                            add(ReferenceValue(ProxyNode(nodeId), null))
+                                        }
                                     }
                                 lwNode.setReferenceValues(feature, referenceValues)
                             } else {

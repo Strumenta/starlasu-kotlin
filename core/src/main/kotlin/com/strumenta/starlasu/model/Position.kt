@@ -54,7 +54,10 @@ data class Point(
          * The underlying cache is bounded; once full, fresh instances are returned without caching
          * rather than blocking or throwing.
          */
-        fun intern(line: Int, column: Int): Point = globalInterner.intern(line, column)
+        fun intern(
+            line: Int,
+            column: Int,
+        ): Point = globalInterner.intern(line, column)
 
         /** Canonical instance for the most common point in any source file. */
         val START: Point = intern(START_LINE, START_COLUMN)
@@ -79,16 +82,22 @@ data class Point(
      *
      * Precondition: [fromLine] <= [line].
      */
-    fun offsetFrom(code: String, fromCharOffset: Int, fromLine: Int): Int {
+    fun offsetFrom(
+        code: String,
+        fromCharOffset: Int,
+        fromLine: Int,
+    ): Int {
         var lineCount = fromLine
         var pos = fromCharOffset
         while (pos < code.length && lineCount < line) {
             when {
                 code[pos] == '\r' && pos + 1 < code.length && code[pos + 1] == '\n' -> {
-                    pos += 2; lineCount++
+                    pos += 2
+                    lineCount++
                 }
                 code[pos] == '\r' || code[pos] == '\n' -> {
-                    pos++; lineCount++
+                    pos++
+                    lineCount++
                 }
                 else -> pos++
             }
@@ -124,9 +133,7 @@ data class Point(
      */
     fun isSameOrAfter(other: Point) = this >= other
 
-    operator fun plus(length: Int): Point {
-        return intern(this.line, this.column + length)
-    }
+    operator fun plus(length: Int): Point = intern(this.line, this.column + length)
 
     operator fun plus(text: String): Point {
         if (text.isEmpty()) {
@@ -261,9 +268,16 @@ data class Position(
         var lineStartPos = START_COLUMN
         while (lineStartPos < wholeText.length && lineCount < start.line) {
             when {
-                wholeText[lineStartPos] == '\r' && lineStartPos + 1 < wholeText.length &&
-                    wholeText[lineStartPos + 1] == '\n' -> { lineStartPos += 2; lineCount++ }
-                wholeText[lineStartPos] == '\r' || wholeText[lineStartPos] == '\n' -> { lineStartPos++; lineCount++ }
+                wholeText[lineStartPos] == '\r' &&
+                    lineStartPos + 1 < wholeText.length &&
+                    wholeText[lineStartPos + 1] == '\n' -> {
+                    lineStartPos += 2
+                    lineCount++
+                }
+                wholeText[lineStartPos] == '\r' || wholeText[lineStartPos] == '\n' -> {
+                    lineStartPos++
+                    lineCount++
+                }
                 else -> lineStartPos++
             }
         }
@@ -283,9 +297,16 @@ data class Position(
         var lineStartPos = START_COLUMN
         while (lineStartPos < code.length && lineCount < start.line) {
             when {
-                code[lineStartPos] == '\r' && lineStartPos + 1 < code.length &&
-                    code[lineStartPos + 1] == '\n' -> { lineStartPos += 2; lineCount++ }
-                code[lineStartPos] == '\r' || code[lineStartPos] == '\n' -> { lineStartPos++; lineCount++ }
+                code[lineStartPos] == '\r' &&
+                    lineStartPos + 1 < code.length &&
+                    code[lineStartPos + 1] == '\n' -> {
+                    lineStartPos += 2
+                    lineCount++
+                }
+                code[lineStartPos] == '\r' || code[lineStartPos] == '\n' -> {
+                    lineStartPos++
+                    lineCount++
+                }
                 else -> lineStartPos++
             }
         }

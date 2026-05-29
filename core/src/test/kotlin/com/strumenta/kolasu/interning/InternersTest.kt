@@ -12,7 +12,6 @@ import kotlin.test.assertTrue
 import org.junit.Test as test
 
 class PointInternerTest {
-
     @test
     fun `interned points are equal to directly constructed points`() {
         val interner = PointInterner()
@@ -165,7 +164,6 @@ class PointInternerTest {
 }
 
 class TokenCategoryInternerTest {
-
     @test
     fun `canonicalize returns companion constant for known types`() {
         val fresh = TokenCategory("Keyword")
@@ -200,18 +198,19 @@ class TokenCategoryInternerTest {
 
     @test
     fun `all ten known categories canonicalize correctly`() {
-        val cases = listOf(
-            "Comment" to TokenCategory.COMMENT,
-            "Keyword" to TokenCategory.KEYWORD,
-            "Numeric literal" to TokenCategory.NUMERIC_LITERAL,
-            "String literal" to TokenCategory.STRING_LITERAL,
-            "Other literal" to TokenCategory.OTHER_LITERAL,
-            "Plain text" to TokenCategory.PLAIN_TEXT,
-            "Whitespace" to TokenCategory.WHITESPACE,
-            "Identifier" to TokenCategory.IDENTIFIER,
-            "Punctuation" to TokenCategory.PUNCTUATION,
-            "Operator" to TokenCategory.OPERATOR
-        )
+        val cases =
+            listOf(
+                "Comment" to TokenCategory.COMMENT,
+                "Keyword" to TokenCategory.KEYWORD,
+                "Numeric literal" to TokenCategory.NUMERIC_LITERAL,
+                "String literal" to TokenCategory.STRING_LITERAL,
+                "Other literal" to TokenCategory.OTHER_LITERAL,
+                "Plain text" to TokenCategory.PLAIN_TEXT,
+                "Whitespace" to TokenCategory.WHITESPACE,
+                "Identifier" to TokenCategory.IDENTIFIER,
+                "Punctuation" to TokenCategory.PUNCTUATION,
+                "Operator" to TokenCategory.OPERATOR,
+            )
         for ((type, expected) in cases) {
             val result = TokenCategory(type).canonicalize()
             assertSame(expected, result, "Expected canonical constant for type '$type'")

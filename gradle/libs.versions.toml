@@ -1,9 +1,9 @@
 [versions]
-kotlin = "2.0.21"
-lwjava = "1.3.14"
-lwkotlin = "1.3.9"
+kotlin = "2.3.20"
+lwjava = "1.4.0-SNAPSHOT"
+lwkotlin = "1.4.0-SNAPSHOT"
 kotest= "5.9.1"
-dokka = "2.1.0"
+dokka = "2.2.0"
 jvm = "11"
 antlr = "4.13.2"
 gson = "2.13.2"

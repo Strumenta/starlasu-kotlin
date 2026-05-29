@@ -26,8 +26,9 @@ import java.util.concurrent.ConcurrentHashMap
  *
  * Thread safety: all operations are safe for concurrent use.
  */
-class PointInterner(val maxSize: Int = DEFAULT_MAX_SIZE) {
-
+class PointInterner(
+    val maxSize: Int = DEFAULT_MAX_SIZE,
+) {
     // Primary cache: int key = (line shl 16) or column — valid for line ≤ 65535, col ≤ 65535.
     // Covers virtually all real source code with excellent hash distribution (no tree nodes).
     private val primary = ConcurrentHashMap<Int, Point>(minOf(maxSize, 8192))
@@ -36,14 +37,20 @@ class PointInterner(val maxSize: Int = DEFAULT_MAX_SIZE) {
     private val overflow = ConcurrentHashMap<Long, Point>(4)
 
     /** Returns a canonical [Point] equal to `Point(line, column)`. */
-    fun intern(line: Int, column: Int): Point =
+    fun intern(
+        line: Int,
+        column: Int,
+    ): Point =
         if (line in 1..0xFFFF && column in 0..0xFFFF) {
             internPrimary(line, column)
         } else {
             internOverflow(line, column)
         }
 
-    private fun internPrimary(line: Int, column: Int): Point {
+    private fun internPrimary(
+        line: Int,
+        column: Int,
+    ): Point {
         if (primary.size >= maxSize) {
             return Point(line, column)
         }
@@ -56,7 +63,10 @@ class PointInterner(val maxSize: Int = DEFAULT_MAX_SIZE) {
         return primary.putIfAbsent(key, point) ?: point
     }
 
-    private fun internOverflow(line: Int, column: Int): Point {
+    private fun internOverflow(
+        line: Int,
+        column: Int,
+    ): Point {
         val key = line.toLong().shl(32) or column.toLong().and(0xFFFFFFFFL)
         return overflow.getOrPut(key) { Point(line, column) }
     }
@@ -88,7 +98,7 @@ private val KNOWN_TOKEN_CATEGORIES: Map<String, TokenCategory> by lazy {
         TokenCategory.WHITESPACE,
         TokenCategory.IDENTIFIER,
         TokenCategory.PUNCTUATION,
-        TokenCategory.OPERATOR
+        TokenCategory.OPERATOR,
     ).associateBy { it.type }
 }
 
@@ -107,5 +117,4 @@ fun TokenCategory.canonicalize(): TokenCategory = KNOWN_TOKEN_CATEGORIES[type] ?
  *
  * Prefer this over `TokenCategory(type)` in hot paths.
  */
-fun TokenCategory.Companion.intern(type: String): TokenCategory =
-    KNOWN_TOKEN_CATEGORIES[type] ?: TokenCategory(type)
+fun TokenCategory.Companion.intern(type: String): TokenCategory = KNOWN_TOKEN_CATEGORIES[type] ?: TokenCategory(type)
