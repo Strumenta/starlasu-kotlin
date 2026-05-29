@@ -1,5 +1,6 @@
 package com.strumenta.starlasu.model
 
+import com.strumenta.kolasu.interning.PointInterner
 import java.io.File
 import java.io.Serializable
 import java.net.URL
@@ -42,6 +43,21 @@ data class Point(
         fun checkColumn(column: Int) {
             require(column >= START_COLUMN) { "Column should be equal or greater than 0, was $column" }
         }
+
+        // Global bounded interner. 500 K entries ≈ 25 MB worst-case, far cheaper than millions of duplicates.
+        private val globalInterner = PointInterner(500_000)
+
+        /**
+         * Returns a canonical [Point] equal to `Point(line, column)`, reusing a previously interned
+         * instance if one exists. Use this in all hot construction paths (token positions, etc.).
+         *
+         * The underlying cache is bounded; once full, fresh instances are returned without caching
+         * rather than blocking or throwing.
+         */
+        fun intern(line: Int, column: Int): Point = globalInterner.intern(line, column)
+
+        /** Canonical instance for the most common point in any source file. */
+        val START: Point = intern(START_LINE, START_COLUMN)
     }
 
     override fun toString() = "Line $line, Column $column"
@@ -54,17 +70,40 @@ data class Point(
     /**
      * Translate the Point to an offset in the original code stream.
      */
-    fun offset(code: String): Int {
-        val lines = code.split("\r\n", "\n", "\r")
-        require(lines.size >= line) {
-            "The point does not exist in the given text. It indicates line $line but there are only ${lines.size} lines"
+    fun offset(code: String): Int = offsetFrom(code, START_COLUMN, START_LINE)
+
+    /**
+     * Like [offset] but starts scanning from [fromCharOffset] (which is the start of [fromLine])
+     * instead of from the beginning of the string. Use this to continue a scan already in progress,
+     * avoiding re-scanning from position 0.
+     *
+     * Precondition: [fromLine] <= [line].
+     */
+    fun offsetFrom(code: String, fromCharOffset: Int, fromLine: Int): Int {
+        var lineCount = fromLine
+        var pos = fromCharOffset
+        while (pos < code.length && lineCount < line) {
+            when {
+                code[pos] == '\r' && pos + 1 < code.length && code[pos + 1] == '\n' -> {
+                    pos += 2; lineCount++
+                }
+                code[pos] == '\r' || code[pos] == '\n' -> {
+                    pos++; lineCount++
+                }
+                else -> pos++
+            }
         }
-        require(lines[line - 1].length >= column) {
-            "The column does not exist in the given text. Line $line has ${lines[line - 1].length} columns, " +
-                "the point indicates column $column"
+        require(lineCount >= line) {
+            "The point does not exist in the given text. " +
+                "It indicates line $line but there are only $lineCount lines"
         }
-        val newLines = this.line - 1
-        return lines.subList(0, this.line - 1).foldRight(0) { it, acc -> it.length + acc } + newLines + column
+        var lineEnd = pos
+        while (lineEnd < code.length && code[lineEnd] != '\r' && code[lineEnd] != '\n') lineEnd++
+        require(lineEnd - pos >= column) {
+            "The column does not exist in the given text. " +
+                "Line $line has ${lineEnd - pos} columns, the point indicates column $column"
+        }
+        return pos + column
     }
 
     /**
@@ -85,7 +124,9 @@ data class Point(
      */
     fun isSameOrAfter(other: Point) = this >= other
 
-    operator fun plus(length: Int): Point = Point(this.line, this.column + length)
+    operator fun plus(length: Int): Point {
+        return intern(this.line, this.column + length)
+    }
 
     operator fun plus(text: String): Point {
         if (text.isEmpty()) {
@@ -106,7 +147,7 @@ data class Point(
             }
             i++
         }
-        return Point(line, column)
+        return intern(line, column)
     }
 
     val asPosition: Position
@@ -206,15 +247,52 @@ data class Position(
     }
 
     /**
-     * Given the whole code extract the portion of text corresponding to this position
+     * Given the whole code extract the portion of text corresponding to this position.
      */
-    fun text(wholeText: String): String = wholeText.substring(start.offset(wholeText), end.offset(wholeText))
+    fun text(wholeText: String): String {
+        // Optimization: rather than calling Point.offset twice (which would scan from the beginning
+        // of the string independently for each point), this performs a single pass. The loop below
+        // scans to the start of start.line and captures the intermediate scan state
+        // (lineStartPos, lineCount). That state is then passed to Point.offsetFrom for end,
+        // which continues scanning from where we stopped instead of restarting from position 0.
+        // The loop is intentionally duplicated from offsetFrom to avoid the allocation that a shared
+        // helper returning scan state would require.
+        var lineCount = START_LINE
+        var lineStartPos = START_COLUMN
+        while (lineStartPos < wholeText.length && lineCount < start.line) {
+            when {
+                wholeText[lineStartPos] == '\r' && lineStartPos + 1 < wholeText.length &&
+                    wholeText[lineStartPos + 1] == '\n' -> { lineStartPos += 2; lineCount++ }
+                wholeText[lineStartPos] == '\r' || wholeText[lineStartPos] == '\n' -> { lineStartPos++; lineCount++ }
+                else -> lineStartPos++
+            }
+        }
+        val startOffset = lineStartPos + start.column
+        val endOffset = end.offsetFrom(wholeText, lineStartPos, lineCount)
+        return wholeText.substring(startOffset, endOffset)
+    }
 
     /**
      * The length in characters of the text under this position in the provided source.
      * @param code the source text.
      */
-    fun length(code: String) = end.offset(code) - start.offset(code)
+    fun length(code: String): Int {
+        // See text() for the optimization rationale. The scan loop is duplicated here
+        // to avoid allocating a shared scan-state object on what can be a hot path.
+        var lineCount = START_LINE
+        var lineStartPos = START_COLUMN
+        while (lineStartPos < code.length && lineCount < start.line) {
+            when {
+                code[lineStartPos] == '\r' && lineStartPos + 1 < code.length &&
+                    code[lineStartPos + 1] == '\n' -> { lineStartPos += 2; lineCount++ }
+                code[lineStartPos] == '\r' || code[lineStartPos] == '\n' -> { lineStartPos++; lineCount++ }
+                else -> lineStartPos++
+            }
+        }
+        val startOffset = lineStartPos + start.column
+        val endOffset = end.offsetFrom(code, lineStartPos, lineCount)
+        return endOffset - startOffset
+    }
 
     fun isEmpty(): Boolean = start == end
 
@@ -316,9 +394,9 @@ fun Position.stripPosition(text: String): Position {
     return this
 }
 
-fun Position.advanceStart(): Position = Position(Point(start.line, start.column + 1), end)
+fun Position.advanceStart(): Position = Position(Point.intern(start.line, start.column + 1), end)
 
-fun Position.recedeEnd(): Position = Position(start, Point(end.line, end.column - 1))
+fun Position.recedeEnd(): Position = Position(start, Point.intern(end.line, end.column - 1))
 
 private fun <K, V> createLeastRecentlyUsedMap(maxEntries: Int = 100): Map<K, V> =
     object : LinkedHashMap<K, V>(maxEntries * 10 / 7, 0.7f, true) {
