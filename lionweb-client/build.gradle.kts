@@ -17,6 +17,12 @@ testing {
     suites {
         val test by getting(JvmTestSuite::class) {
             useJUnitJupiter()
+            targets.all {
+                testTask.configure {
+                    // this source set holds only support classes shared with functionalTest
+                    failOnNoDiscoveredTests = false
+                }
+            }
         }
 
         register<JvmTestSuite>("functionalTest") {
@@ -26,6 +32,7 @@ testing {
                 implementation(project(":lionweb"))
                 implementation(project(":semantics"))
                 implementation(libs.lionweb.kotlin.client)
+                implementation(libs.lionweb.client)
                 implementation(libs.kotlin.test.junit5)
                 implementation(libs.kotest.runner.junit5)
                 implementation(libs.testcontainers)
@@ -49,6 +56,7 @@ testing {
 
 dependencies {
     implementation(libs.lionweb.core)
+    api(libs.lionweb.client)
     implementation(project(":core"))
     implementation(project(":lionweb"))
     implementation(project(":semantics"))
@@ -60,6 +68,9 @@ dependencies {
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.commons.io)
     testImplementation(libs.slf4j)
+    // the launcher must match the JUnit Platform version of the engine that kotlin-test-junit5 brings in
+    testImplementation(platform(libs.junit.bom))
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 val jvmVersion = libs.versions.jvm.get()

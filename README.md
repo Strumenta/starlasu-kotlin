@@ -12,15 +12,14 @@ It supports both **Kotlin** and **Java**, and integrates smoothly with **ANTLR**
 
 | Version | Status | JVM Support | Kotlin Support | Notes |
 |----------|---------|--------------|----------------|--------|
-| **1.5** | Maintenance mode | 1.8 | 1.8            | Actively maintained for legacy compatibility |
-| **1.6** | Abandoned | — | —              | Development discontinued |
-| **1.7** | In development | 11 | 2.2            | Current main development branch |
-| **2.0** | Planned | 17 | 2.2            | Future major release with modern JVM and Kotlin support |
+| **1.5** | Maintenance mode | 1.8 | 1.8            | Actively maintained for legacy compatibility (Kolasu, `com.strumenta.kolasu`) |
+| **1.6** | Dropped | — | —              | Internal line, never meant to be adopted |
+| **1.7** | Current stable | 21 | 2.4            | Current release line (`main`); see the [1.5 → 1.7 migration guide](docs/migration-1.5-to-1.7.md) |
+| **2.0** | Planned | 29 | —              | Future major release |
 
 ## Supported JDKs
 
-Tested with **JDK 11**, **17**, and **21**.  
-Other intermediate versions are expected to work as well.
+Tested with **JDK 21** and **25**.
 
 ---
 
@@ -28,6 +27,7 @@ Other intermediate versions are expected to work as well.
 
 - **Concepts and Principles:** [Starlasu documentation](https://github.com/Strumenta/Starlasu/tree/main/documentation) — shared across all Starlasu libraries.
 - **API Reference:** [Javadoc for Starlasu Kotlin](https://www.javadoc.io/doc/com.strumenta.starlasu).
+- **Migrating from Kolasu 1.5:** [1.5 → 1.7 migration guide](docs/migration-1.5-to-1.7.md) — package rename, renamed/removed types, LionWeb and Starlasu-Specs coordinates.
 
 ---
 

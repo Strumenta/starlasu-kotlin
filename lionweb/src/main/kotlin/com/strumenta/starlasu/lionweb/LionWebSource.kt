@@ -2,7 +2,7 @@ package com.strumenta.starlasu.lionweb
 
 import com.strumenta.starlasu.model.Source
 import com.strumenta.starlasu.model.SourceWithID
-import io.lionweb.utils.CommonChecks
+import io.lionweb.utils.IdUtils
 
 data class LionWebSource(
     val sourceId: String,
@@ -11,7 +11,7 @@ data class LionWebSource(
     override fun sourceID(): String = sourceId
 
     init {
-        if (!CommonChecks.isValidID(sourceId)) {
+        if (!IdUtils.isValidID(sourceId)) {
             throw IllegalArgumentException("Illegal SourceId provided")
         }
     }

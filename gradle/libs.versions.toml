@@ -1,15 +1,16 @@
 [versions]
-kotlin = "2.3.20"
-lionweb = "1.4.0"
+kotlin = "2.4.20"
+lionweb = "1.4.5"
 kotest= "5.9.1"
 dokka = "2.2.0"
-jvm = "11"
+jvm = "21"
 antlr = "4.13.2"
 gson = "2.14.0"
 clikt = "5.1.0"
-specs = "0.7.4"
+specs = "0.7.5"
 testcontainers = "1.21.4"
 jmh = "1.37"
+junit = "5.12.2" # the JUnit version kotlin-test-junit5 brings in
 
 [plugins]
 build-config  = { id = "com.github.gmazzo.buildconfig", version = "5.7.0" }
@@ -24,6 +25,7 @@ jmh = { id = "me.champeau.jmh", version = "0.7.3" }
 guava = { group = "com.google.guava", name="guava", version="33.6.0-jre" } # Only used in tests
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 lionweb-core = { group = "io.lionweb", name = "lionweb-2024.1-core", version.ref = "lionweb" }
+lionweb-client = { group = "io.lionweb", name = "lionweb-2024.1-client", version.ref = "lionweb" }
 lionweb-client-testing = { group = "io.lionweb", name = "lionweb-2024.1-client-testing", version.ref = "lionweb" }
 lionweb-kotlin-client = { group = "io.lionweb", name = "lionweb-2024.1-kotlin-client", version.ref = "lionweb" }
 lionweb-kotlin = { group = "io.lionweb", name = "lionweb-2024.1-kotlin-core", version.ref = "lionweb" }
@@ -45,5 +47,7 @@ kotest-property = { module = "io.kotest:kotest-property", version.ref="kotest" }
 testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 testcontainers-junit5 = { module="org.testcontainers:junit-jupiter", version.ref="testcontainers" }
 testcontainers-pg = { module="org.testcontainers:postgresql", version.ref="testcontainers" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }
 jmh-annprocess = { module = "org.openjdk.jmh:jmh-generator-annprocess", version.ref = "jmh" }

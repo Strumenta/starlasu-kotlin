@@ -18,7 +18,7 @@ import com.strumenta.starlasu.model.ASTRoot
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.assignParents
 import com.strumenta.starlasu.traversing.walkDescendants
-import io.lionweb.client.kotlin.ClassifierResult
+import io.lionweb.client.api.ClassifierResult
 import io.lionweb.client.kotlin.LionWebClient
 import io.lionweb.client.kotlin.RetrievalMode
 import io.lionweb.language.Concept

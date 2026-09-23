@@ -51,8 +51,8 @@ class ReferenceByName<N : PossiblyNamed>
     ) : Serializable {
         var referred: N? = null
             set(value) {
-                require(value is Node || value == null) {
-                    "We cannot enforce it statically but only Node should be referred to. Instead $value was " +
+                require(value is ASTNode || value == null) {
+                    "We cannot enforce it statically but only ASTNode should be referred to. Instead $value was " +
                         "assigned (class: ${value?.javaClass})"
                 }
                 field = value
