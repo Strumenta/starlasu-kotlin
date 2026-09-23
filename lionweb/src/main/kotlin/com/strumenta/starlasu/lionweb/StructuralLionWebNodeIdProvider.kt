@@ -5,7 +5,7 @@ import com.strumenta.starlasu.ids.SimpleSourceIdProvider
 import com.strumenta.starlasu.ids.SourceIdProvider
 import com.strumenta.starlasu.ids.StructuralNodeIdProvider
 import com.strumenta.starlasu.model.ASTNode
-import io.lionweb.utils.CommonChecks
+import io.lionweb.utils.IdUtils
 
 class StructuralLionWebNodeIdProvider(
     sourceIdProvider: SourceIdProvider = SimpleSourceIdProvider(),
@@ -14,7 +14,7 @@ class StructuralLionWebNodeIdProvider(
 
     override fun id(kNode: ASTNode): String {
         val id = super.id(kNode)
-        if (!CommonChecks.isValidID(id)) {
+        if (!IdUtils.isValidID(id)) {
             throw IllegalStateException("An invalid LionWeb Node ID has been produced: $id. Produced for $kNode")
         }
         return id

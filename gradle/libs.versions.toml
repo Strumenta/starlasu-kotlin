@@ -1,6 +1,6 @@
 [versions]
-kotlin = "2.3.20"
-lionweb = "1.4.0"
+kotlin = "2.4.20"
+lionweb = "1.4.5"
 kotest= "5.9.1"
 dokka = "2.2.0"
 jvm = "11"
@@ -24,6 +24,7 @@ jmh = { id = "me.champeau.jmh", version = "0.7.3" }
 guava = { group = "com.google.guava", name="guava", version="33.6.0-jre" } # Only used in tests
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 lionweb-core = { group = "io.lionweb", name = "lionweb-2024.1-core", version.ref = "lionweb" }
+lionweb-client = { group = "io.lionweb", name = "lionweb-2024.1-client", version.ref = "lionweb" }
 lionweb-client-testing = { group = "io.lionweb", name = "lionweb-2024.1-client-testing", version.ref = "lionweb" }
 lionweb-kotlin-client = { group = "io.lionweb", name = "lionweb-2024.1-kotlin-client", version.ref = "lionweb" }
 lionweb-kotlin = { group = "io.lionweb", name = "lionweb-2024.1-kotlin-core", version.ref = "lionweb" }

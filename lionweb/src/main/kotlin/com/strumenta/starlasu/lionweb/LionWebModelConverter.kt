@@ -57,7 +57,7 @@ import io.lionweb.model.impl.ProxyNode
 import io.lionweb.serialization.AbstractSerialization
 import io.lionweb.serialization.JsonSerialization
 import io.lionweb.serialization.SerializationProvider
-import io.lionweb.utils.CommonChecks
+import io.lionweb.utils.IdUtils
 import java.util.IdentityHashMap
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
@@ -202,7 +202,7 @@ class LionWebModelConverter(
                             currentId
                         } else {
                             val id = nodeIdProvider.id(kNode)
-                            if (!CommonChecks.isValidID(id)) {
+                            if (!IdUtils.isValidID(id)) {
                                 throw RuntimeException("We got an invalid Node ID from $nodeIdProvider for $id")
                             }
                             id
@@ -216,7 +216,7 @@ class LionWebModelConverter(
             starlasuTreeWalker.walk(starlasuTree).forEach { kNode ->
                 if (!nodesMapping.containsA(kNode)) {
                     val nodeID = kNode.id ?: myIDManager.id(kNode)
-                    if (!CommonChecks.isValidID(nodeID)) {
+                    if (!IdUtils.isValidID(nodeID)) {
                         throw RuntimeException(
                             "We generated an invalid Node ID, using $myIDManager in $kNode. Node ID: $nodeID",
                         )
@@ -230,7 +230,7 @@ class LionWebModelConverter(
                 kNode.annotations.forEach { annotationInstance ->
                     lwNode.addAnnotation(annotationInstance!!)
                 }
-                if (!CommonChecks.isValidID(lwNode.id)) {
+                if (!IdUtils.isValidID(lwNode.id)) {
                     throw RuntimeException(
                         "Cannot export AST to LionWeb as we got an invalid Node ID: ${lwNode.id}. " +
                             "It was produced while exporting this Starlasu Node: $kNode",

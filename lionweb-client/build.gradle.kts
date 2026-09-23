@@ -26,6 +26,7 @@ testing {
                 implementation(project(":lionweb"))
                 implementation(project(":semantics"))
                 implementation(libs.lionweb.kotlin.client)
+                implementation(libs.lionweb.client)
                 implementation(libs.kotlin.test.junit5)
                 implementation(libs.kotest.runner.junit5)
                 implementation(libs.testcontainers)
@@ -49,6 +50,9 @@ testing {
 
 dependencies {
     implementation(libs.lionweb.core)
+    // Since LionWeb 1.4.5 the Kotlin client no longer exposes the Java client at compile time,
+    // but StarlasuClient.nodesByConcept() uses its ClassifierResult in its public API
+    api(libs.lionweb.client)
     implementation(project(":core"))
     implementation(project(":lionweb"))
     implementation(project(":semantics"))
