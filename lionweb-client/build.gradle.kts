@@ -69,8 +69,8 @@ dependencies {
     testImplementation(libs.commons.io)
     testImplementation(libs.slf4j)
     // the launcher must match the JUnit Platform version of the engine that kotlin-test-junit5 brings in
-    testImplementation(platform("org.junit:junit-bom:5.12.2"))
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation(platform(libs.junit.bom))
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 val jvmVersion = libs.versions.jvm.get()

@@ -10,6 +10,7 @@ clikt = "5.1.0"
 specs = "0.7.5"
 testcontainers = "1.21.4"
 jmh = "1.37"
+junit = "5.12.2" # the JUnit version kotlin-test-junit5 brings in
 
 [plugins]
 build-config  = { id = "com.github.gmazzo.buildconfig", version = "5.7.0" }
@@ -46,5 +47,7 @@ kotest-property = { module = "io.kotest:kotest-property", version.ref="kotest" }
 testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 testcontainers-junit5 = { module="org.testcontainers:junit-jupiter", version.ref="testcontainers" }
 testcontainers-pg = { module="org.testcontainers:postgresql", version.ref="testcontainers" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }
 jmh-annprocess = { module = "org.openjdk.jmh:jmh-generator-annprocess", version.ref = "jmh" }
