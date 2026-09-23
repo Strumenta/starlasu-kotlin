@@ -7,7 +7,7 @@ jvm = "11"
 antlr = "4.13.2"
 gson = "2.14.0"
 clikt = "5.1.0"
-specs = "0.7.4"
+specs = "0.7.5-SNAPSHOT"
 testcontainers = "1.21.4"
 jmh = "1.37"
 
