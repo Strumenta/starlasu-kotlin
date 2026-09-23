@@ -17,6 +17,12 @@ testing {
     suites {
         val test by getting(JvmTestSuite::class) {
             useJUnitJupiter()
+            targets.all {
+                testTask.configure {
+                    // this source set holds only support classes shared with functionalTest
+                    failOnNoDiscoveredTests = false
+                }
+            }
         }
 
         register<JvmTestSuite>("functionalTest") {
@@ -62,6 +68,9 @@ dependencies {
     testImplementation(libs.kotlin.test.junit5)
     testImplementation(libs.commons.io)
     testImplementation(libs.slf4j)
+    // the launcher must match the JUnit Platform version of the engine that kotlin-test-junit5 brings in
+    testImplementation(platform("org.junit:junit-bom:5.12.2"))
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 val jvmVersion = libs.versions.jvm.get()
