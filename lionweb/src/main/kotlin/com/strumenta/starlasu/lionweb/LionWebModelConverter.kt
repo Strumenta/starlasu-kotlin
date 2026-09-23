@@ -876,14 +876,6 @@ class LionWebModelConverter(
         }
     }
 
-    /** Kolasu 1.5 name of [getStarlasuClassesToClassifiersMapping]. */
-    @Deprecated("Renamed in Starlasu 1.7", ReplaceWith("getStarlasuClassesToClassifiersMapping()"))
-    fun getKolasuClassesToClassifiersMapping(): Map<KClass<*>, Classifier<*>> = getStarlasuClassesToClassifiersMapping()
-
-    /** Kolasu 1.5 name of [getClassifiersToStarlasuClassesMapping]. */
-    @Deprecated("Renamed in Starlasu 1.7", ReplaceWith("getClassifiersToStarlasuClassesMapping()"))
-    fun getClassifiersToKolasuClassesMapping(): Map<Classifier<*>, KClass<*>> = getClassifiersToStarlasuClassesMapping()
-
     /**
      * Track reference values, so that we can populate them once the nodes are instantiated.
      */

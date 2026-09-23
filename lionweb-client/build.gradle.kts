@@ -50,8 +50,6 @@ testing {
 
 dependencies {
     implementation(libs.lionweb.core)
-    // Since LionWeb 1.4.5 the Kotlin client no longer exposes the Java client at compile time,
-    // but StarlasuClient.nodesByConcept() uses its ClassifierResult in its public API
     api(libs.lionweb.client)
     implementation(project(":core"))
     implementation(project(":lionweb"))

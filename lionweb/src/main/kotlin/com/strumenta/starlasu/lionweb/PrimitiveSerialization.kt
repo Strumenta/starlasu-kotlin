@@ -125,10 +125,3 @@ val tokensListDataTypeDeserializer =
             }
         TokensList(tokens)
     }
-
-/**
- * Kolasu 1.5 name of [tokensListDataTypeDeserializer]. Kept only to ease the migration of 1.5 language modules.
- */
-@Deprecated("Renamed in Starlasu 1.7", ReplaceWith("tokensListDataTypeDeserializer"))
-val tokensListPrimitiveDeserializer: DataTypeDeserializer<TokensList?>
-    get() = tokensListDataTypeDeserializer

@@ -1,19 +1,18 @@
 # Migrating a language module from Kolasu 1.5 to Starlasu Kotlin 1.7
 
 This guide covers what a language module written against **Kolasu 1.5** (`com.strumenta.kolasu`, Kotlin 1.8,
-JVM 1.8) has to change to build against **Starlasu Kotlin 1.7** (`com.strumenta.starlasu`, Kotlin 2.4, JVM 11).
-It was written while migrating the first real language module (a hand-written AST with about 90 node classes,
-a `KolasuParser` subclass, declarative scope providers, LionWeb export with custom primitive serializations and
-dynamic annotations) and lists, area by area, what is a pure rename, what changed shape, and what was dropped.
+JVM 1.8) has to change to build against **Starlasu Kotlin 1.7** (`com.strumenta.starlasu`, Kotlin 2.4, JVM 21).
+It lists, area by area, what is a pure rename, what changed shape, and what was dropped.
 
-The comparison was made between tag `1.5.110` and `1.7.5`.
+There is no 1.6 to migrate from: that line was internal, never meant to be adopted, and was dropped. Modules on
+1.5 move directly to 1.7.
 
 ## 1. Toolchain, coordinates and packages
 
 | | Kolasu 1.5 | Starlasu 1.7 |
 |---|---|---|
 | Kotlin | 1.8 | 2.4 |
-| JVM target | 1.8 | 11 |
+| JVM target | 1.8 | 21 |
 | ANTLR | 4.9.3 | 4.13.2 (regenerate your parsers) |
 | Maven group | `com.strumenta.kolasu` | `com.strumenta.starlasu` |
 | Artifacts | `kolasu-core`, `kolasu-semantics`, `kolasu-lionweb`, `kolasu-lionwebrepo-client`, `kolasu-javalib`, `kolasu-codebase`, `kolasu-emf`, `kolasu-lionweb-gen`, `kolasu-lionweb-ksp` | `starlasu-core`, `starlasu-semantics`, `starlasu-lionweb`, `starlasu-lionweb-client`, `starlasu-javalib`, `starlasu-codebase` |
@@ -76,7 +75,7 @@ longer type-checks.
 
 ## 4. Parsing
 
-Pure renames (deprecated aliases with the old names exist in `com.strumenta.starlasu.parsing`):
+Pure renames:
 
 | Kolasu 1.5 | Starlasu 1.7 |
 |---|---|
@@ -102,8 +101,8 @@ carries what used to be transformer state (`issues`, `addIssue(...)`, `parent`, 
 
 | Kolasu 1.5 | Starlasu 1.7 |
 |---|---|
-| `NodeFactory<S, T>` | `TransformationRule<S, T>` (deprecated alias `NodeFactory` exists) |
-| `ChildNodeFactory` | `ChildTransformationRule` (deprecated alias exists) |
+| `NodeFactory<S, T>` | `TransformationRule<S, T>` |
+| `ChildNodeFactory` | `ChildTransformationRule` |
 | `ASTTransformer(issues, allowGenericNode, throwOnUnmappedNode, faultTollerant, defaultTransformation)` | `ASTTransformer(faultTolerance = FaultTolerance.LOOSE, defaultTransformation)`; `FaultTolerance` is `STRICT`, `THROW_ONLY_ON_UNMAPPED` or `LOOSE` |
 | `ParseTreeToASTTransformer(issues, allowGenericNode, source, throwOnUnmappedNode)` | `ParseTreeToASTTransformer(faultTolerance = THROW_ONLY_ON_UNMAPPED)`; pass the source through `TransformationContext(source = ...)` |
 | `transformer.issues`, `transformer.addIssue(...)` | `context.issues`, `context.addIssue(...)` |
@@ -173,10 +172,10 @@ ignoreMissingReferences)`. Unchanged methods: `registerPrimitiveValueSerializati
 | Kolasu 1.5 | Starlasu 1.7 |
 |---|---|
 | `exportModelToLionWeb(kolasuTree = ..., nodeIdProvider, considerParent)` | first parameter renamed to `starlasuTree` (matters only with named arguments) |
-| `getKolasuClassesToClassifiersMapping()` | `getStarlasuClassesToClassifiersMapping()` (deprecated alias kept) |
-| `getClassifiersToKolasuClassesMapping()` | `getClassifiersToStarlasuClassesMapping()` (deprecated alias kept) |
-| `KNode` | `SNode` (= `ASTNode`; deprecated alias kept) |
-| `LIONWEB_VERSION_USED_BY_KOLASU` | `LIONWEB_VERSION_USED_BY_STARLASU` (deprecated alias kept) |
+| `getKolasuClassesToClassifiersMapping()` | `getStarlasuClassesToClassifiersMapping()` |
+| `getClassifiersToKolasuClassesMapping()` | `getClassifiersToStarlasuClassesMapping()` |
+| `KNode` | `SNode` (= `ASTNode`) |
+| `LIONWEB_VERSION_USED_BY_KOLASU` | `LIONWEB_VERSION_USED_BY_STARLASU` |
 | `NodeIdProvider.registerMapping(node, id)` | removed |
 
 `KolasuLanguage` keeps its name (`com.strumenta.starlasu.language.KolasuLanguage`) with `addClass`,
@@ -203,7 +202,7 @@ instances are exported and imported as they are). `ASTNode` gained `addAnnotatio
 | Kolasu 1.5 | Starlasu 1.7 |
 |---|---|
 | `registerSerializersAndDeserializersInMetamodelRegistry(...)`, `charSerializer`, `pointSerializer`, `positionSerializer`, `tokensListDataTypeSerializer` (and deserializers) | unchanged |
-| `tokensListPrimitiveDeserializer` | `tokensListDataTypeDeserializer` (deprecated alias kept) |
+| `tokensListPrimitiveDeserializer` | `tokensListDataTypeDeserializer` |
 | `TokensList(tokens: List<KolasuToken>)` | `TokensList(tokens: List<StarlasuToken>)` |
 
 ### Serialized output
@@ -241,12 +240,11 @@ Watch out for a simple-name clash: Specs `components` also contains
 
 ## 10. Suggested order of work
 
-1. Update the build: Kotlin 2.4, JVM 11, ANTLR 4.13, the `com.strumenta.starlasu` coordinates, LionWeb 1.4.5 and
+1. Update the build: Kotlin 2.4, JVM 21, ANTLR 4.13, the `com.strumenta.starlasu` coordinates, LionWeb 1.4.5 and
    Specs 0.7.5 if referenced directly.
 2. Rename imports `com.strumenta.kolasu.` → `com.strumenta.starlasu.`.
 3. Replace `@NodeType interface X` with `interface X : ASTNode`, drop `@Link`.
-4. Follow the deprecation warnings for `KolasuParser`, `KolasuToken`, `NodeFactory`, `KNode`, ... (all have
-   `ReplaceWith`).
+4. Rename `KolasuParser`, `KolasuToken`, `NodeFactory`, `KNode`, ... as listed in the tables above.
 5. Adapt transformer registrations: add the `TransformationContext` parameter to lambdas, move `issues`/`source`
    into the context, replace the boolean flags with `FaultTolerance`.
 6. Update Specs accessors to `getInstance()` and the `v2` AST language.
