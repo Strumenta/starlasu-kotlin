@@ -5,7 +5,7 @@ import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.parsing.StarlasuParser
 
 /**
- * This permits to parse code into AST and viceversa going from an AST into code.
+ * This permits to parse code into AST and vice versa going from an AST into code.
  */
 class LanguageModule<R : Node>(
     val parser: StarlasuParser<R, *, *, *>,

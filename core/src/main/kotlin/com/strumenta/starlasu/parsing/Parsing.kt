@@ -1,6 +1,6 @@
 package com.strumenta.starlasu.parsing
 
-import com.strumenta.kolasu.interning.canonicalize
+import com.strumenta.starlasu.interning.canonicalize
 import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.Point

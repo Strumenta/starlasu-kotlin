@@ -1,4 +1,4 @@
-package com.strumenta.kolasu.interning
+package com.strumenta.starlasu.interning
 
 import com.strumenta.starlasu.model.Point
 import com.strumenta.starlasu.parsing.TokenCategory

@@ -1,13 +1,13 @@
 package com.strumenta.starlasu.model
 
-import com.strumenta.kolasu.interning.PointInterner
+import com.strumenta.starlasu.interning.PointInterner
 import java.io.File
 import java.io.Serializable
 import java.net.URL
 import java.nio.file.Path
 
-val START_LINE = 1
-val START_COLUMN = 0
+const val START_LINE = 1
+const val START_COLUMN = 0
 val START_POINT = Point(START_LINE, START_COLUMN)
 
 /**
