@@ -4,6 +4,9 @@ import io.lionweb.language.Containment
 import io.lionweb.model.impl.ProxyNode
 import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * Traverses trees of LionWeb nodes, caching the containments of each classifier.
+ */
 class LionWebTreeWalker {
     private val containmentsCache = ConcurrentHashMap<String, List<Containment>>()
 

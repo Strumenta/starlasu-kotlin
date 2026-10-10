@@ -23,8 +23,8 @@ mavenPublishing {
     )
 
     pom {
-        name.set(project.name)
-        description.set("A framework for Language Engineering")
+        name.set("starlasu-${project.name}")
+        description.set("Starlasu Kotlin: symbol resolution (scopes, symbol descriptions, symbol resolver)")
         inceptionYear.set("2017")
         url.set("https://github.com/Strumenta/starlasu-kotlin/")
         licenses {

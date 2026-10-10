@@ -63,6 +63,9 @@ open class CodeProcessingResult<D>(
     }
 }
 
+/**
+ * The category of a token. Common categories are defined in the companion object; others can be created as needed.
+ */
 data class TokenCategory(
     val type: String,
 ) {
@@ -200,6 +203,9 @@ open class ParsingResult<RootNode : ASTNode>(
 
 fun String.toStream(charset: Charset = Charsets.UTF_8) = ByteArrayInputStream(toByteArray(charset))
 
+/**
+ * A lexer that breaks code into tokens of type [T].
+ */
 interface StarlasuLexer<T : StarlasuToken> : Serializable {
     /**
      * Performs "lexing" on the given code string, i.e., it breaks it into tokens.

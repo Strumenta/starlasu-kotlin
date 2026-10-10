@@ -33,6 +33,10 @@ fun assertParseTreeStr(
     assertEquals(expectedMultiLineStr.trim(), actualParseTree.trim())
 }
 
+/**
+ * Placeholder for a list of children in an expected AST: [assertASTsAreEqual] skips the comparison of that property.
+ * It cannot be used as an actual list.
+ */
 class IgnoreChildren<N : ASTNode> : MutableList<N> {
     override val size: Int
         get() = TODO("Not yet implemented")
@@ -140,6 +144,9 @@ class IgnoreChildren<N : ASTNode> : MutableList<N> {
     }
 }
 
+/**
+ * Reports a difference between an expected and an actual value found while comparing ASTs.
+ */
 class ASTDifferenceException(
     val context: String,
     val expected: Any,

@@ -1,6 +1,6 @@
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.plugins.signing.Sign
-import org.jetbrains.dokka.gradle.DokkaTask
+import org.jetbrains.dokka.gradle.DokkaExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -30,11 +30,14 @@ allprojects {
 }
 subprojects {
 
-    tasks.withType<DokkaTask>().configureEach {
-        dokkaSourceSets.named("main") {
-            includeNonPublic.set(true)
-            moduleName.set("starlasu-" + moduleName.get())
-            includes.from("README.md")
+    // Dokka runs in V2 mode: name each module after its published artifact and use the module's README.md
+    // as module and package documentation.
+    plugins.withId("org.jetbrains.dokka") {
+        extensions.configure<DokkaExtension> {
+            moduleName.set("starlasu-${project.name}")
+            dokkaSourceSets.configureEach {
+                includes.from("README.md")
+            }
         }
     }
 

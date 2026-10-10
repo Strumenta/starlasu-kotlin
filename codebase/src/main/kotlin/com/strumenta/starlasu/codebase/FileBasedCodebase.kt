@@ -5,6 +5,13 @@ import com.strumenta.starlasu.parsing.ParsingResult
 import java.io.File
 import java.util.Stack
 
+/**
+ * A [Codebase] made of the files under [baseDir] whose extension is in [extensions] (case-insensitive). Files and
+ * directories whose name starts with `.` are skipped.
+ *
+ * Files are parsed on first access with [parser], which receives the relative path and the file. Files for which
+ * parsing produces no root are left out.
+ */
 class FileBasedCodebase<R : Node>(
     val baseDir: File,
     val extensions: Set<String>,

@@ -29,8 +29,8 @@ mavenPublishing {
     coordinates(project.group as String, "starlasu-${project.name}", project.version as String)
 
     pom {
-        name.set(project.name)
-        description.set("A framework for Language Engineering")
+        name.set("starlasu-${project.name}")
+        description.set("Starlasu Kotlin: representation of a codebase as a set of parsed files")
         inceptionYear.set("2017")
         url.set("https://github.com/Strumenta/starlasu-kotlin/")
         licenses {

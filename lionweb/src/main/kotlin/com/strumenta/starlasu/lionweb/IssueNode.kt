@@ -6,6 +6,9 @@ import io.lionweb.kotlin.BaseNode
 import io.lionweb.language.Concept
 import io.lionweb.model.impl.EnumerationValue
 
+/**
+ * LionWeb representation of an [com.strumenta.starlasu.validation.Issue].
+ */
 class IssueNode : BaseNode(LIONWEB_VERSION_USED_BY_STARLASU) {
     var type: EnumerationValue? by property("type")
     var message: String? by property("message")

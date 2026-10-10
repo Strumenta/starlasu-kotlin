@@ -2,6 +2,9 @@ package com.strumenta.starlasu.lionweb
 
 import java.io.File
 
+/**
+ * Appends timing events to a CSV [file] and accumulates the time spent in each step.
+ */
 object PerformanceLogger {
     var file = File("performance-log.csv")
     val sumByStep = mutableMapOf<String, Long>()

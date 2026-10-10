@@ -13,6 +13,9 @@ private fun inputStreamToString(
     charset: Charset = Charsets.UTF_8,
 ): String = inputStream.bufferedReader(charset).use(BufferedReader::readText)
 
+/**
+ * A parser that produces an AST with a root of type [R] from source code.
+ */
 interface ASTParser<R : Node> {
     /**
      * Parses source code, returning a result that includes an AST and a collection of parse issues (errors, warnings).

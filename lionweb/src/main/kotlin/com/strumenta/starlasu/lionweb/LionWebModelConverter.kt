@@ -68,20 +68,33 @@ import kotlin.reflect.full.primaryConstructor
 import com.strumenta.starlasu.base.v1.ASTLanguage as ASTLanguageV1
 import io.lionweb.language.Feature as LWFeature
 
+/**
+ * Converts values of a primitive type to and from their string representation in LionWeb.
+ */
 interface PrimitiveValueSerialization<E> {
     fun serialize(value: E): String
 
     fun deserialize(serialized: String): E
 }
 
+/**
+ * Resolves IDs of nodes that are not part of the tree being imported. See
+ * [LionWebModelConverter.externalNodeResolver].
+ */
 interface NodeResolver {
     fun resolve(nodeID: String): SNode?
 }
 
+/**
+ * Resolves no node.
+ */
 class DummyNodeResolver : NodeResolver {
     override fun resolve(nodeID: String): SNode? = null
 }
 
+/**
+ * Elements of a version of the Starlasu `ASTLanguage` used during conversion: see [ASTV1] and [ASTV2].
+ */
 abstract class ASTLanguageElements {
     abstract val language: Language
     abstract val astNode: Classifier<*>

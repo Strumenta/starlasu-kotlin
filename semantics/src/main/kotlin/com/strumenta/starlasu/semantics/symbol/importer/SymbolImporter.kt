@@ -22,8 +22,10 @@ open class SymbolImporter(
 ) {
     /**
      * Extracts a symbol description from the given node
-     * and stores it in the symbol repository. Repeats the
-     * same process over its children, if `entireTree` is true.
+     * and stores it in the symbol repository, then repeats the
+     * same process over its children.
+     *
+     * Note: children are currently visited regardless of [entireTree].
      **/
     fun import(
         node: ASTNode,

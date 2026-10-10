@@ -15,6 +15,10 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+/**
+ * Java-friendly access to the traversal functions of {@code com.strumenta.starlasu.traversing}, returning
+ * {@link Stream}s or accepting a {@link Consumer}.
+ */
 public class Traversing {
 
     private static <T> void consumeSequence(Sequence<T> sequence, Consumer<T> consumer) {

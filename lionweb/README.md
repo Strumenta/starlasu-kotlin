@@ -1,6 +1,7 @@
-# Module lionweb
+# Module starlasu-lionweb
 
-Integration module that converts between Kolasu ASTs and [LionWeb](https://lionweb.io) models.
+Converts Starlasu ASTs to and from [LionWeb](https://lionweb.io) nodes, and exports Starlasu languages
+(`KolasuLanguage`) as LionWeb languages.
 
 ## Core API
 
@@ -8,7 +9,7 @@ Integration module that converts between Kolasu ASTs and [LionWeb](https://lionw
 |---|---|
 | `LionWebModelConverter` | Bidirectional conversion: `exportModelToLionWeb` / `importModelFromLionWeb` |
 | `LionWebLanguageConverter` | Converts a `KolasuLanguage` to a LionWeb `Language` |
-| `StructuralLionWebNodeIdProvider` | Generates stable structural node IDs (default, wraps `CachingNodeIDProvider`) |
+| `StructuralLionWebNodeIdProvider` | Generates structural node IDs, validated as LionWeb IDs (the default, wrapped in a `CachingNodeIDProvider`) |
 
 ## Performance benchmarks
 
@@ -83,3 +84,9 @@ stay warm across invocations — matching production behaviour.
    or by returning them.
 4. Add a `companion object { @JvmStatic fun main(...) }` that builds `OptionsBuilder`
    and adds `.addProfiler(GCProfiler::class.java)`.
+
+# Package com.strumenta.starlasu.lionweb
+
+`LionWebModelConverter` and `LionWebLanguageConverter`, node ID providers producing LionWeb-compatible IDs, LionWeb
+serialization of Starlasu primitive values (positions, token lists, ...), and LionWeb nodes for parsing results and
+issues.

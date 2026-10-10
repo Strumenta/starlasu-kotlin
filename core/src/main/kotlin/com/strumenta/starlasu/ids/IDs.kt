@@ -4,6 +4,9 @@ import com.strumenta.starlasu.IDProvider
 import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.children
 
+/**
+ * Adapts an [IDProvider] to [NodeIdProvider]. Each call to [id] returns a new ID, even for the same node.
+ */
 class NodeIdProviderAdapter(
     val idProvider: IDProvider,
 ) : NodeIdProvider {

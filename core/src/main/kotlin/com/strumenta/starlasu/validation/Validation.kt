@@ -3,6 +3,9 @@ package com.strumenta.starlasu.validation
 import com.strumenta.starlasu.model.Position
 import java.io.Serializable
 
+/**
+ * The processing phase in which an [Issue] was found.
+ */
 enum class IssueType {
     LEXICAL,
     SYNTACTIC,
@@ -10,12 +13,18 @@ enum class IssueType {
     TRANSLATION,
 }
 
+/**
+ * The severity of an [Issue].
+ */
 enum class IssueSeverity {
     ERROR,
     WARNING,
     INFO,
 }
 
+/**
+ * A problem found while processing code, optionally located at a [position].
+ */
 data class Issue(
     val type: IssueType,
     val message: String,

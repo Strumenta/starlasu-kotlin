@@ -7,6 +7,9 @@ import io.lionweb.kotlin.BaseNode
 import io.lionweb.language.Concept
 import com.strumenta.starlasu.base.v2.ASTLanguage as ASTLanguage
 
+/**
+ * LionWeb node representing a parsing result. Its ID is derived from [source] when one is set.
+ */
 class ParsingResultNode(
     val source: Source?,
 ) : BaseNode(LIONWEB_VERSION_USED_BY_STARLASU) {

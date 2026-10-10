@@ -101,8 +101,8 @@ mavenPublishing {
         "starlasu-${project.name}", project.version.toString())
 
     pom {
-        name.set(project.name)
-        description.set("A framework for Language Engineering")
+        name.set("starlasu-${project.name}")
+        description.set("Starlasu Kotlin: storage of ASTs in a LionWeb repository")
         inceptionYear.set("2017")
         url.set("https://github.com/Strumenta/starlasu-kotlin/")
         licenses {

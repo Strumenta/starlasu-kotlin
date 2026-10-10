@@ -18,6 +18,10 @@ import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.primaryConstructor
 
+/**
+ * Builds AST nodes from parse tree nodes by passing to the AST class constructor the parse tree members with the same
+ * names (optionally renamed). Used by [registerTrivialPTtoASTConversion].
+ */
 object TrivialFactoryOfParseTreeToASTTransform {
     fun convertString(
         text: String,

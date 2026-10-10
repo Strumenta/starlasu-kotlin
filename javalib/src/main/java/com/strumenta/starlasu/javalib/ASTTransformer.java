@@ -18,6 +18,10 @@ import java.util.function.BiConsumer;
 
 import static kotlin.jvm.JvmClassMappingKt.getKotlinClass;
 
+/**
+ * Java-friendly {@link com.strumenta.starlasu.transformation.ASTTransformer}, with {@code registerNodeFactory}
+ * overloads taking {@link Class} objects.
+ */
 public class ASTTransformer extends com.strumenta.starlasu.transformation.ASTTransformer {
     public ASTTransformer() {
         super();
