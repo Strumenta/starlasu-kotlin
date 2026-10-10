@@ -7,9 +7,11 @@ import com.strumenta.starlasu.model.Source
 import com.strumenta.starlasu.model.assignParents
 import com.strumenta.starlasu.model.processProperties
 import com.strumenta.starlasu.transformation.ASTTransformer
+import com.strumenta.starlasu.transformation.MappingException
 import com.strumenta.starlasu.transformation.TransformationContext
 import com.strumenta.starlasu.traversing.walk
 import com.strumenta.starlasu.validation.Issue
+import com.strumenta.starlasu.validation.IssueSeverity
 import com.strumenta.starlasu.validation.IssueType
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.CharStreams
@@ -325,7 +327,7 @@ abstract class StarlasuParser<R : Node, P : Parser, C : ParserRuleContext, T : S
         val start = System.currentTimeMillis()
         val firstStage = parseFirstStage(inputStream, measureLexingTime)
         val myIssues = firstStage.issues.toMutableList()
-        var ast = parseTreeToAst(firstStage.root!!, considerPosition, myIssues, source)
+        var ast = mapParseTreeToAst(firstStage, considerPosition, myIssues, source)
         ast = if (ast == null) null else postProcessAst(ast, myIssues)
         if (ast != null && !considerPosition) {
             // Remove parseTreeNodes because they cause the position to be computed
@@ -341,6 +343,33 @@ abstract class StarlasuParser<R : Node, P : Parser, C : ParserRuleContext, T : S
             now - start,
             source,
         )
+    }
+
+    /**
+     * Maps the parse tree to the AST.
+     *
+     * If it fails and the first stage already reported errors, the failure is most likely a consequence of those
+     * errors: we record it as a [IssueType.TRANSLATION] issue and return null, so that the syntax errors are reported.
+     * Otherwise, we throw a [MappingException] carrying the original exception and the issues found so far.
+     */
+    private fun mapParseTreeToAst(
+        firstStage: FirstStageParsingResult<C>,
+        considerPosition: Boolean,
+        issues: MutableList<Issue>,
+        source: Source?,
+    ): R? {
+        try {
+            return parseTreeToAst(firstStage.root!!, considerPosition, issues, source)
+        } catch (e: VirtualMachineError) {
+            throw e
+        } catch (t: Throwable) {
+            if (firstStage.issues.any { it.severity == IssueSeverity.ERROR }) {
+                issues.add(Issue.translation("Failed to build the AST because of previous errors: ${t.message}"))
+                return null
+            } else {
+                throw MappingException("Failed to build the AST: ${t.message}", issues.toList(), t)
+            }
+        }
     }
 
     // Makes it more convenient to invoke from Java. We can't use @JvmOverloads because:
