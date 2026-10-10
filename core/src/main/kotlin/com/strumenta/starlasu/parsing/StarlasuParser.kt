@@ -7,6 +7,7 @@ import com.strumenta.starlasu.model.Source
 import com.strumenta.starlasu.model.assignParents
 import com.strumenta.starlasu.model.processProperties
 import com.strumenta.starlasu.transformation.ASTTransformer
+import com.strumenta.starlasu.transformation.MappingException
 import com.strumenta.starlasu.transformation.TransformationContext
 import com.strumenta.starlasu.traversing.walk
 import com.strumenta.starlasu.validation.Issue
@@ -326,7 +327,8 @@ abstract class StarlasuParser<R : Node, P : Parser, C : ParserRuleContext, T : S
         val start = System.currentTimeMillis()
         val firstStage = parseFirstStage(inputStream, measureLexingTime)
         val myIssues = firstStage.issues.toMutableList()
-        val ast = mapParseTreeToAst(firstStage, considerPosition, myIssues, source)
+        var ast = mapParseTreeToAst(firstStage, considerPosition, myIssues, source)
+        ast = if (ast == null) null else postProcessAst(ast, myIssues)
         if (ast != null && !considerPosition) {
             // Remove parseTreeNodes because they cause the position to be computed
             ast.walk().forEach { it.origin = null }
@@ -344,7 +346,7 @@ abstract class StarlasuParser<R : Node, P : Parser, C : ParserRuleContext, T : S
     }
 
     /**
-     * Runs the second parsing stage (parse tree to AST, followed by [postProcessAst]).
+     * Maps the parse tree to the AST.
      *
      * If it fails and the first stage already reported errors, the failure is most likely a consequence of those
      * errors: we record it as a [IssueType.TRANSLATION] issue and return null, so that the syntax errors are reported.
@@ -357,8 +359,7 @@ abstract class StarlasuParser<R : Node, P : Parser, C : ParserRuleContext, T : S
         source: Source?,
     ): R? {
         try {
-            val ast = parseTreeToAst(firstStage.root!!, considerPosition, issues, source)
-            return if (ast == null) null else postProcessAst(ast, issues)
+            return parseTreeToAst(firstStage.root!!, considerPosition, issues, source)
         } catch (e: VirtualMachineError) {
             throw e
         } catch (t: Throwable) {

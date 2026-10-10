@@ -8,6 +8,7 @@ import com.strumenta.starlasu.model.Point
 import com.strumenta.starlasu.model.Position
 import com.strumenta.starlasu.model.Source
 import com.strumenta.starlasu.transformation.FaultTolerance
+import com.strumenta.starlasu.transformation.MappingException
 import com.strumenta.starlasu.validation.Issue
 import com.strumenta.starlasu.validation.IssueSeverity
 import com.strumenta.starlasu.validation.IssueType
