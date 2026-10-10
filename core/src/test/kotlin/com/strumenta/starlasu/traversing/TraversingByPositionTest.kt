@@ -1,9 +1,13 @@
 package com.strumenta.starlasu.traversing
 
 import com.strumenta.starlasu.model.ASTNode
+import com.strumenta.starlasu.model.CompositeDestination
+import com.strumenta.starlasu.model.DroppedDestination
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.Position
+import com.strumenta.starlasu.model.TextFileDestination
 import com.strumenta.starlasu.model.pos
+import com.strumenta.starlasu.model.positions
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -120,5 +124,57 @@ internal class TraversingByPositionTest {
         val outside: Position = pos(100, 100, 101, 101)
         assertEquals("", printSequence(testCase.searchByPosition(outside, true)))
         assertNull(testCase.findByPosition(outside, true))
+    }
+
+    @Test
+    fun destinationPositions() {
+        assertEquals(listOf(pos(1, 0, 1, 5)), TextFileDestination(pos(1, 0, 1, 5)).positions)
+        assertEquals(emptyList(), TextFileDestination(null).positions)
+        assertEquals(emptyList(), DroppedDestination.positions)
+        assertEquals(listOf(pos(3, 0, 3, 5)), Item("x", specifiedPosition = pos(3, 0, 3, 5)).positions)
+        assertEquals(
+            listOf(pos(1, 0, 1, 5), pos(2, 0, 2, 5), pos(3, 0, 3, 5)),
+            CompositeDestination(
+                TextFileDestination(pos(1, 0, 1, 5)),
+                DroppedDestination,
+                CompositeDestination(TextFileDestination(pos(2, 0, 2, 5)), TextFileDestination(null)),
+                Item("x", specifiedPosition = pos(3, 0, 3, 5)),
+            ).positions,
+        )
+    }
+
+    @Test
+    fun findByDestinationPosition() {
+        // Destination positions do not nest: children may be generated outside their parent's destination
+        val item1 = Item("1").apply { destination = TextFileDestination(pos(20, 0, 20, 10)) }
+        val item2 = Item("2").apply { destination = DroppedDestination }
+        val item3 =
+            Item("3").apply {
+                destination =
+                    CompositeDestination(
+                        TextFileDestination(pos(30, 0, 30, 10)),
+                        TextFileDestination(pos(40, 0, 40, 10)),
+                    )
+            }
+        val item4 = Item("4").apply { destination = Item("generated", specifiedPosition = pos(50, 0, 50, 10)) }
+        val inner = Box("inner", listOf(item3, item4)).apply { destination = TextFileDestination(pos(25, 0, 45, 0)) }
+        val root =
+            Box("root", listOf(item1, item2, inner)).apply {
+                destination = TextFileDestination(pos(1, 0, 10, 0))
+            }
+
+        assertEquals("root, 1", printSequence(root.searchByDestinationPosition(pos(20, 2, 20, 4))))
+        assertEquals(item1, root.findByDestinationPosition(pos(20, 2, 20, 4)))
+        assertEquals("root", printSequence(root.searchByDestinationPosition(pos(5, 0, 5, 3))))
+        assertEquals(root, root.findByDestinationPosition(pos(5, 0, 5, 3)))
+        assertEquals("root, inner, 3", printSequence(root.searchByDestinationPosition(pos(40, 2, 40, 4))))
+        assertEquals(item3, root.findByDestinationPosition(pos(30, 2, 30, 4)))
+        assertEquals(inner, root.findByDestinationPosition(pos(35, 0, 35, 4)))
+        assertEquals(item4, root.findByDestinationPosition(pos(50, 2, 50, 4)))
+        assertEquals("", printSequence(root.searchByDestinationPosition(pos(100, 0, 100, 1))))
+        assertNull(root.findByDestinationPosition(pos(100, 0, 100, 1)))
+        // The node's own position is not considered
+        val positioned = Item("p", specifiedPosition = pos(1, 0, 1, 10))
+        assertNull(positioned.findByDestinationPosition(pos(1, 2, 1, 4)))
     }
 }
