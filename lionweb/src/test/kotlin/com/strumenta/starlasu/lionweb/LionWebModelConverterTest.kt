@@ -8,10 +8,14 @@ import com.strumenta.starlasu.model.BaseASTNode
 import com.strumenta.starlasu.model.CompositeDestination
 import com.strumenta.starlasu.model.DroppedDestination
 import com.strumenta.starlasu.model.FileSource
+import com.strumenta.starlasu.model.Internal
+import com.strumenta.starlasu.model.Multiplicity
 import com.strumenta.starlasu.model.Named
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.Point
 import com.strumenta.starlasu.model.Position
+import com.strumenta.starlasu.model.PropertyDescription
+import com.strumenta.starlasu.model.PropertyType
 import com.strumenta.starlasu.model.ReferenceByName
 import com.strumenta.starlasu.model.SyntheticSource
 import com.strumenta.starlasu.model.assignParents
@@ -43,6 +47,8 @@ import io.lionweb.model.impl.DynamicAnnotationInstance
 import io.lionweb.model.impl.EnumerationValue
 import io.lionweb.serialization.SerializationProvider
 import java.io.File
+import kotlin.reflect.KType
+import kotlin.reflect.typeOf
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -63,6 +69,18 @@ data class NodeWithEnum(
     val e: AnEnum?,
 ) : BaseASTNode(),
     Named
+
+/**
+ * A node whose features are not backed by Kotlin properties, so they cannot be discovered via reflection.
+ */
+class DynamicTestNode(
+    @property:Internal override val nodeType: String,
+    @property:Internal private val features: List<PropertyDescription>,
+) : BaseASTNode() {
+    @property:Internal
+    override val properties: List<PropertyDescription>
+        get() = features
+}
 
 class LionWebModelConverterTest {
     val serialized = """{
@@ -305,6 +323,87 @@ class LionWebModelConverterTest {
 
         val js = SerializationProvider.getEfficientJsonSerialization(LIONWEB_VERSION_USED_BY_STARLASU)
         assertJSONsAreEqual(serialized, js.serializeTreeToJsonString(lwAST))
+    }
+
+    @Test
+    fun exportDynamicNodes() {
+        val kLanguage =
+            KolasuLanguage("com.strumenta.SimpleLang").apply {
+                addClass(SimpleRoot::class)
+            }
+
+        fun attribute(
+            name: String,
+            value: Any?,
+            type: KType,
+        ) = PropertyDescription(name, Multiplicity.SINGULAR, { value }, PropertyType.ATTRIBUTE, false, type)
+
+        val a1 =
+            DynamicTestNode(
+                SimpleNodeA::class.qualifiedName!!,
+                listOf(
+                    attribute("name", "A1", typeOf<String>()),
+                    PropertyDescription(
+                        "ref",
+                        Multiplicity.SINGULAR,
+                        { ReferenceByName<SimpleNodeA>("A1") },
+                        PropertyType.REFERENCE,
+                        false,
+                        typeOf<ReferenceByName<SimpleNodeA>>(),
+                    ),
+                    PropertyDescription(
+                        "child",
+                        Multiplicity.OPTIONAL,
+                        { null },
+                        PropertyType.CONTAINMENT,
+                        false,
+                        typeOf<SimpleNodeB?>(),
+                    ),
+                ),
+            )
+        val b2 =
+            DynamicTestNode(
+                SimpleNodeB::class.qualifiedName!!,
+                listOf(attribute("value", "some magic value", typeOf<String>())),
+            )
+        val ast =
+            DynamicTestNode(
+                SimpleRoot::class.qualifiedName!!,
+                listOf(
+                    attribute("_id", 12345, typeOf<Int>()),
+                    PropertyDescription(
+                        "childrez",
+                        Multiplicity.MANY,
+                        { listOf(a1, b2) },
+                        PropertyType.CONTAINMENT,
+                        false,
+                        typeOf<MutableList<SimpleDecl>>(),
+                    ),
+                ),
+            )
+        ast.id = "root"
+        a1.id = "a1"
+        b2.id = "b2"
+        ast.assignParents()
+
+        val exporter = LionWebModelConverter()
+        exporter.exportLanguageToLionWeb(kLanguage)
+        val lwAST = exporter.exportModelToLionWeb(ast)
+
+        val lwLanguage = exporter.correspondingLanguage(kLanguage)
+        assertSame(lwLanguage.getConceptByName("SimpleRoot")!!, lwAST.classifier)
+        assertEquals(12345, lwAST.getPropertyValueByName("_id"))
+        val children = lwAST.getChildrenByContainmentName("childrez")
+        assertEquals(2, children.size)
+        assertSame(lwLanguage.getConceptByName("SimpleNodeA")!!, children[0].classifier)
+        assertEquals("A1", children[0].getPropertyValueByName("name"))
+        val refValue = children[0].getReferenceValueByName("ref")
+        assertEquals(1, refValue.size)
+        assertEquals("A1", refValue[0].resolveInfo)
+        assertNull(refValue[0].referred)
+        assertEquals(0, children[0].getChildrenByContainmentName("child").size)
+        assertSame(lwLanguage.getConceptByName("SimpleNodeB")!!, children[1].classifier)
+        assertEquals("some magic value", children[1].getPropertyValueByName("value"))
     }
 
     @Test
