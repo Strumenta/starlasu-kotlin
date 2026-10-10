@@ -299,3 +299,17 @@ fun Parser.injectErrorCollectorInParser(issues: MutableList<Issue>) {
         },
     )
 }
+
+/**
+ * Thrown when the mapping from the parse tree to the AST (the second parsing stage) fails.
+ *
+ * @param issues the issues found while parsing, before the mapping failed.
+ * @param cause the exception thrown during the mapping.
+ */
+class MappingException
+    @JvmOverloads
+    constructor(
+        message: String,
+        val issues: List<Issue>,
+        cause: Throwable? = null,
+    ) : RuntimeException(message, cause)
