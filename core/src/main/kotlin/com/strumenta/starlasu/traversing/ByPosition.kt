@@ -4,6 +4,7 @@ package com.strumenta.starlasu.traversing
 
 import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.Position
+import com.strumenta.starlasu.model.positions
 
 /**
  * @param position the position where to search for nodes
@@ -31,17 +32,52 @@ fun ASTNode.findByPosition(
 fun ASTNode.searchByPosition(
     position: Position,
     selfContained: Boolean = false,
+): Sequence<ASTNode> = searchContaining(selfContained) { it.contains(position) }
+
+/**
+ * Like [findByPosition], but matches nodes by the positions of their [ASTNode.destination] (see [positions])
+ * rather than by their own position. For example, after code generation, this finds the node
+ * that produced the code at the given position in the generated text.
+ *
+ * Destination positions are not assumed to nest hierarchically, so the whole tree is searched.
+ *
+ * @param position the position where to search for nodes, in the destination
+ * @return the node whose destination most closely contains the given [position]. Null if none is found.
+ * @see searchByDestinationPosition
+ */
+fun ASTNode.findByDestinationPosition(position: Position): ASTNode? =
+    this.searchByDestinationPosition(position).lastOrNull()
+
+/**
+ * Like [searchByPosition], but matches nodes by the positions of their [ASTNode.destination] (see [positions])
+ * rather than by their own position. A node matches if any of its destination positions contains [position].
+ *
+ * Destination positions are not assumed to nest hierarchically, so the whole tree is searched,
+ * stopping at the first subtree found to be containing the position.
+ *
+ * @param position the position where to search for nodes, in the destination
+ * @return the path from this node to the deepest node whose destination contains the given [position],
+ * using depth-first search. Empty if none are found.
+ */
+fun ASTNode.searchByDestinationPosition(position: Position): Sequence<ASTNode> =
+    searchContaining(selfContained = false) { node ->
+        node.destination?.positions?.any { it.contains(position) } ?: false
+    }
+
+private fun ASTNode.searchContaining(
+    selfContained: Boolean,
+    containsPosition: (ASTNode) -> Boolean,
 ): Sequence<ASTNode> {
-    val contains = this.contains(position)
+    val contains = containsPosition(this)
     if (!selfContained || contains) {
         if (children.isEmpty()) {
             return if (contains) sequenceOf(this) else emptySequence()
         } else {
             for (c in children) {
-                val seq = c.searchByPosition(position, selfContained).iterator()
+                val seq = c.searchContaining(selfContained, containsPosition).iterator()
                 if (seq.hasNext()) {
                     return sequence {
-                        yield(this@searchByPosition)
+                        yield(this@searchContaining)
                         yieldAll(seq)
                     }
                 }
