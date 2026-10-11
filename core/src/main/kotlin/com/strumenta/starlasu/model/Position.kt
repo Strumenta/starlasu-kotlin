@@ -170,34 +170,59 @@ fun linePosition(
     return Position(Point(lineNumber, START_COLUMN), Point(lineNumber, lineCode.length), source)
 }
 
+/**
+ * Where code comes from: a file, a string, a URL, etc.
+ */
 abstract class Source : Serializable
 
+/**
+ * Implemented by sources that provide their own ID, which
+ * [com.strumenta.starlasu.ids.SimpleSourceIdProvider] then uses.
+ */
 interface SourceWithID {
     fun sourceID(): String
 }
 
+/**
+ * A named set of files under a [root] directory.
+ */
 class SourceSet(
     val name: String,
     val root: Path,
 )
 
+/**
+ * A file of a [SourceSet], identified by its path relative to the set's root.
+ */
 class SourceSetElement(
     val sourceSet: SourceSet,
     val relativePath: Path,
 ) : Source()
 
+/**
+ * Code read from a file.
+ */
 data class FileSource(
     val file: File,
 ) : Source()
 
+/**
+ * Code provided as a string.
+ */
 class StringSource(
     val code: String? = null,
 ) : Source()
 
+/**
+ * Code read from a URL.
+ */
 class URLSource(
     val url: URL,
 ) : Source()
 
+/**
+ * A file of a codebase, identified by the codebase name and the file's relative path.
+ */
 data class CodeBaseSource(
     val codebaseName: String,
     val relativePath: String,

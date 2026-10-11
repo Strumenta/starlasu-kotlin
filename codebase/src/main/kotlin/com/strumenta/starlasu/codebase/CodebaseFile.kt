@@ -9,6 +9,10 @@ import com.strumenta.starlasu.traversing.walk
 import com.strumenta.starlasu.validation.Issue
 import java.io.File
 
+/**
+ * A file of a [Codebase]. Creating it sets the source of [ast] to a [CodeBaseSource]. Two files are equal if they have
+ * the same [relativePath].
+ */
 data class CodebaseFile<R : Node>(
     val codebase: Codebase<R>,
     val relativePath: String,

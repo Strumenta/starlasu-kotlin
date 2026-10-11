@@ -4,6 +4,10 @@ import com.strumenta.starlasu.ids.NodeIdProvider
 import com.strumenta.starlasu.model.ASTNode
 import java.util.IdentityHashMap
 
+/**
+ * Assigns increasing numeric IDs, starting from `startId`, in the order nodes are requested. A node keeps its ID.
+ * Setting [parentProvider] is not supported.
+ */
 class SequentialNodeIdProvider(
     startId: Long = 1L,
 ) : NodeIdProvider {

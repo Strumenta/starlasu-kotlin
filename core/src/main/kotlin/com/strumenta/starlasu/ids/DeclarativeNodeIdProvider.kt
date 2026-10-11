@@ -7,16 +7,18 @@ import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.full.isSuperclassOf
 
 /**
- * Declarative node id provider instances allow to define
- * language-specific or custom identifier construction policies.
+ * A [SemanticNodeIDProvider] defined by a list of [idFor] rules.
+ *
+ * The first rule whose node type is a supertype of the node's type is applied; rules for more specific node types take
+ * precedence. Nodes matched by no rule have no semantic identity.
  *
  * ```kotlin
- * object MyDeclarativeNodeIdProvider: DeclarativeNodeIdProvider(
- *     idFor(PackageDeclaration::class) { it.node.name }
- *     idFor(ClassDeclaration::class) { (node: ClassDeclaration, identifiers: NodeIdProvider) ->
- *         val packageIdentifier = node.findAncestorOfType(PackageDeclaration::class)?.let { identifiers.idFor(it) } ?: "__none__"
- *         "${packageIdentifier}::${node.name}"
- *     }
+ * object MyNodeIdProvider : DeclarativeNodeIdProvider(
+ *     idFor<PackageDeclaration> { it.name },
+ *     idFor<ClassDeclaration> { node ->
+ *         val pkg = node.findAncestorOfType(PackageDeclaration::class.java)
+ *         "${pkg?.let { semanticID(it) } ?: "__none__"}::${node.name}"
+ *     },
  * )
  * ```
  **/

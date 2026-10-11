@@ -26,7 +26,7 @@ import static kotlin.jvm.JvmClassMappingKt.getKotlinClass;
 import static kotlin.reflect.full.KClassifiers.createType;
 
 /**
- * A subclass of {@link Node} that uses Java's reflection to compute its feature set.
+ * A subclass of {@link BaseASTNode} that uses Java's reflection to compute its feature set.
  * Kotlin's reflection does not work well with Java classes following the JavaBeans naming convention.
  */
 public class JavaNode extends BaseASTNode {

@@ -7,6 +7,9 @@ import com.strumenta.starlasu.parsing.ParsingResult
 import com.strumenta.starlasu.parsing.StarlasuToken
 import com.strumenta.starlasu.validation.Issue
 
+/**
+ * A [ParsingResult] that also carries the [tokens].
+ */
 class ParsingResultWithTokens<RootNode : SNode>(
     issues: List<Issue>,
     root: RootNode?,

@@ -53,12 +53,18 @@ fun <T : Any> KClass<T>.processProperties(
     }
 }
 
+/**
+ * The kind of an AST node property.
+ */
 enum class PropertyType {
     ATTRIBUTE,
     CONTAINMENT,
     REFERENCE,
 }
 
+/**
+ * Describes a property of a specific node, including its [value].
+ */
 data class PropertyDescription(
     val name: String,
     val multiplicity: Multiplicity,
@@ -249,6 +255,9 @@ val KClass<*>.isConceptInterface: Boolean
  */
 fun KClass<*>.implementsASTNode(): Boolean = this.allSupertypes.any { it.classifier == ASTNode::class }
 
+/**
+ * Describes a property of an AST class, independently of any instance.
+ */
 data class PropertyTypeDescription(
     val name: String,
     val provideNodes: Boolean,
@@ -280,6 +289,9 @@ data class PropertyTypeDescription(
     }
 }
 
+/**
+ * How many values a property holds: at most one ([OPTIONAL]), exactly one ([SINGULAR]) or a collection ([MANY]).
+ */
 enum class Multiplicity {
     OPTIONAL,
     SINGULAR,

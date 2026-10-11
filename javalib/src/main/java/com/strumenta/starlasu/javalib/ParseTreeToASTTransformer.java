@@ -11,6 +11,10 @@ import org.jetbrains.annotations.NotNull;
 
 import static kotlin.jvm.JvmClassMappingKt.getKotlinClass;
 
+/**
+ * Java-friendly {@link com.strumenta.starlasu.mapping.ParseTreeToASTTransformer}, with {@code registerNodeFactory}
+ * overloads taking {@link Class} objects.
+ */
 public class ParseTreeToASTTransformer extends com.strumenta.starlasu.mapping.ParseTreeToASTTransformer {
     public ParseTreeToASTTransformer() {
         super();

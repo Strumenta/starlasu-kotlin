@@ -4,6 +4,13 @@ import com.strumenta.starlasu.language.KolasuLanguage
 import com.strumenta.starlasu.model.Named
 import com.strumenta.starlasu.model.Node
 
+/**
+ * A serializable description of a symbol, usable to resolve references to it without loading its AST.
+ *
+ * @property identifier a unique identifier, such as the ID of the node defining the symbol.
+ * @property types qualified names of the node's type and its supertypes.
+ * @property fields selected property values of the node.
+ */
 data class SymbolDescription(
     override val name: String,
     val identifier: String,
@@ -12,6 +19,9 @@ data class SymbolDescription(
 ) : Node(),
     Named
 
+/**
+ * A property value in a [SymbolDescription]. Nodes and references are described by node ID.
+ */
 sealed class ValueDescription(
     open val value: Any? = null,
 ) : Node()

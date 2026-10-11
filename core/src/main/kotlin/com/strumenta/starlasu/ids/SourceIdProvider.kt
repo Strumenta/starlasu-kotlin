@@ -25,6 +25,9 @@ interface SourceIdProvider {
     fun sourceId(source: Source?): String
 }
 
+/**
+ * Base [SourceIdProvider] offering [cleanId], which turns a string into a valid LionWeb ID.
+ */
 abstract class AbstractSourceIdProvider : SourceIdProvider {
     protected fun cleanId(id: String) =
         id
@@ -37,6 +40,13 @@ abstract class AbstractSourceIdProvider : SourceIdProvider {
             .removeCharactersInvalidInLionWebIDs()
 }
 
+/**
+ * Derives the ID from the source: the path of a [FileSource], the description of a [SyntheticSource], the codebase
+ * name and relative path of a [CodeBaseSource], or [SourceWithID.sourceID]. Other sources are not supported.
+ *
+ * A null source yields [UNKNOWN_SOURCE_ID] if [acceptNullSource] is true; otherwise [SourceShouldBeSetException] is
+ * thrown.
+ */
 class SimpleSourceIdProvider(
     var acceptNullSource: Boolean = false,
 ) : AbstractSourceIdProvider() {
@@ -69,6 +79,10 @@ class SimpleSourceIdProvider(
         }
 }
 
+/**
+ * Derives the ID of a [FileSource] from its path relative to [baseDir], prefixed by [rootName] if set. Only file
+ * sources are supported. A null source yields [UNKNOWN_SOURCE_ID] if [acceptNullSource] is true.
+ */
 class RelativeSourceIdProvider(
     val baseDir: File,
     var rootName: String? = null,
@@ -101,11 +115,17 @@ class RelativeSourceIdProvider(
     }
 }
 
+/**
+ * Thrown when an ID cannot be generated.
+ */
 open class IDGenerationException(
     message: String,
     cause: Throwable? = null,
 ) : RuntimeException(message, cause)
 
+/**
+ * Thrown when an ID depends on the source of a node, but the source is not set.
+ */
 class SourceShouldBeSetException(
     message: String,
     cause: Throwable? = null,
@@ -114,6 +134,10 @@ class SourceShouldBeSetException(
         cause,
     )
 
+/**
+ * Thrown when a node whose class is not annotated with [com.strumenta.starlasu.model.ASTRoot] is found at the root
+ * of a tree.
+ */
 class NodeShouldNotBeRootException(
     message: String,
     cause: Throwable? = null,
@@ -122,6 +146,9 @@ class NodeShouldNotBeRootException(
         cause,
     )
 
+/**
+ * Thrown when a node annotated with [com.strumenta.starlasu.model.ASTRoot] (without `canBeNotRoot`) has a parent.
+ */
 class NodeShouldBeRootException(
     message: String,
     cause: Throwable? = null,

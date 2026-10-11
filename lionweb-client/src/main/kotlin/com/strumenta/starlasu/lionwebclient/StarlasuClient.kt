@@ -30,6 +30,8 @@ import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
 /**
+ * Stores and retrieves Starlasu ASTs in a LionWeb repository, converting them with a [LionWebModelConverter].
+ *
  * Partitions are top level entries in the repository. While they are still nodes, they must be dealt with through
  * specific methods.
  *

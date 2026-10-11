@@ -338,6 +338,9 @@ fun Node.transformTree(
     return mutationsCache.computeIfAbsent(instanceToTransform) { operation(instanceToTransform) }
 }
 
+/**
+ * Thrown when trying to change a property of a node that cannot be modified.
+ */
 class ImmutablePropertyException(
     property: KProperty<*>,
     node: ASTNode,

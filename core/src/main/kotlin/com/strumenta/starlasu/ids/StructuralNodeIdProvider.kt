@@ -6,6 +6,9 @@ import com.strumenta.starlasu.model.Source
 import com.strumenta.starlasu.model.containingProperty
 import com.strumenta.starlasu.model.indexInContainingProperty
 
+/**
+ * Returns [value] as the ID of any source.
+ */
 class ConstantSourceIdProvider(
     var value: String,
 ) : SourceIdProvider {

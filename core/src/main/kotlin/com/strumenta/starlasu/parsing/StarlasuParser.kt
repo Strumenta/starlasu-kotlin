@@ -34,12 +34,22 @@ import java.util.LinkedList
 import kotlin.reflect.full.memberFunctions
 import kotlin.system.measureTimeMillis
 
+/**
+ * Converts ANTLR tokens into [StarlasuToken]s.
+ */
 interface TokenFactory<T : StarlasuToken> {
+    /**
+     * The category of [t]. Returns [TokenCategory.PLAIN_TEXT] unless overridden.
+     */
     fun categoryOf(t: Token): TokenCategory = TokenCategory.PLAIN_TEXT
 
     fun convertToken(t: Token): T
 }
 
+/**
+ * A [TokenFactory] producing [StarlasuANTLRToken]s. It can also extract the tokens from the parse tree of a
+ * [ParsingResult] (see [extractTokens]).
+ */
 open class ANTLRTokenFactory : TokenFactory<StarlasuANTLRToken> {
     override fun convertToken(t: Token): StarlasuANTLRToken = StarlasuANTLRToken(categoryOf(t), t)
 
@@ -75,6 +85,10 @@ open class ANTLRTokenFactory : TokenFactory<StarlasuANTLRToken> {
     private fun convertToken(terminalNode: TerminalNode): StarlasuANTLRToken = convertToken(terminalNode.symbol)
 }
 
+/**
+ * A [StarlasuLexer] backed by an ANTLR lexer, which subclasses create in [createANTLRLexer]. Lexer errors are
+ * reported as issues of the [LexingResult].
+ */
 abstract class StarlasuANTLRLexer<T : StarlasuToken>(
     val tokenFactory: TokenFactory<T>,
 ) : StarlasuLexer<T> {
