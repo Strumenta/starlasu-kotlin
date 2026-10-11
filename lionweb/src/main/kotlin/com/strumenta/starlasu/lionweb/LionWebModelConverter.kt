@@ -5,7 +5,6 @@ import com.strumenta.starlasu.base.v2.ASTLanguage
 import com.strumenta.starlasu.ids.IDGenerationException
 import com.strumenta.starlasu.ids.NodeIdProvider
 import com.strumenta.starlasu.ids.caching
-import com.strumenta.starlasu.language.Feature
 import com.strumenta.starlasu.language.KolasuLanguage
 import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.CompositeDestination
@@ -13,8 +12,8 @@ import com.strumenta.starlasu.model.DroppedDestination
 import com.strumenta.starlasu.model.Multiplicity
 import com.strumenta.starlasu.model.Position
 import com.strumenta.starlasu.model.PossiblyNamed
+import com.strumenta.starlasu.model.PropertyDescription
 import com.strumenta.starlasu.model.ReferenceByName
-import com.strumenta.starlasu.model.allFeatures
 import com.strumenta.starlasu.model.asContainment
 import com.strumenta.starlasu.model.isAttribute
 import com.strumenta.starlasu.model.isContainment
@@ -135,7 +134,6 @@ class LionWebModelConverter(
     var ignoreMissingReferences: Boolean = false,
 ) {
     companion object {
-        private val kFeaturesCache = ConcurrentHashMap<Class<*>, Map<String, Feature>>()
         private val lwFeaturesCache = ConcurrentHashMap<String, Map<String, LWFeature<*>>>()
 
         fun lwFeatureByName(
@@ -249,16 +247,12 @@ class LionWebModelConverter(
                             "It was produced while exporting this Starlasu Node: $kNode",
                     )
                 }
-                val kFeatures =
-                    kFeaturesCache.getOrPut(kNode.javaClass) {
-                        kNode.javaClass.kotlin
-                            .allFeatures()
-                            .associateBy { it.name }
-                    }
                 val lwFeatures =
                     lwFeaturesCache.computeIfAbsent(lwNode.classifier.id!!) {
                         lwNode.classifier.allFeatures().associateBy { it.name!! }
                     }
+                // Built once per node: the ASTNode accessors by name rebuild all the properties at each call
+                val kProperties = kNode.properties.associateBy { it.name }
                 lwFeatures.values.forEach { feature ->
                     when (feature) {
                         is Property -> {
@@ -267,14 +261,7 @@ class LionWebModelConverter(
                             } else if (feature == ASTV1.position) {
                                 lwNode.setPropertyValue(ASTV1.position, kNode.position)
                             } else {
-                                val kAttribute =
-                                    kFeatures[feature.name]
-                                        as? com.strumenta.starlasu.language.Attribute
-                                        ?: throw IllegalArgumentException(
-                                            "Property ${feature.name} " +
-                                                "not found in $kNode",
-                                        )
-                                val kValue = kNode.getAttributeValue(kAttribute)
+                                val kValue = getAttributeValue(kNode, kProperties, feature)
                                 if (kValue is Enum<*>) {
                                     setEnumProperty(lwNode, feature, kValue)
                                 } else {
@@ -285,14 +272,7 @@ class LionWebModelConverter(
 
                         is Containment -> {
                             try {
-                                val kContainment =
-                                    (
-                                        kFeatures[feature.name] ?: throw IllegalStateException(
-                                            "Cannot find containment for ${feature.name} when considering node $kNode",
-                                        )
-                                    )
-                                        as com.strumenta.starlasu.language.Containment
-                                val kValue = kNode.getChildren(kContainment)
+                                val kValue = getChildren(kNode, kProperties, feature)
                                 kValue.forEach { kChild ->
                                     val lwChild = nodesMapping.byA(kChild)!!
                                     lwNode.addChild(feature, lwChild)
@@ -358,16 +338,7 @@ class LionWebModelConverter(
                                     }
                                 lwNode.setReferenceValues(feature, referenceValues)
                             } else {
-                                val kReference =
-                                    (
-                                        kFeatures[feature.name]
-                                            ?: throw java.lang.IllegalStateException(
-                                                "Cannot find feature ${feature.name} " +
-                                                    "in Starlasu Node ${kNode.nodeType}",
-                                            )
-                                    )
-                                        as com.strumenta.starlasu.language.Reference
-                                val kValue = kNode.getReference(kReference)
+                                val kValue = getReference(kNode, kProperties, feature)
                                 if (kValue == null) {
                                     lwNode.addReferenceValue(feature, null)
                                 } else {
@@ -1255,6 +1226,55 @@ class LionWebModelConverter(
                 null
             }
         }
+
+    /**
+     * Finds the description of [feature] among the [ASTNode.properties] of [kNode], rather than through
+     * reflection on the node's class, so that nodes whose features are not Kotlin properties
+     * (e.g., dynamic or wrapper nodes) are supported.
+     */
+    private fun kProperty(
+        kNode: ASTNode,
+        kProperties: Map<String, PropertyDescription>,
+        feature: LWFeature<*>,
+    ): PropertyDescription =
+        kProperties[feature.name!!]
+            ?: throw IllegalArgumentException("Property ${feature.name} not found in $kNode")
+
+    private fun getAttributeValue(
+        kNode: ASTNode,
+        kProperties: Map<String, PropertyDescription>,
+        property: Property,
+    ): Any? {
+        val kProperty = kProperty(kNode, kProperties, property)
+        val value = kProperty.value
+        // The LionWeb property may be mandatory while the Starlasu one is not (e.g., INamed.name for PossiblyNamed),
+        // so the node's own description decides whether a null value is acceptable
+        if (value == null && !property.isOptional && kProperty.multiplicity == Multiplicity.SINGULAR) {
+            throw IllegalStateException("Mandatory attribute ${property.name} is null")
+        }
+        return value
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun getChildren(
+        kNode: ASTNode,
+        kProperties: Map<String, PropertyDescription>,
+        containment: Containment,
+    ): List<ASTNode> {
+        val kProperty = kProperty(kNode, kProperties, containment)
+        require(!kProperty.derived) { "Containment ${containment.name} of $kNode is derived" }
+        return when (val value = kProperty.value) {
+            null -> emptyList()
+            is List<*> -> value as List<ASTNode>
+            else -> listOf(value as ASTNode)
+        }
+    }
+
+    private fun getReference(
+        kNode: ASTNode,
+        kProperties: Map<String, PropertyDescription>,
+        reference: Reference,
+    ): ReferenceByName<*>? = kProperty(kNode, kProperties, reference).value as ReferenceByName<*>?
 
     private fun findConcept(sNode: ASTNode): Concept {
         // No external synchronization needed: qualifiedNameToClassifier is a ConcurrentHashMap
