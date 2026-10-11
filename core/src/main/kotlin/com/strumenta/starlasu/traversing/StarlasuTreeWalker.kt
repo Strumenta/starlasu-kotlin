@@ -9,14 +9,29 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty1
 
+/**
+ * Navigates the tree structure of AST nodes.
+ */
 interface StarlasuTreeWalker {
+    /**
+     * The direct children of [node].
+     */
     fun <N : ASTNode> walkChildren(node: N): Sequence<ASTNode>
 
+    /**
+     * [node] and all its descendants, depth-first, in pre-order.
+     */
     fun walk(node: ASTNode): Sequence<ASTNode>
 
+    /**
+     * Sets the parent of every descendant of [node].
+     */
     fun <N : ASTNode> assignParents(node: N)
 }
 
+/**
+ * The default [StarlasuTreeWalker]. It caches, for each node class, how to compute the children.
+ */
 class CommonStarlasuTreeWalker : StarlasuTreeWalker {
     // Cache stores a factory that returns the children list directly (no Sequence/coroutine overhead).
     // We use java Class as key because they have faster hashCode/equals than KClass.

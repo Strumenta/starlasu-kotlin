@@ -6,6 +6,9 @@ import com.strumenta.starlasu.model.ReferenceByName
 import com.strumenta.starlasu.semantics.scope.description.ScopeDescription
 import kotlin.reflect.KProperty1
 
+/**
+ * Provides the [ScopeDescription] in which the given [ReferenceByName] property of a node is resolved.
+ */
 interface ScopeProvider {
     fun <NodeType : ASTNode> scopeFor(
         node: NodeType,

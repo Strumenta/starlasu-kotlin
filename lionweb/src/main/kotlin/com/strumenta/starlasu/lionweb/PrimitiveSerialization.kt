@@ -27,6 +27,9 @@ fun registerSerializersAndDeserializersInMetamodelRegistry(
     )
 }
 
+/**
+ * A list of tokens, stored in LionWeb as a single property value.
+ */
 class TokensList(
     val tokens: List<StarlasuToken>,
 )

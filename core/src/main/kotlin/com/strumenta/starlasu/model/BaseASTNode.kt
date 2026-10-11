@@ -8,6 +8,9 @@ import java.io.Serializable
 import kotlin.reflect.KClass
 import kotlin.reflect.cast
 
+/**
+ * The base class for AST nodes. See [BaseASTNode].
+ */
 typealias Node = BaseASTNode
 
 /**

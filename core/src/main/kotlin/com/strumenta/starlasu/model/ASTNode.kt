@@ -6,6 +6,9 @@ import com.strumenta.starlasu.language.Containment
 import com.strumenta.starlasu.language.Reference
 import io.lionweb.model.AnnotationInstance
 
+/**
+ * A node of an AST. Extend [BaseASTNode] (aliased as [Node]) rather than implementing this interface directly.
+ */
 interface ASTNode :
     HasID,
     Origin,

@@ -2,10 +2,13 @@ package com.strumenta.starlasu.codegen
 
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.ReferenceByName
+import com.strumenta.starlasu.model.pos
 import com.strumenta.starlasu.transformation.FailingASTTransformation
 import com.strumenta.starlasu.transformation.MissingASTTransformation
+import com.strumenta.starlasu.traversing.findByDestinationPosition
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class ASTCodeGeneratorTest {
     @Test
@@ -114,5 +117,24 @@ class ASTCodeGeneratorTest {
             """.trimMargin(),
             code,
         )
+    }
+
+    @Test
+    fun findByDestinationPositionAfterPrinting() {
+        val abc = KStringLiteral("abc")
+        val n123 = KIntLiteral(123)
+        val ex =
+            KMethodCallExpression(
+                KThisExpression(),
+                ReferenceByName("myMethod"),
+                mutableListOf(abc, n123, KStringLiteral("qer")),
+            )
+        val code = KotlinPrinter().printToString(ex)
+        assertEquals("""this.myMethod("abc", 123, "qer")""", code)
+
+        assertEquals(n123, ex.findByDestinationPosition(pos(1, 22, 1, 23)))
+        assertEquals(abc, ex.findByDestinationPosition(pos(1, 15, 1, 18)))
+        assertEquals(ex, ex.findByDestinationPosition(pos(1, 13, 1, 14)))
+        assertNull(ex.findByDestinationPosition(pos(2, 0, 2, 1)))
     }
 }

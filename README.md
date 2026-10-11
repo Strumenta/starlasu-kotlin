@@ -8,7 +8,7 @@ It supports both **Kotlin** and **Java**, and integrates smoothly with **ANTLR**
 
 > **Starlasu** stands for **Star** **La**nguage **Su**pport — a family of libraries available for multiple languages, including **Python**, **TypeScript**, and **C#**.
 
-### **Starlasu Kotlin (previosuly called Kolasu) Version Overview**
+### **Starlasu Kotlin (previously called Kolasu) Version Overview**
 
 | Version | Status | JVM Support | Kotlin Support | Notes |
 |----------|---------|--------------|----------------|--------|
@@ -27,7 +27,22 @@ Tested with **JDK 21** and **25**.
 
 - **Concepts and Principles:** [Starlasu documentation](https://github.com/Strumenta/Starlasu/tree/main/documentation) — shared across all Starlasu libraries.
 - **API Reference:** [Javadoc for Starlasu Kotlin](https://www.javadoc.io/doc/com.strumenta.starlasu).
+- **Module and package overviews:** the `README.md` of each module, also included in the generated API docs
+  (`./gradlew dokkaGenerateHtml`).
 - **Migrating from Kolasu 1.5:** [1.5 → 1.7 migration guide](docs/migration-1.5-to-1.7.md) — package rename, renamed/removed types, LionWeb and Starlasu-Specs coordinates.
+
+## Modules
+
+All artifacts are published under the `com.strumenta.starlasu` group.
+
+| Artifact | Purpose |
+|---|---|
+| [`starlasu-core`](core/README.md) | AST model, traversal, transformation, ANTLR-based parsing infrastructure |
+| [`starlasu-semantics`](semantics/README.md) | Symbol resolution: scopes, symbol descriptions, symbol resolver |
+| [`starlasu-lionweb`](lionweb/README.md) | Conversion of ASTs and languages to and from LionWeb |
+| [`starlasu-lionweb-client`](lionweb-client/README.md) | Storage of ASTs in a LionWeb repository |
+| [`starlasu-codebase`](codebase/README.md) | A codebase as a set of parsed files |
+| [`starlasu-javalib`](javalib/README.md) | Helpers for using Starlasu Kotlin from Java |
 
 ---
 
@@ -49,7 +64,7 @@ It serves as a general foundation for projects that need to manipulate or genera
 Extend your AST classes from `Node` to automatically gain:
 
 - **Navigation:** Traverse, search, and modify the AST with utility methods.
-- **Printing:** Output ASTs as XML, JSON, or parse trees.
+- **Printing:** Debug-print ASTs and parse trees.
 - **LionWeb Interoperability:** Export ASTs and languages (i.e., metamodels) to LionWeb.
 - **Name Resolution:** Built-in utilities for named elements and reference resolution.
 - **Automatic Structure Discovery:** Starlasu introspects your AST — all properties and tree structure are detected automatically.
@@ -91,8 +106,6 @@ java -jar lionweb/build/libs/lionweb-jmh.jar ImportModelBenchmark
 ```
 
 See [`lionweb/README.md`](lionweb/README.md) for the full benchmark documentation.
-
-## How to format code
 
 ## Code Formatting
 

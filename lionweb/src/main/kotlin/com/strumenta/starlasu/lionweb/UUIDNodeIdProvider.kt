@@ -5,6 +5,9 @@ import com.strumenta.starlasu.model.ASTNode
 import java.util.IdentityHashMap
 import java.util.UUID
 
+/**
+ * Assigns a random UUID to each node. A node keeps its ID. Setting [parentProvider] is not supported.
+ */
 class UUIDNodeIdProvider : NodeIdProvider {
     private val cache = IdentityHashMap<ASTNode, String>()
 

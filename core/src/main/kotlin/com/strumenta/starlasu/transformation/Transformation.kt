@@ -18,6 +18,9 @@ import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.full.superclasses
 
+/**
+ * Thrown when a transformation rule is configured inconsistently.
+ */
 class ConfigurationException(
     message: String,
     cause: Throwable? = null,
@@ -306,6 +309,9 @@ data class ChildTransformationRule<Source, Target, Child : Any>(
  */
 private val NO_CHILD_NODE = ChildTransformationRule<Any, Any, Any>("", { x -> x }, { _, _ -> }, ASTNode::class)
 
+/**
+ * How an [ASTTransformer] reacts when a node cannot be transformed.
+ */
 enum class FaultTolerance {
     /**
      * If a transformation fails, we'll throw an exception.

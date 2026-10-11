@@ -1,5 +1,8 @@
 package com.strumenta.starlasu.validation
 
+/**
+ * A [root], if one could be produced, together with the [issues] found while producing it.
+ */
 data class Result<C>(
     val issues: List<Issue>,
     val root: C?,
@@ -16,6 +19,10 @@ data class Result<C>(
         get() = issues.filter { it.severity == IssueSeverity.ERROR }.toList()
     val warnings
         get() = issues.filter { it.severity == IssueSeverity.WARNING }.toList()
+
+    /**
+     * True if there are no issues at all, including warnings and info.
+     */
     val correct: Boolean
         get() = issues.isEmpty()
 

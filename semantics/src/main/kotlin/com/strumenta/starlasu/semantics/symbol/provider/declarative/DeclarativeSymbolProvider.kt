@@ -26,6 +26,12 @@ inline fun <reified NodeTy : Node> symbolFor(
     ) -> Unit,
 ): DeclarativeSymbolProviderRule<NodeTy> = DeclarativeSymbolProviderRule(NodeTy::class, specification)
 
+/**
+ * A [SymbolProvider] defined by a list of [symbolFor] rules, using the given [NodeIdProvider] for identifiers.
+ *
+ * The first rule whose node type is a supertype of the node's type is applied; rules for more specific node types take
+ * precedence. Nodes matched by no rule have no symbol.
+ */
 open class DeclarativeSymbolProvider(
     private val nodeIdProvider: NodeIdProvider,
     vararg rules: DeclarativeSymbolProviderRule<out ASTNode>,
@@ -38,6 +44,9 @@ open class DeclarativeSymbolProvider(
             ?.invoke(nodeIdProvider, this, node)
 }
 
+/**
+ * A rule of a [DeclarativeSymbolProvider], created with [symbolFor].
+ */
 class DeclarativeSymbolProviderRule<NodeTy : ASTNode>(
     private val nodeType: KClass<NodeTy>,
     private val specification: DeclarativeSymbolProvideRuleApi<NodeTy>.(
@@ -143,12 +152,25 @@ class DeclarativeSymbolProviderRule<NodeTy : ASTNode>(
     ): ListValueDescription = ListValueDescription(source.map { this.toValueDescription(nodeIdProvider, it) }.toList())
 }
 
+/**
+ * The functions available in a [symbolFor] body. A symbol must have a name, set with [name] or by including a
+ * property called `name`.
+ */
 interface DeclarativeSymbolProvideRuleApi<NodeTy : ASTNode> {
+    /**
+     * Sets the name of the symbol.
+     */
     fun name(name: String)
 
+    /**
+     * Includes the value of [property] in the symbol's fields.
+     */
     fun include(property: KProperty1<in NodeTy, Any?>)
 }
 
+/**
+ * The context available in a [symbolFor] body as `it`.
+ */
 data class DeclarativeSymbolProviderRuleContext<NodeTy : ASTNode>(
     val node: NodeTy,
     val symbolProvider: SymbolProvider,

@@ -23,25 +23,20 @@ inline fun <
 ) = DeclarativeScopeProviderRule(NodeTy::class, property.name, ignoreCase, specification)
 
 /**
- * Declarative scope provider instances can be used to specify language-specific
- * scoping rules. Using these, the provider computes scope descriptions
- * for node reference properties, which can then be used to perform symbol resolution.
- * Scoping rules can be provided as `DeclarativeScopeProviderRule` instances during instantiation.
+ * A [ScopeProvider] defined by a list of [scopeFor] rules.
  *
- * Given a specific language, we suggest to define an object extending this class to specify
- * language-specific scoping rules:
+ * For a given node and reference property, the first rule whose node type is a supertype of the node's type and whose
+ * property name matches is applied; rules for more specific node types take precedence. If no rule matches, a
+ * [RuntimeException] is thrown.
+ *
  * ```kotlin
- * object MyScopeProvider: DeclarativeScopeProvider(
- *     scopeFor(ANode::aReference) {
- *         name("theSymbolName")
- *         // local symbols (ScopeDescription API)
- *         include(somePossiblyNamedNode)
- *         include("explicitName", someNode)
- *         // global symbols (ScopeDescription API)
- *         val symbols: SymbolRepository = ASymbolRepository();
- *         symbols.allOfType(BNode::class).forEach { include(it) }
- *         symbols.allOfType(BNode::class).forEach { include( `explicitNameWith${it.someProperty}`, it) }
- *     }
+ * object MyScopeProvider : DeclarativeScopeProvider(
+ *     scopeFor(Todo::prerequisite) {
+ *         // local symbols: named nodes of the same AST
+ *         (it.node.parent as TodoProject).todos.forEach(this::define)
+ *         // external symbols, e.g. from a SymbolRepository
+ *         symbolRepository.find(Todo::class).forEach { symbol -> define(symbol.name, symbol) }
+ *     },
  * )
  * ```
  **/

@@ -11,6 +11,9 @@ import com.strumenta.starlasu.model.ReferenceByName
 import com.strumenta.starlasu.model.Source
 import io.lionweb.model.AnnotationInstance
 
+/**
+ * Stands for a node known only by its [nodeId]. Reading any other member throws [NotImplementedError].
+ */
 data class ProxyNode(
     val nodeId: String,
 ) : ASTNode {
@@ -75,6 +78,9 @@ data class ProxyNode(
         get() = TODO("Not yet implemented")
 }
 
+/**
+ * Resolves every node ID to a [ProxyNode].
+ */
 object ProxyBasedNodeResolver : NodeResolver {
     override fun resolve(nodeID: String): SNode? = ProxyNode(nodeID)
 }

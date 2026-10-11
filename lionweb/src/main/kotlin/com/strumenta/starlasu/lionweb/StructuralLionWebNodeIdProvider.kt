@@ -7,6 +7,9 @@ import com.strumenta.starlasu.ids.StructuralNodeIdProvider
 import com.strumenta.starlasu.model.ASTNode
 import io.lionweb.utils.IdUtils
 
+/**
+ * A [StructuralNodeIdProvider] that throws [IllegalStateException] if it produces an invalid LionWeb ID.
+ */
 class StructuralLionWebNodeIdProvider(
     sourceIdProvider: SourceIdProvider = SimpleSourceIdProvider(),
 ) : StructuralNodeIdProvider(sourceIdProvider) {
