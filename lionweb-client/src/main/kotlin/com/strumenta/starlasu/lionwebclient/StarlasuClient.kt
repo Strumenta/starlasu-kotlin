@@ -1,6 +1,5 @@
 package com.strumenta.starlasu.lionwebclient
 
-import com.strumenta.starlasu.ids.CommonNodeIdProvider
 import com.strumenta.starlasu.ids.NodeIdProvider
 import com.strumenta.starlasu.ids.caching
 import com.strumenta.starlasu.language.KolasuLanguage
@@ -13,6 +12,7 @@ import com.strumenta.starlasu.lionweb.LionWebSource
 import com.strumenta.starlasu.lionweb.PerformanceLogger
 import com.strumenta.starlasu.lionweb.PrimitiveValueSerialization
 import com.strumenta.starlasu.lionweb.ProxyBasedNodeResolver
+import com.strumenta.starlasu.lionweb.StructuralLionWebNodeIdProvider
 import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.ASTRoot
 import com.strumenta.starlasu.model.Node
@@ -62,7 +62,7 @@ class StarlasuClient(
     connectTimeOutInSeconds: Long = 60,
     callTimeoutInSeconds: Long = 60,
     authorizationToken: String? = null,
-    val idProvider: NodeIdProvider = CommonNodeIdProvider().caching(),
+    val idProvider: NodeIdProvider = StructuralLionWebNodeIdProvider().caching(),
 ) {
     val hostname: String
         get() = lionWebClient.hostname
