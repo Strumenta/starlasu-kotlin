@@ -1,6 +1,6 @@
 # Starlasu Kotlin
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.strumenta.starlasu/starlasu-core/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.strumenta.starlasu/starlasu-core)
+[![Maven Central](https://img.shields.io/maven-central/v/com.strumenta.starlasu/starlasu-core)](https://central.sonatype.com/artifact/com.strumenta.starlasu/starlasu-core)
 ![Build Status](https://img.shields.io/github/actions/workflow/status/Strumenta/starlasu-kotlin/check.yml?branch=main)
 
 **Starlasu Kotlin** provides the infrastructure for building custom, possibly mutable, Abstract Syntax Trees (ASTs).  
