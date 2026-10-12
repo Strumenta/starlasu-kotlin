@@ -761,9 +761,9 @@ class LionWebModelConverterTest {
         imported.exportLanguageToLionWeb(kl)
         val root = imported.importModelFromLionWeb(lwAST, source) as SimpleRoot
         assertSame(source, root.source)
-        assertEquals(Position(Point(1, 0), Point(3, 0), source), root.position)
+        assertEquals(Position(Point(1, 0), Point(3, 0)), root.position)
         assertSame(source, root.childrez[0].source)
-        assertEquals(Position(Point(2, 0), Point(2, 3), source), root.childrez[0].position)
+        assertEquals(Position(Point(2, 0), Point(2, 3)), root.childrez[0].position)
         assertSame(source, root.childrez[1].source)
         assertNull(root.childrez[1].position)
 

@@ -675,7 +675,8 @@ class LionWebModelConverter(
 
     /**
      * Imports [lwTree] as Starlasu nodes. LionWeb does not store the source, so it can be provided as [source]:
-     * it is then assigned to all the imported nodes and their positions.
+     * it is then assigned to all the imported nodes. Positions are left without a source, so that they are not
+     * copied and can be shared across files.
      */
     fun importModelFromLionWeb(
         lwTree: LWNode,
@@ -717,8 +718,7 @@ class LionWebModelConverter(
                 }
                 val lwPosition = lwNode.getPropertyValue(astLanguage.position)
                 if (lwPosition != null) {
-                    kNode.position =
-                        (lwPosition as Position).let { if (source == null) it else it.copy(source = source) }
+                    kNode.position = lwPosition as Position
                 }
                 if (source != null) {
                     kNode.source = source
