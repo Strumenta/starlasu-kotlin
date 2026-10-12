@@ -45,6 +45,7 @@ import io.lionweb.language.PrimitiveType
 import io.lionweb.language.Property
 import io.lionweb.language.Reference
 import io.lionweb.model.AnnotationInstance
+import io.lionweb.model.HasSettableParent
 import io.lionweb.model.Node
 import io.lionweb.model.ReferenceValue
 import io.lionweb.model.impl.AbstractClassifierInstance
@@ -239,7 +240,7 @@ class LionWebModelConverter(
             starlasuTreeWalker.walk(starlasuTree).forEach { kNode ->
                 val lwNode = nodesMapping.byA(kNode)!!
                 kNode.annotations.forEach { annotationInstance ->
-                    lwNode.addAnnotation(annotationInstance!!)
+                    attachAnnotation(lwNode, annotationInstance!!)
                 }
                 if (!IdUtils.isValidID(lwNode.id)) {
                     throw RuntimeException(
@@ -401,6 +402,27 @@ class LionWebModelConverter(
             (result as DynamicNode).parent = ProxyNode(parentNodeId)
         }
         return result
+    }
+
+    /**
+     * Adds the annotation to the LionWeb node, setting the annotation's parent when it is not set.
+     * Fails if the annotation is already attached to a node with a different ID.
+     */
+    private fun attachAnnotation(
+        lwNode: LWNode,
+        annotation: AnnotationInstance,
+    ) {
+        val currentParent = annotation.parent
+        if (currentParent != null && currentParent !== lwNode && currentParent.id != lwNode.id) {
+            throw IllegalStateException(
+                "Annotation ${annotation.id} is attached to node ${currentParent.id}, " +
+                    "so it cannot be attached to node ${lwNode.id}",
+            )
+        }
+        lwNode.addAnnotation(annotation)
+        if (annotation.parent == null && annotation is HasSettableParent) {
+            annotation.setParent(lwNode)
+        }
     }
 
     private fun setOriginalNode(

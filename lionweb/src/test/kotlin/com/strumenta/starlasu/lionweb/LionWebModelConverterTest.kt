@@ -43,7 +43,9 @@ import io.lionweb.language.Concept
 import io.lionweb.language.Language
 import io.lionweb.language.LionCoreBuiltins
 import io.lionweb.language.Property
+import io.lionweb.model.AnnotationInstance
 import io.lionweb.model.impl.DynamicAnnotationInstance
+import io.lionweb.model.impl.DynamicNode
 import io.lionweb.model.impl.EnumerationValue
 import io.lionweb.serialization.SerializationProvider
 import java.io.File
@@ -51,6 +53,7 @@ import kotlin.reflect.KType
 import kotlin.reflect.typeOf
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -1088,6 +1091,46 @@ class LionWebModelConverterTest {
         val lwNode3 = converter3.exportModelToLionWeb(mySNode3)
         assertEquals(1, lwNode3.annotations.size)
         assertEquals(annInstance1, lwNode3.annotations.first())
+    }
+
+    private fun annotationForTests(): Annotation =
+        Language()
+            .apply {
+                setID("lang1-id")
+                key = "lang1-key"
+                name = "Lang1"
+            }.createAnnotation("MyAnnotation")
+
+    @Test
+    fun exportingNodeSetsParentOfItsAnnotations() {
+        val converter = LionWebModelConverter()
+        converter.exportLanguageToLionWeb(KolasuLanguage("myLanguage").apply { addClass(NodeWithEnum::class) })
+
+        val kNode = NodeWithEnum("MyNode", AnEnum.ZUM)
+        kNode.id = "MyNode1"
+        val annInstance = DynamicAnnotationInstance("my-annotation-1", annotationForTests())
+        kNode.addAnnotation(annInstance)
+        assertNull(annInstance.parent)
+
+        val lwNode = converter.exportModelToLionWeb(kNode)
+        assertEquals(listOf<AnnotationInstance>(annInstance), lwNode.annotations)
+        assertSame(lwNode, annInstance.parent)
+    }
+
+    @Test
+    fun exportingNodeFailsIfAnnotationIsAttachedToNodeWithDifferentId() {
+        val converter = LionWebModelConverter()
+        converter.exportLanguageToLionWeb(KolasuLanguage("myLanguage").apply { addClass(NodeWithEnum::class) })
+
+        val annotation = annotationForTests()
+        val otherNode = DynamicNode("other-node", Concept())
+        val annInstance = DynamicAnnotationInstance("my-annotation-1", annotation, otherNode)
+
+        val kNode = NodeWithEnum("MyNode", AnEnum.ZUM)
+        kNode.id = "MyNode1"
+        kNode.addAnnotation(annInstance)
+
+        assertFailsWith<IllegalStateException> { converter.exportModelToLionWeb(kNode) }
     }
 
     @Test
