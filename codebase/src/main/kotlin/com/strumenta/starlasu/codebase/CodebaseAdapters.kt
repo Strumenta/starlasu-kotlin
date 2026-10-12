@@ -5,6 +5,7 @@ import com.strumenta.starlasu.lionweb.IssueNode
 import com.strumenta.starlasu.lionweb.LWNode
 import com.strumenta.starlasu.lionweb.LionWebModelConverter
 import com.strumenta.starlasu.lionweb.TokensList
+import com.strumenta.starlasu.model.CodeBaseSource
 import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.pipeline.CodebaseAccess
 import io.lionweb.kotlin.getChildrenByContainmentName
@@ -27,7 +28,8 @@ fun <R : Node> deserialize(
         codebaseFile.getOnlyChildByContainmentName("ast") ?: throw IllegalStateException(
             "No AST found for $relativePath",
         )
-    val compilationUnit = modelConverter.importModelFromLionWeb(ast) as R
+    val compilationUnit =
+        modelConverter.importModelFromLionWeb(ast, CodeBaseSource(codebase.name, relativePath)) as R
     val issues =
         codebaseFile.getChildrenByContainmentName("issues").map { lwIssue ->
             modelConverter.importIssueFromLionweb(lwIssue as IssueNode).second

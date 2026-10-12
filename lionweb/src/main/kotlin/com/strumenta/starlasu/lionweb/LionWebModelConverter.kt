@@ -14,6 +14,7 @@ import com.strumenta.starlasu.model.Position
 import com.strumenta.starlasu.model.PossiblyNamed
 import com.strumenta.starlasu.model.PropertyDescription
 import com.strumenta.starlasu.model.ReferenceByName
+import com.strumenta.starlasu.model.Source
 import com.strumenta.starlasu.model.asContainment
 import com.strumenta.starlasu.model.isAttribute
 import com.strumenta.starlasu.model.isContainment
@@ -672,7 +673,14 @@ class LionWebModelConverter(
         return argsMap
     }
 
-    fun importModelFromLionWeb(lwTree: LWNode): Any {
+    /**
+     * Imports [lwTree] as Starlasu nodes. LionWeb does not store the source, so it can be provided as [source]:
+     * it is then assigned to all the imported nodes and their positions.
+     */
+    fun importModelFromLionWeb(
+        lwTree: LWNode,
+        source: Source? = null,
+    ): Any {
         val referencesPostponer = ReferencesPostponer(ignoreMissingReferences = this.ignoreMissingReferences)
         lionWebTreeWalker.thisAndAllDescendantsLeavesFirst(lwTree).forEach { lwNode ->
             val kClass =
@@ -709,7 +717,11 @@ class LionWebModelConverter(
                 }
                 val lwPosition = lwNode.getPropertyValue(astLanguage.position)
                 if (lwPosition != null) {
-                    kNode.position = lwPosition as Position
+                    kNode.position =
+                        (lwPosition as Position).let { if (source == null) it else it.copy(source = source) }
+                }
+                if (source != null) {
+                    kNode.source = source
                 }
                 val originalNodes = lwNode.getReferenceValues(astLanguage.originalNode)
                 if (originalNodes.isNotEmpty()) {
