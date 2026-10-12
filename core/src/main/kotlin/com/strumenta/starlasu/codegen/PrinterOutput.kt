@@ -32,9 +32,19 @@ class PrinterOutput(
 ) {
     private val sb = StringBuilder(initialCapacity)
     private var currentLine = START_LINE
-    private var currentColumn = START_COLUMN
+
+    /**
+     * The column at which the next character will be printed.
+     */
+    var currentColumn = START_COLUMN
+        private set
     private var indentationLevel = 0
-    private var onNewLine = true
+
+    /**
+     * True when the output is positioned at the start of a line (indentation not yet emitted).
+     */
+    var onNewLine = true
+        private set
     private var indentationBlock = "    "
     private var newLineStr = "\n"
     private var lastChar: Char? = null
@@ -63,6 +73,44 @@ class PrinterOutput(
             if (!sb[i].isWhitespace()) return sb[i]
         }
         return null
+    }
+
+    /**
+     * Returns true if the output currently ends with a newline.
+     */
+    fun endsWithNewline(): Boolean = sb.isNotEmpty() && sb.endsWith(newLineStr)
+
+    /**
+     * Removes a single trailing newline, if present, restoring the position on the previous line.
+     * Returns true if a newline was removed.
+     */
+    fun trimTrailingNewline(): Boolean {
+        if (!endsWithNewline()) {
+            return false
+        }
+        sb.setLength(sb.length - newLineStr.length)
+        currentLine--
+        var i = sb.length
+        while (i > 0 && sb[i - 1] != '\n' && sb[i - 1] != '\r') {
+            i--
+        }
+        currentColumn = sb.length - i
+        lastChar = if (sb.isEmpty()) null else sb[sb.length - 1]
+        onNewLine = currentColumn == 0
+        return true
+    }
+
+    /**
+     * Prints [separator] right after the previous element. If that element ended with a newline,
+     * the separator is placed before it (e.g., `}` followed by `,` stays `},`).
+     */
+    fun printSeparatorAfterElement(separator: String) {
+        if (trimTrailingNewline()) {
+            print(separator)
+            println()
+        } else {
+            print(separator)
+        }
     }
 
     private fun advancePoint(text: String) {
