@@ -743,6 +743,41 @@ class LionWebModelConverterTest {
     }
 
     @Test
+    fun canAssignSourceWhenImporting() {
+        val kl =
+            KolasuLanguage("com.strumenta.SimpleLang").apply {
+                addClass(SimpleRoot::class)
+            }
+        val mc = LionWebModelConverter()
+        mc.exportLanguageToLionWeb(kl)
+        val b = SimpleNodeB("b").withPosition(Position(Point(2, 0), Point(2, 3)))
+        val c = SimpleNodeB("c")
+        val ast =
+            SimpleRoot(1, mutableListOf(b, c))
+                .withPosition(Position(Point(1, 0), Point(3, 0)))
+                .setSourceForTree(FileSource(File("src/foo.txt")))
+        ast.assignParents()
+        val lwAST = mc.exportModelToLionWeb(ast)
+
+        val source = FileSource(File("src/foo.txt"))
+        val imported = LionWebModelConverter()
+        imported.exportLanguageToLionWeb(kl)
+        val root = imported.importModelFromLionWeb(lwAST, source) as SimpleRoot
+        assertSame(source, root.source)
+        assertEquals(Position(Point(1, 0), Point(3, 0)), root.position)
+        assertSame(source, root.childrez[0].source)
+        assertEquals(Position(Point(2, 0), Point(2, 3)), root.childrez[0].position)
+        assertSame(source, root.childrez[1].source)
+        assertNull(root.childrez[1].position)
+
+        val importedWithoutSource = LionWebModelConverter()
+        importedWithoutSource.exportLanguageToLionWeb(kl)
+        val rootWithoutSource = importedWithoutSource.importModelFromLionWeb(lwAST) as SimpleRoot
+        assertNull(rootWithoutSource.source)
+        assertEquals(Position(Point(1, 0), Point(3, 0)), rootWithoutSource.position)
+    }
+
+    @Test
     fun canSerializeAndDeserializeTheOriginalNodeLink() {
         val kl =
             KolasuLanguage("my.language").apply {
