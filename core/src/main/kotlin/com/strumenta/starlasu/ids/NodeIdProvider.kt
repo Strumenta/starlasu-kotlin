@@ -51,8 +51,10 @@ class CommonNodeIdProvider(
             positionalID(kNode)
         }
 
-    private fun positionalID(kNode: ASTNode): String =
-        StructuralNodeIdProvider().apply { parentProvider = this }.id(kNode)
+    // Parent IDs are resolved through this provider (or its wrapper, e.g. a cache)
+    private val structuralProvider = StructuralNodeIdProvider().also { it.parentProvider = this }
+
+    private fun positionalID(kNode: ASTNode): String = structuralProvider.id(kNode)
 }
 
 /**

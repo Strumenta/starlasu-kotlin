@@ -1,5 +1,6 @@
 package com.strumenta.starlasu.ids
 
+import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.ASTRoot
 import com.strumenta.starlasu.model.Named
 import com.strumenta.starlasu.model.Node
@@ -129,5 +130,43 @@ class StructuralNodeIdProviderTest {
         ast.setSourceForTree(SyntheticSource("S1"))
         ast.assignParents()
         assertEquals("MyName-XYZ-12", idProvider.id(other))
+    }
+
+    @Test
+    fun positionalIDOfChildOfSemanticNodeUsesSemanticID() {
+        val idProvider =
+            CommonNodeIdProvider(
+                semanticIDProvider = DeclarativeNodeIdProvider(idFor<MyRoot> { "root" }),
+            )
+        val n1 = MyNonRoot(2)
+        val ast = MyRoot(foos = mutableListOf(n1))
+        ast.assignParents()
+        assertEquals("root_foos", idProvider.id(n1))
+    }
+
+    @Test
+    fun cachingCommonNodeIdProviderCachesAncestors() {
+        var semanticChecks = 0
+        val idProvider =
+            CommonNodeIdProvider(
+                semanticIDProvider =
+                    object : SemanticNodeIDProvider {
+                        override fun hasSemanticIdentity(kNode: ASTNode): Boolean {
+                            semanticChecks++
+                            return false
+                        }
+
+                        override fun semanticID(kNode: ASTNode): String = throw UnsupportedOperationException()
+                    },
+            ).caching()
+        val n1 = MyNonRoot(2)
+        val n2 = MyNonRoot(4)
+        val ast = MyRoot(foos = mutableListOf(n1, n2))
+        ast.setSourceForTree(SyntheticSource("S1"))
+        ast.assignParents()
+        idProvider.id(n1)
+        idProvider.id(n2)
+        // The root is computed once, then taken from the cache
+        assertEquals(3, semanticChecks)
     }
 }
