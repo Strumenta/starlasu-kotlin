@@ -7,6 +7,7 @@ import com.strumenta.starlasu.model.Node
 import com.strumenta.starlasu.model.Point
 import com.strumenta.starlasu.model.Position
 import com.strumenta.starlasu.model.Source
+import com.strumenta.starlasu.model.StringSource
 import com.strumenta.starlasu.transformation.FaultTolerance
 import com.strumenta.starlasu.transformation.MappingException
 import com.strumenta.starlasu.validation.Issue
@@ -121,6 +122,16 @@ class StarlasuParserTest {
     }
 
     @Test
+    fun issuesIncludeSource() {
+        val parser = SimpleLangStarlasuParser()
+        val source = StringSource("set set a = 10 $")
+        val result = parser.parse("set set a = 10 $", true, false, source)
+        assert(result.issues.any { it.type == IssueType.LEXICAL })
+        assert(result.issues.any { it.type == IssueType.SYNTACTIC })
+        assert(result.issues.all { it.position?.source === source })
+    }
+
+    @Test
     fun issuesHaveNotFlatPosition() {
         val parser = SimpleLangStarlasuParser()
         val result =
@@ -132,9 +143,9 @@ class StarlasuParserTest {
         assert(result.issues.isNotEmpty())
         assert(result.issues.none { it.position?.isFlat ?: false })
         val extraneousInput = result.issues.find { it.message.startsWith("Extraneous input 'set'") }!!
-        assertEquals(Position(Point(1, 4), Point(1, 7)), extraneousInput.position)
+        assertEquals(Position(Point(1, 4), Point(1, 7)), extraneousInput.position?.copy(source = null))
         val mismatchedInput = result.issues.find { it.message.startsWith("Mismatched input 'c'") }!!
-        assertEquals(Position(Point(2, 8), Point(2, 9)), mismatchedInput.position)
+        assertEquals(Position(Point(2, 8), Point(2, 9)), mismatchedInput.position?.copy(source = null))
     }
 
     @Test

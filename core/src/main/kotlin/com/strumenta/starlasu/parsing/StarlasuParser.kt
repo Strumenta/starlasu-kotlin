@@ -139,6 +139,7 @@ abstract class StarlasuANTLRLexer<T : StarlasuToken>(
                 }
             }
 
+        issues.forEach { it.position?.let { p -> if (p.source == null) p.source = source } }
         return LexingResult(issues, tokens, null, time, source)
     }
 
@@ -309,6 +310,7 @@ abstract class StarlasuParser<R : Node, P : Parser, C : ParserRuleContext, T : S
                     verifyParseTree(parser, issues, root!!)
                 }
             }
+        issues.forEach { it.position?.let { p -> if (p.source == null) p.source = source } }
         return FirstStageParsingResult(issues, root, null, null, time, lexingTime, source)
     }
 
@@ -339,7 +341,7 @@ abstract class StarlasuParser<R : Node, P : Parser, C : ParserRuleContext, T : S
         source: Source? = null,
     ): ParsingResult<R> {
         val start = System.currentTimeMillis()
-        val firstStage = parseFirstStage(inputStream, measureLexingTime)
+        val firstStage = parseFirstStage(inputStream, measureLexingTime, source)
         val myIssues = firstStage.issues.toMutableList()
         var ast = mapParseTreeToAst(firstStage, considerPosition, myIssues, source)
         ast = if (ast == null) null else postProcessAst(ast, myIssues)

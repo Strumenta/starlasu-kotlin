@@ -253,7 +253,11 @@ interface StarlasuLexer<T : StarlasuToken> : Serializable {
     ): LexingResult<T> = BufferedInputStream(FileInputStream(file)).use { lex(it, charset, onlyFromDefaultChannel) }
 }
 
-fun Lexer.injectErrorCollectorInLexer(issues: MutableList<Issue>) {
+@JvmOverloads
+fun Lexer.injectErrorCollectorInLexer(
+    issues: MutableList<Issue>,
+    source: Source? = null,
+) {
     this.removeErrorListeners()
     this.addErrorListener(
         object : BaseErrorListener() {
@@ -269,7 +273,12 @@ fun Lexer.injectErrorCollectorInLexer(issues: MutableList<Issue>) {
                     Issue(
                         IssueType.LEXICAL,
                         errorMessage ?: "unspecified",
-                        position = Point.intern(line, charPositionInLine).asPosition,
+                        position =
+                            Position(
+                                Point.intern(line, charPositionInLine),
+                                Point.intern(line, charPositionInLine),
+                                source,
+                            ),
                     ),
                 )
             }
@@ -277,7 +286,11 @@ fun Lexer.injectErrorCollectorInLexer(issues: MutableList<Issue>) {
     )
 }
 
-fun Parser.injectErrorCollectorInParser(issues: MutableList<Issue>) {
+@JvmOverloads
+fun Parser.injectErrorCollectorInParser(
+    issues: MutableList<Issue>,
+    source: Source? = null,
+) {
     this.removeErrorListeners()
     this.addErrorListener(
         object : BaseErrorListener() {
@@ -298,7 +311,7 @@ fun Parser.injectErrorCollectorInParser(issues: MutableList<Issue>) {
                     Issue(
                         IssueType.SYNTACTIC,
                         errorMessage?.capitalize() ?: "unspecified",
-                        position = Position(startPoint, endPoint),
+                        position = Position(startPoint, endPoint, source),
                     ),
                 )
             }
