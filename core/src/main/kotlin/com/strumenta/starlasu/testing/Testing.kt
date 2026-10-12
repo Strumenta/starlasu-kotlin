@@ -322,6 +322,9 @@ fun assertASTsAreEqual(
 /**
  * Compares annotation (or other classifier) instances structurally: classifier, property values, children and references.
  * IDs are ignored, as they are typically generated.
+ *
+ * TODO: use LionWeb's ModelComparator once it can ignore IDs and parents. Currently it compares both, and fails on
+ *  annotations of Starlasu nodes, whose parent is null.
  */
 private fun assertClassifierInstanceListsAreEqual(
     expected: List<ClassifierInstance<*>>,
