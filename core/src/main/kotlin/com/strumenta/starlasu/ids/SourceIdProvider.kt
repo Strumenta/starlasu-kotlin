@@ -16,7 +16,7 @@ fun String.removeCharactersInvalidInLionWebIDs(): String =
                 it in CharRange('0', '9') ||
                 it in CharRange('a', 'z') ||
                 it in CharRange('A', 'Z')
-        }.toString()
+        }
 
 /**
  * Given a Source (even null), it generates a corresponding identifier.

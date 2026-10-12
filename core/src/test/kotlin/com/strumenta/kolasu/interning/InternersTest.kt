@@ -1,5 +1,8 @@
 package com.strumenta.kolasu.interning
 
+import com.strumenta.starlasu.interning.PointInterner
+import com.strumenta.starlasu.interning.canonicalize
+import com.strumenta.starlasu.interning.intern
 import com.strumenta.starlasu.model.Point
 import com.strumenta.starlasu.parsing.TokenCategory
 import java.util.concurrent.CountDownLatch

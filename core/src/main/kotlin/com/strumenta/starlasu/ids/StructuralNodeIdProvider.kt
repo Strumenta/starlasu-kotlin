@@ -56,7 +56,7 @@ open class StructuralNodeIdProvider(
                     } catch (e: IDGenerationException) {
                         throw IDGenerationException("Cannot get source id for node $kNode", e)
                     }
-                "$sourceId"
+                sourceId
             }
 
             is InternalCoordinates -> {
@@ -65,7 +65,7 @@ open class StructuralNodeIdProvider(
                 }
                 val index = coordinates.indexInContainment
                 val postfix = if (index == 0) coordinates.containmentName else "${coordinates.containmentName}_$index"
-                "${coordinates.containerID!!}_$postfix"
+                "${coordinates.containerID}_$postfix"
             }
         }
     }

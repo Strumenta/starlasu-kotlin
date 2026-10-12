@@ -59,6 +59,7 @@ interface ASTNode :
      */
     fun overlaps(position: Position?): Boolean = this.position?.overlaps(position) ?: false
 
+    @Deprecated("As Attribute is deprecated")
     fun getAttributeValue(attribute: Attribute): Any?
 
     fun getChildren(
@@ -73,6 +74,7 @@ interface ASTNode :
 
     fun getReference(name: String): ReferenceByName<*>?
 
+    @Deprecated("As Reference is deprecated")
     fun getReference(reference: Reference): ReferenceByName<*>? = getReference(reference.name)
 
     fun getAttributeValue(name: String): Any?
