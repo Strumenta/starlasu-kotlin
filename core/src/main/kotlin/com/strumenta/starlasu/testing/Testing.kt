@@ -11,6 +11,8 @@ import com.strumenta.starlasu.model.kReferenceByNameProperties
 import com.strumenta.starlasu.parsing.ParsingResult
 import com.strumenta.starlasu.parsing.toParseTreeModel
 import com.strumenta.starlasu.traversing.walkChildren
+import io.lionweb.language.Classifier
+import io.lionweb.model.ClassifierInstance
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.Vocabulary
 import kotlin.reflect.KClass
@@ -170,6 +172,7 @@ fun <N : ASTNode> assertASTsAreEqual(
     actual: ParsingResult<N>,
     context: String = "<root>",
     considerPosition: Boolean = false,
+    considerAnnotations: Boolean = false,
 ) {
     assertEquals(0, actual.issues.size, actual.issues.toString())
     assertASTsAreEqual(
@@ -177,6 +180,7 @@ fun <N : ASTNode> assertASTsAreEqual(
         actual = actual.root!!,
         context = context,
         considerPosition = considerPosition,
+        considerAnnotations = considerAnnotations,
     )
 }
 
@@ -187,10 +191,14 @@ fun assertASTsAreEqual(
     context: String = "<root>",
     considerPosition: Boolean = false,
     useLightweightAttributeEquality: Boolean = false,
+    considerAnnotations: Boolean = false,
 ) {
     assertEquals(expected.nodeType, actual.nodeType, "$context: node types are different")
     if (considerPosition) {
         assertEquals(expected.position, actual.position, "$context.position")
+    }
+    if (considerAnnotations) {
+        assertClassifierInstanceListsAreEqual(expected.annotations, actual.annotations, "$context.annotations")
     }
     expected.originalProperties.forEach { expectedProperty ->
         try {
@@ -228,6 +236,7 @@ fun assertASTsAreEqual(
                                     "$context.${expectedProperty.name}[$i]",
                                     considerPosition = considerPosition,
                                     useLightweightAttributeEquality = useLightweightAttributeEquality,
+                                    considerAnnotations = considerAnnotations,
                                 )
                             }
                         }
@@ -254,6 +263,7 @@ fun assertASTsAreEqual(
                             context = "$context.${expectedProperty.name}",
                             considerPosition = considerPosition,
                             useLightweightAttributeEquality = useLightweightAttributeEquality,
+                            considerAnnotations = considerAnnotations,
                         )
                     }
                 }
@@ -307,6 +317,56 @@ fun assertASTsAreEqual(
             throw RuntimeException("Issue while processing property $expectedProperty of $expected", e)
         }
     }
+}
+
+/**
+ * Compares annotation (or other classifier) instances structurally: classifier, property values, children and references.
+ * IDs are ignored, as they are typically generated.
+ */
+private fun assertClassifierInstanceListsAreEqual(
+    expected: List<ClassifierInstance<*>>,
+    actual: List<ClassifierInstance<*>>,
+    context: String,
+) {
+    assertEquals(expected.size, actual.size, "$context length")
+    expected.zip(actual).forEachIndexed { i, (e, a) ->
+        assertClassifierInstancesAreEqual(e, a, "$context[$i]")
+    }
+}
+
+private fun Classifier<*>.description(): String = "${language?.key}:${language?.version}:$key"
+
+private fun assertClassifierInstancesAreEqual(
+    expected: ClassifierInstance<*>,
+    actual: ClassifierInstance<*>,
+    context: String,
+) {
+    val classifier = expected.classifier
+    assertEquals(classifier.description(), actual.classifier.description(), "$context classifier")
+    classifier.allProperties().forEach { property ->
+        assertEquals(
+            expected.getPropertyValue(property),
+            actual.getPropertyValue(property),
+            "$context.${property.name}",
+        )
+    }
+    classifier.allContainments().forEach { containment ->
+        assertClassifierInstanceListsAreEqual(
+            expected.getChildren(containment),
+            actual.getChildren(containment),
+            "$context.${containment.name}",
+        )
+    }
+    classifier.allReferences().forEach { reference ->
+        val expectedRefs = expected.getReferenceValues(reference)
+        val actualRefs = actual.getReferenceValues(reference)
+        assertEquals(
+            expectedRefs.map { it.referredID to it.resolveInfo },
+            actualRefs.map { it.referredID to it.resolveInfo },
+            "$context.${reference.name}",
+        )
+    }
+    assertClassifierInstanceListsAreEqual(expected.annotations, actual.annotations, "$context.annotations")
 }
 
 fun ASTNode.assertReferencesResolved(forProperty: KReferenceByName<out ASTNode>) {
