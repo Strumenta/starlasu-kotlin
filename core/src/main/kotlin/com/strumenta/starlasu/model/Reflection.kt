@@ -423,12 +423,10 @@ fun <N : Any> KClass<N>.allFeatures(): List<Feature> {
     return res
 }
 
-fun <N : Any> KClass<N>.isInherited(feature: Feature): Boolean {
-    this.supertypes.map { it.classifier as KClass<*> }.any { supertype ->
+fun <N : Any> KClass<N>.isInherited(feature: Feature): Boolean =
+    this.supertypes.mapNotNull { it.classifier as? KClass<*> }.any { supertype ->
         supertype.allFeatures().any { f -> f.name == feature.name }
     }
-    return false
-}
 
 fun <N : Any> KClass<N>.declaredFeatures(includeDerived: Boolean = false): List<Feature> {
     featuresCache[this]?.let { return it }
