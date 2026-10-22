@@ -412,7 +412,9 @@ fun <N : Any> KProperty1<N, *>.asAttribute(): Attribute {
     return Attribute(this.name, optional, this.returnType.withNullability(false))
 }
 
+// The declared features depend on includeDerived, so we keep a separate cache for each value
 private val featuresCache = ConcurrentHashMap<KClass<*>, List<Feature>>()
+private val featuresIncludingDerivedCache = ConcurrentHashMap<KClass<*>, List<Feature>>()
 
 fun <N : Any> KClass<N>.allFeatures(): List<Feature> {
     val res = mutableListOf<Feature>()
@@ -431,7 +433,8 @@ fun <N : Any> KClass<N>.isInherited(feature: Feature): Boolean {
 }
 
 fun <N : Any> KClass<N>.declaredFeatures(includeDerived: Boolean = false): List<Feature> {
-    featuresCache[this]?.let { return it }
+    val cache = if (includeDerived) featuresIncludingDerivedCache else featuresCache
+    cache[this]?.let { return it }
     // Named can be used also for things which are not Node, so we treat it as a special case
     val computed =
         if (!isANode() && this != Named::class) {
@@ -464,5 +467,5 @@ fun <N : Any> KClass<N>.declaredFeatures(includeDerived: Boolean = false): List<
             }
         }
     // putIfAbsent returns the existing value if another thread won the race, otherwise null
-    return featuresCache.putIfAbsent(this, computed) ?: computed
+    return cache.putIfAbsent(this, computed) ?: computed
 }
