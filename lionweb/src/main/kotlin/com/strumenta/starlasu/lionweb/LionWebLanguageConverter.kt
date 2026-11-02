@@ -4,6 +4,7 @@ import com.strumenta.starlasu.language.Attribute
 import com.strumenta.starlasu.language.Containment
 import com.strumenta.starlasu.language.KolasuLanguage
 import com.strumenta.starlasu.language.Reference
+import com.strumenta.starlasu.model.ASTNode
 import com.strumenta.starlasu.model.BehaviorDeclaration
 import com.strumenta.starlasu.model.CommonElement
 import com.strumenta.starlasu.model.Documentation
@@ -53,6 +54,8 @@ class LionWebLanguageConverter {
     init {
         val starLasuKLanguage = KolasuLanguage(ASTLanguage.getInstance().name!!)
         languages.associate(starLasuKLanguage, ASTLanguage.getInstance())
+        // Node last, so that the ASTNode concept is mapped back to Node
+        registerMapping(ASTNode::class, ASTLanguage.getInstance().astNode)
         registerMapping(Node::class, ASTLanguage.getInstance().astNode)
         registerMapping(Named::class, LionCoreBuiltins.getINamed(LIONWEB_VERSION_USED_BY_STARLASU))
         registerMapping(PossiblyNamed::class, LionCoreBuiltins.getINamed(LIONWEB_VERSION_USED_BY_STARLASU))

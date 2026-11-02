@@ -454,6 +454,33 @@ class LionWebModelConverterTest {
     }
 
     @Test
+    fun containmentsTypedAsASTNodeAreExportedAndImported() {
+        val mConverter = LionWebModelConverter()
+        val kLanguage =
+            KolasuLanguage("com.strumenta.AnyChildLang").apply {
+                addClass(NodeWithAnyChildren::class)
+            }
+        val lwLanguage = mConverter.exportLanguageToLionWeb(kLanguage)
+        assertEquals(emptyList(), lwLanguage.primitiveTypes)
+        val concept = lwLanguage.getConceptByName("NodeWithAnyChildren")!!
+        assertEquals(ASTLanguage.getInstance().astNode, concept.getContainmentByName("anyChild")!!.type)
+        assertEquals(ASTLanguage.getInstance().astNode, concept.getContainmentByName("anyChildren")!!.type)
+
+        val initialAst =
+            NodeWithAnyChildren(
+                anyChild = NodeWithAnyChildren(),
+                anyChildren = mutableListOf(NodeWithAnyChildren(), NodeWithAnyChildren()),
+            )
+        initialAst.assignParents()
+        initialAst.source = SyntheticSource("anyChildren")
+
+        val lwAST = mConverter.exportModelToLionWeb(initialAst)
+        assertEquals(3, lwAST.children.size)
+        val deserializedAST = mConverter.importModelFromLionWeb(lwAST) as SNode
+        assertASTsAreEqual(initialAst, deserializedAST)
+    }
+
+    @Test
     fun serializeAndDeserializePosition() {
         val mConverter = LionWebModelConverter()
         val kLanguage =
@@ -1211,3 +1238,9 @@ data class NodeWithPropertiesNotInConstructorMutableProps(
     var c = mutableListOf<NodeWithPropertiesNotInConstructorMutableProps>()
     var r = ReferenceByName<NodeWithPropertiesNotInConstructorMutableProps>("")
 }
+
+@ASTRoot(canBeNotRoot = true)
+data class NodeWithAnyChildren(
+    val anyChild: ASTNode? = null,
+    val anyChildren: MutableList<ASTNode> = mutableListOf(),
+) : Node()
