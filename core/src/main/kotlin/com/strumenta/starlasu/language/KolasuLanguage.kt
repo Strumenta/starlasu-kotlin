@@ -91,6 +91,7 @@ class KolasuLanguage(
         val kClass = superType.classifier as? KClass<*>
         when (kClass) {
             null -> Unit
+            ASTNode::class -> Unit
             Node::class -> Unit
             Named::class -> Unit
             PossiblyNamed::class -> Unit
@@ -128,7 +129,8 @@ class KolasuLanguage(
         kClass: KClass<N>,
         exceptions: MutableList<Exception> = mutableListOf(),
     ): Attempt<Boolean, Exception> {
-        if (kClass == Node::class ||
+        if (kClass == ASTNode::class ||
+            kClass == Node::class ||
             kClass == Named::class ||
             kClass == PossiblyNamed::class ||
             kClass.superclasses.contains(

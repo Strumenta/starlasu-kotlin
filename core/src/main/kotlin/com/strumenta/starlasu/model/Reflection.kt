@@ -241,7 +241,7 @@ fun providesNodes(kclass: KClass<*>?): Boolean = kclass?.isANode() ?: false
  */
 fun KClass<*>.isANode(): Boolean {
     // PERFORMANCE FIX: Use JVM native reflection
-    return Node::class.java.isAssignableFrom(this.java) || this.implementsASTNode()
+    return this == ASTNode::class || Node::class.java.isAssignableFrom(this.java) || this.implementsASTNode()
 }
 
 val KClass<*>.isConcept: Boolean
