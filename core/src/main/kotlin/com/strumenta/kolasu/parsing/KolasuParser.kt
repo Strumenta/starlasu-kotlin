@@ -17,7 +17,9 @@ import org.antlr.v4.runtime.Parser
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.TokenStream
+import org.antlr.v4.runtime.atn.LexerATNSimulator
 import org.antlr.v4.runtime.atn.ParserATNSimulator
+import org.antlr.v4.runtime.atn.PredictionContext
 import org.antlr.v4.runtime.atn.PredictionContextCache
 import org.antlr.v4.runtime.misc.Interval
 import org.antlr.v4.runtime.tree.ParseTree
@@ -69,7 +71,35 @@ open class ANTLRTokenFactory : TokenFactory<KolasuANTLRToken> {
     private fun convertToken(terminalNode: TerminalNode): KolasuANTLRToken = convertToken(terminalNode.symbol)
 }
 
+/**
+ * The ANTLR [PredictionContextCache] is internally based on a plain [HashMap] and is shared by
+ * all the lexers/parsers created by a [KolasuANTLRLexer]/[KolasuParser]. This subclass synchronizes
+ * all accesses, as the cache is consulted concurrently when the parser is used on multiple threads.
+ */
+private class SynchronizedPredictionContextCache : PredictionContextCache() {
+    @Synchronized
+    override fun add(ctx: PredictionContext): PredictionContext = super.add(ctx)
+
+    @Synchronized
+    override fun get(ctx: PredictionContext): PredictionContext? = super.get(ctx)
+
+    @Synchronized
+    override fun size(): Int = super.size()
+}
+
 abstract class KolasuANTLRLexer<T : KolasuToken>(val tokenFactory: TokenFactory<T>) : KolasuLexer<T> {
+    @Volatile
+    protected var predictionContextCache: PredictionContextCache = SynchronizedPredictionContextCache()
+
+    /**
+     * Generated ANTLR lexers share a static unsynchronized [PredictionContextCache]; we replace the
+     * interpreter with one using our synchronized cache instead.
+     */
+    protected fun useSharedCache(lexer: Lexer) {
+        lexer.interpreter =
+            LexerATNSimulator(lexer, lexer.atn, lexer.interpreter.decisionToDFA, predictionContextCache)
+    }
+
     /**
      * Creates the lexer.
      */
@@ -94,6 +124,7 @@ abstract class KolasuANTLRLexer<T : KolasuToken>(val tokenFactory: TokenFactory<
         var last: Token? = null
         val time = measureTimeMillis {
             val lexer = createANTLRLexer(inputStream, charset)
+            useSharedCache(lexer)
             attachListeners(lexer, issues)
             do {
                 val t = lexer.nextToken()
@@ -135,8 +166,6 @@ abstract class KolasuParser<R : Node, P : Parser, C : ParserRuleContext, T : Kol
     tokenFactory: TokenFactory<T>
 ) : KolasuANTLRLexer<T>(tokenFactory), ASTParser<R> {
 
-    protected var predictionContextCache = PredictionContextCache()
-
     /**
      * Creates the first-stage parser.
      */
@@ -173,6 +202,7 @@ abstract class KolasuParser<R : Node, P : Parser, C : ParserRuleContext, T : Kol
      */
     protected open fun createParser(inputStream: CharStream, issues: MutableList<Issue>): P {
         val lexer = createANTLRLexer(inputStream)
+        useSharedCache(lexer)
         attachListeners(lexer, issues)
         val tokenStream = createTokenStream(lexer)
         val parser: P = createANTLRParser(tokenStream)
@@ -342,32 +372,40 @@ abstract class KolasuParser<R : Node, P : Parser, C : ParserRuleContext, T : Kol
         ast?.assignParents()
     }
 
+    @Synchronized
     protected fun shouldWeClearCaches(): Boolean {
         return executionsToNextCacheClean <= 0
     }
 
     protected var executionCounter = 0
+
+    @Volatile
     var cacheCycleSize = 500
+
+    @Volatile
     var executionsToNextCacheClean = cacheCycleSize
 
+    @Synchronized
     protected fun considerClearCaches() {
         if (shouldWeClearCaches()) {
             clearCaches()
         }
     }
 
+    @Synchronized
     protected open fun countExecution(parser: Parser) {
         executionCounter++
         executionsToNextCacheClean--
         considerClearCaches()
     }
 
+    @Synchronized
     open fun clearCaches() {
         executionsToNextCacheClean = cacheCycleSize
         val lexer = createANTLRLexer(CharStreams.fromString(""))
         lexer.interpreter.clearDFA()
         val parser = createANTLRParser(createTokenStream(lexer))
         parser.interpreter.clearDFA()
-        predictionContextCache = PredictionContextCache()
+        predictionContextCache = SynchronizedPredictionContextCache()
     }
 }

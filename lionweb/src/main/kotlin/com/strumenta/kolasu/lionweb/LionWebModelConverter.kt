@@ -102,9 +102,11 @@ class LionWebModelConverter(
     // CachingNodeIDProvider wraps the structural provider so that recursive parent-ID lookups
     // inside StructuralNodeIdProvider.id() are served from a cache instead of recomputing
     // containingProperty() + indexInContainingProperty() up the entire ancestor chain every time
+    @Volatile
     var nodeIdProvider: NodeIdProvider = StructuralLionWebNodeIdProvider().caching(),
     initialLanguageConverter: LionWebLanguageConverter = LionWebLanguageConverter(),
     val metamodelRegistry: MetamodelRegistry = DefaultMetamodelRegistry,
+    @Volatile
     var ignoreMissingReferences: Boolean = false
 ) {
     companion object {
@@ -134,8 +136,11 @@ class LionWebModelConverter(
     private val lwNodeById = ConcurrentHashMap<String, LWNode>()
     private val primitiveValueSerializations = ConcurrentHashMap<KClass<*>, PrimitiveValueSerialization<*>>()
     private val starlasuTreeWalker = CommonStarlasuTreeWalker()
+
+    @Volatile
     var lionWebTreeWalker = LionWebTreeWalker()
 
+    @Volatile
     var externalNodeResolver: NodeResolver = DummyNodeResolver()
 
     fun clearNodesMapping() {

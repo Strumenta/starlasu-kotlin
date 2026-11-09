@@ -194,6 +194,7 @@ class KolasuClient(
         return lwTreeToAppend.id!!
     }
 
+    @Volatile
     var performanceLogging: Boolean = false
 
     fun attachAST(
@@ -443,8 +444,10 @@ class KolasuClient(
                 descendant.source = kNode.source
             }
         }
-        nodeConverter.clearNodesMapping()
-        return nodeConverter.exportModelToLionWeb(kNode, idProvider, considerParent = true)
+        synchronized(nodeConverter) {
+            nodeConverter.clearNodesMapping()
+            return nodeConverter.exportModelToLionWeb(kNode, idProvider, considerParent = true)
+        }
     }
 
     fun toLionWeb(
@@ -454,11 +457,13 @@ class KolasuClient(
         containmentIndex: Int
     ): LWNode {
         require(kNode.javaClass.annotations.any { it is ASTRoot })
-        nodeConverter.clearNodesMapping()
-        return nodeConverter.exportModelToLionWeb(
-            kNode,
-            idProvider,
-            considerParent = true
-        )
+        synchronized(nodeConverter) {
+            nodeConverter.clearNodesMapping()
+            return nodeConverter.exportModelToLionWeb(
+                kNode,
+                idProvider,
+                considerParent = true
+            )
+        }
     }
 }

@@ -377,6 +377,7 @@ private fun <K, V> createLeastRecentlyUsedMap(maxEntries: Int = 100): Map<K, V> 
 private object LinesSplitter {
     val cache = createLeastRecentlyUsedMap<String, List<String>>() as MutableMap<String, List<String>>
 
+    @Synchronized
     fun getLines(code: String): List<String> {
         return cache.getOrPut(code) {
             code.split("(?<=\n)".toRegex())

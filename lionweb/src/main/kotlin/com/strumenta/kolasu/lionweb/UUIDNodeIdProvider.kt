@@ -9,6 +9,7 @@ class UUIDNodeIdProvider : NodeIdProvider {
 
     private val cache = IdentityHashMap<KNode, String>()
 
+    @Synchronized
     override fun id(kNode: Node): String {
         return cache.getOrPut(kNode) {
             UUID.randomUUID().toString()
@@ -21,6 +22,7 @@ class UUIDNodeIdProvider : NodeIdProvider {
             throw UnsupportedOperationException()
         }
 
+    @Synchronized
     override fun registerMapping(kNode: Node, nodeId: String) {
         if (cache.containsKey(kNode)) {
             require(cache[kNode] == nodeId)

@@ -15,6 +15,7 @@ class CachingNodeIDProvider(val wrapped: NodeIdProvider) : BaseNodeIdProvider() 
         wrapped.topLevelProvider.parentProvider = this
     }
 
+    @Synchronized
     override fun id(kNode: Node): String {
         if (cache.containsKey(kNode)) {
             return cache[kNode]!!
@@ -25,6 +26,7 @@ class CachingNodeIDProvider(val wrapped: NodeIdProvider) : BaseNodeIdProvider() 
         }
     }
 
+    @Synchronized
     fun clear() {
         cache.clear()
     }

@@ -68,6 +68,7 @@ class DeclarativeSymbolProviderRule<NodeTy : Node>(
         }
     }
 
+    @Synchronized
     override fun invoke(
         nodeIdProvider: NodeIdProvider,
         symbolProvider: SymbolProvider,
@@ -75,6 +76,11 @@ class DeclarativeSymbolProviderRule<NodeTy : Node>(
     ): SymbolDescription {
         @Suppress("UNCHECKED_CAST")
         return (node as NodeTy).let {
+            // The specification re-executes on each invocation and mutates this rule's
+            // name/properties state: reset it first, then run the whole thing under the
+            // rule's lock so concurrent invocations cannot observe partial state
+            this.name = { null }
+            this.properties.clear()
             this.specification(DeclarativeSymbolProviderRuleContext(node, symbolProvider))
             SymbolDescription(
                 getName(node),

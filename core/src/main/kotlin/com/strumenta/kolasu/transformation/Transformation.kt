@@ -11,6 +11,7 @@ import com.strumenta.kolasu.model.processProperties
 import com.strumenta.kolasu.model.withOrigin
 import com.strumenta.kolasu.validation.Issue
 import com.strumenta.kolasu.validation.IssueSeverity
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.KParameter
@@ -26,7 +27,7 @@ import kotlin.reflect.full.superclasses
  */
 class NodeFactory<Source, Output : Node>(
     val constructor: (Source, ASTTransformer, NodeFactory<Source, Output>) -> List<Output>,
-    var children: MutableMap<String, ChildNodeFactory<Source, *, *>?> = mutableMapOf(),
+    var children: MutableMap<String, ChildNodeFactory<Source, *, *>?> = ConcurrentHashMap(),
     var finalizer: (Output) -> Unit = {},
     var skipChildren: Boolean = false,
     var childrenSetAtConstruction: Boolean = false
@@ -35,7 +36,7 @@ class NodeFactory<Source, Output : Node>(
     companion object {
         fun <Source, Output : Node> single(
             singleConstructor: (Source, ASTTransformer, NodeFactory<Source, Output>) -> Output?,
-            children: MutableMap<String, ChildNodeFactory<Source, *, *>?> = mutableMapOf(),
+            children: MutableMap<String, ChildNodeFactory<Source, *, *>?> = ConcurrentHashMap(),
             finalizer: (Output) -> Unit = {},
             skipChildren: Boolean = false,
             childrenSetAtConstruction: Boolean = false
@@ -262,7 +263,7 @@ open class ASTTransformer @JvmOverloads constructor(
     /**
      * Additional issues found during the transformation process.
      */
-    val issues: MutableList<Issue> = mutableListOf(),
+    val issues: MutableList<Issue> = java.util.Collections.synchronizedList(mutableListOf()),
     @Deprecated("To be removed in Kolasu 1.6")
     val allowGenericNode: Boolean = true,
     val throwOnUnmappedNode: Boolean = false,
@@ -282,10 +283,11 @@ open class ASTTransformer @JvmOverloads constructor(
     /**
      * Factories that map from source tree node to target tree node.
      */
-    val factories = mutableMapOf<KClass<*>, NodeFactory<*, *>>()
+    val factories: MutableMap<KClass<*>, NodeFactory<*, *>> = ConcurrentHashMap()
 
-    private val _knownClasses = mutableMapOf<String, MutableSet<KClass<*>>>()
-    val knownClasses: Map<String, Set<KClass<*>>> = _knownClasses
+    private val _knownClasses = ConcurrentHashMap<String, MutableSet<KClass<*>>>()
+    val knownClasses: Map<String, Set<KClass<*>>>
+        get() = _knownClasses.mapValues { it.value.toSet() }
 
     /**
      * This ensures that the generated value is a single Node or null.
@@ -679,7 +681,7 @@ open class ASTTransformer @JvmOverloads constructor(
         } else {
             ""
         }
-        val set = _knownClasses.computeIfAbsent(packageName) { mutableSetOf() }
+        val set = _knownClasses.computeIfAbsent(packageName) { ConcurrentHashMap.newKeySet() }
         set.add(target)
     }
 

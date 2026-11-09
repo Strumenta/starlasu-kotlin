@@ -23,11 +23,11 @@ import kotlin.reflect.full.superclasses
  */
 class KolasuLanguage(val qualifiedName: String) {
     val astClasses: List<KClass<*>>
-        get() = _astClasses
+        get() = synchronized(this) { _astClasses.toList() }
     val enumClasses: List<KClass<out Enum<*>>>
-        get() = _enumClasses
+        get() = synchronized(this) { _enumClasses.toList() }
     val primitiveClasses: List<KClass<*>>
-        get() = _primitiveClasses
+        get() = synchronized(this) { _primitiveClasses.toList() }
     private val _astClasses: MutableList<KClass<*>> = mutableListOf()
     private val _enumClasses: MutableList<KClass<out Enum<*>>> = mutableListOf()
     private val _primitiveClasses: MutableList<KClass<*>> = mutableListOf()
@@ -35,6 +35,7 @@ class KolasuLanguage(val qualifiedName: String) {
     val simpleName: String
         get() = qualifiedName.split(".").last()
 
+    @Synchronized
     fun addEnumClass(kClass: KClass<out Enum<*>>) {
         if (_enumClasses.contains(kClass)) {
             return
@@ -42,6 +43,7 @@ class KolasuLanguage(val qualifiedName: String) {
         _enumClasses.add(kClass)
     }
 
+    @Synchronized
     fun addPrimitiveClass(kClass: KClass<*>) {
         if (kClass in setOf(Int::class, String::class, Boolean::class, Char::class)) {
             return
@@ -52,6 +54,7 @@ class KolasuLanguage(val qualifiedName: String) {
         _primitiveClasses.add(kClass)
     }
 
+    @Synchronized
     fun addInterfaceClass(kClass: KClass<*>): Boolean {
         val attempt = tentativeAddInterfaceClass(kClass)
         if (attempt.issues.isEmpty()) {
@@ -66,6 +69,7 @@ class KolasuLanguage(val qualifiedName: String) {
         }
     }
 
+    @Synchronized
     fun tentativeAddInterfaceClass(
         kClass: KClass<*>,
         exceptions: MutableList<Exception> = mutableListOf()
@@ -103,6 +107,7 @@ class KolasuLanguage(val qualifiedName: String) {
         }
     }
 
+    @Synchronized
     fun <N : Node> addClass(kClass: KClass<N>): Boolean {
         val attempt = tentativeAddClass(kClass)
         if (attempt.issues.isEmpty()) {
@@ -117,6 +122,7 @@ class KolasuLanguage(val qualifiedName: String) {
         }
     }
 
+    @Synchronized
     fun <N : Node> tentativeAddClass(
         kClass: KClass<N>,
         exceptions: MutableList<Exception> = mutableListOf()

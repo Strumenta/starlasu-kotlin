@@ -3,6 +3,7 @@
 package com.strumenta.kolasu.traversing
 
 import com.strumenta.kolasu.model.Node
+import java.util.Collections
 import java.util.WeakHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction1
@@ -141,14 +142,17 @@ fun <T> Node.collectByType(klass: Class<T>, walker: KFunction1<Node, Sequence<No
  * This walker will ignore any change to the nodes.
  */
 class FastWalker(val node: Node) {
-    private val childrenMap: WeakHashMap<Node, List<Node>> = WeakHashMap<Node, List<Node>>()
+    private val childrenMap: MutableMap<Node, List<Node>> =
+        Collections.synchronizedMap(WeakHashMap<Node, List<Node>>())
 
     private fun getChildren(child: Node): List<Node> {
-        return if (childrenMap.containsKey(child)) {
-            childrenMap[child]!!
-        } else {
-            childrenMap[child] = child.walkChildren().toList()
-            childrenMap[child]!!
+        synchronized(childrenMap) {
+            return if (childrenMap.containsKey(child)) {
+                childrenMap[child]!!
+            } else {
+                childrenMap[child] = child.walkChildren().toList()
+                childrenMap[child]!!
+            }
         }
     }
 
