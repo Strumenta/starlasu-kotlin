@@ -21,6 +21,7 @@ import org.antlr.v4.runtime.atn.LexerATNSimulator
 import org.antlr.v4.runtime.atn.ParserATNSimulator
 import org.antlr.v4.runtime.atn.PredictionContext
 import org.antlr.v4.runtime.atn.PredictionContextCache
+import org.antlr.v4.runtime.dfa.DFA
 import org.antlr.v4.runtime.misc.Interval
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.tree.TerminalNode
@@ -92,10 +93,21 @@ abstract class KolasuANTLRLexer<T : KolasuToken>(val tokenFactory: TokenFactory<
     protected var predictionContextCache: PredictionContextCache = SynchronizedPredictionContextCache()
 
     /**
+     * The [org.antlr.v4.runtime.dfa.DFA] array most recently used by lexer interpreters created
+     * through [useSharedCache]: kept so that [KolasuParser.clearCaches] can clear it without
+     * instantiating a new lexer (which could trigger subclass side-effects).
+     */
+    @Volatile
+    protected var lastLexerDecisionToDFA: Array<DFA>? = null
+
+    /**
      * Generated ANTLR lexers share a static unsynchronized [PredictionContextCache]; we replace the
      * interpreter with one using our synchronized cache instead.
+     * Subclasses may override to keep a custom interpreter configured in [createANTLRLexer]
+     * (e.g. preserving their own decisionToDFA or shared context cache).
      */
-    protected fun useSharedCache(lexer: Lexer) {
+    protected open fun useSharedCache(lexer: Lexer) {
+        lastLexerDecisionToDFA = lexer.interpreter.decisionToDFA
         lexer.interpreter =
             LexerATNSimulator(lexer, lexer.atn, lexer.interpreter.decisionToDFA, predictionContextCache)
     }
@@ -207,10 +219,29 @@ abstract class KolasuParser<R : Node, P : Parser, C : ParserRuleContext, T : Kol
         val tokenStream = createTokenStream(lexer)
         val parser: P = createANTLRParser(tokenStream)
         // Assign interpreter to avoid caching DFA states indefinitely across executions
-        parser.interpreter =
-            ParserATNSimulator(parser, parser.atn, parser.interpreter.decisionToDFA, predictionContextCache)
+        attachParserInterpreter(parser)
         attachListeners(parser, issues)
         return parser
+    }
+
+    /**
+     * The [DFA] array most recently used by parser interpreters created through
+     * [attachParserInterpreter]: kept so that [clearCaches] can clear it without
+     * instantiating a new parser (which could trigger subclass side-effects).
+     */
+    @Volatile
+    private var lastParserDecisionToDFA: Array<DFA>? = null
+
+    /**
+     * Assigns an interpreter sharing this instance's synchronized [predictionContextCache] and the
+     * configured interpreter's decisionToDFA (by default the generated parser's static one).
+     * Subclasses may override to keep a custom interpreter configured in [createANTLRParser]
+     * (e.g. preserving their own decisionToDFA or shared context cache).
+     */
+    protected open fun attachParserInterpreter(parser: P) {
+        lastParserDecisionToDFA = parser.interpreter.decisionToDFA
+        parser.interpreter =
+            ParserATNSimulator(parser, parser.atn, parser.interpreter.decisionToDFA, predictionContextCache)
     }
 
     protected open fun createTokenStream(lexer: Lexer) = CommonTokenStream(lexer)
@@ -402,10 +433,18 @@ abstract class KolasuParser<R : Node, P : Parser, C : ParserRuleContext, T : Kol
     @Synchronized
     open fun clearCaches() {
         executionsToNextCacheClean = cacheCycleSize
-        val lexer = createANTLRLexer(CharStreams.fromString(""))
-        lexer.interpreter.clearDFA()
-        val parser = createANTLRParser(createTokenStream(lexer))
-        parser.interpreter.clearDFA()
+        // Clear the DFA arrays used by the created interpreters without instantiating a new
+        // lexer/parser: instantiating could trigger subclass configuration side-effects.
+        // DFA elements are replaced, mirroring ATNSimulator.clearDFA()
+        clearDecisionToDFA(lastLexerDecisionToDFA)
+        clearDecisionToDFA(lastParserDecisionToDFA)
         predictionContextCache = SynchronizedPredictionContextCache()
+    }
+
+    private fun clearDecisionToDFA(array: Array<DFA>?) {
+        if (array == null) return
+        for (i in array.indices) {
+            array[i] = DFA(array[i].atnStartState, array[i].decision)
+        }
     }
 }

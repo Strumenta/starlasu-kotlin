@@ -201,4 +201,28 @@ internal class TraversingStructurallyTest {
         }
         assertEquals(setOf("root", "first", "1", "2", "big", "small", "3", "4", "5", "6"), set)
     }
+
+    @Test
+    fun walkTraversesDelegatedProperties() {
+        // Regression: a property delegated with `by lazy` exposes a `<name>$delegate`
+        // javaField (the Lazy, not the value). walkChildrenToList must read it through
+        // the getter instead of casting the delegate to Collection<Node>.
+        class LazyBox(
+            val name: String
+        ) : Node() {
+            val contents: List<Node> by lazy {
+                listOf(Item("lazy-1"), Item("lazy-2"))
+            }
+        }
+
+        val root = LazyBox("root")
+        val names = root.walk().map {
+            when (it) {
+                is LazyBox -> it.name
+                is Item -> it.name
+                else -> fail("Unexpected node type: $it")
+            }
+        }.toList()
+        assertEquals(listOf("root", "lazy-1", "lazy-2"), names)
+    }
 }

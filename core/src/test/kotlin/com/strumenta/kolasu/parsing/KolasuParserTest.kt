@@ -10,9 +10,13 @@ import com.strumenta.simplelang.SimpleLangParser
 import org.antlr.v4.runtime.CharStream
 import org.antlr.v4.runtime.Lexer
 import org.antlr.v4.runtime.TokenStream
+import org.antlr.v4.runtime.atn.ParserATNSimulator
+import org.antlr.v4.runtime.atn.PredictionContextCache
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertSame
+import kotlin.test.assertTrue
 
 open class SimpleLangKolasuParser : KolasuParser<Node, SimpleLangParser, SimpleLangParser.CompilationUnitContext,
     KolasuANTLRToken>(ANTLRTokenFactory()) {
@@ -105,5 +109,62 @@ class KolasuParserTest {
         assertEquals(Position(Point(1, 4), Point(1, 7)), extraneousInput.position)
         val mismatchedInput = result.issues.find { it.message.startsWith("Mismatched input 'c'") }!!
         assertEquals(Position(Point(2, 8), Point(2, 9)), mismatchedInput.position)
+    }
+
+    /**
+     * Traces lexer/parser creation and lets the subclass keep its own configured
+     * interpreter, as dependent projects do when configuring their parsers.
+     */
+    class HookedParser : SimpleLangKolasuParser() {
+        var createdLexers = 0
+        var createdParsers = 0
+        var lastParser: SimpleLangParser? = null
+        var attachedSimulator: ParserATNSimulator? = null
+        val myCache = PredictionContextCache()
+
+        override fun createANTLRLexer(charStream: CharStream): Lexer {
+            createdLexers++
+            return super.createANTLRLexer(charStream)
+        }
+
+        override fun createANTLRParser(tokenStream: TokenStream): SimpleLangParser {
+            createdParsers++
+            return super.createANTLRParser(tokenStream).also { lastParser = it }
+        }
+
+        override fun attachParserInterpreter(parser: SimpleLangParser) {
+            attachedSimulator = ParserATNSimulator(
+                parser,
+                parser.atn,
+                parser.interpreter.decisionToDFA,
+                myCache
+            )
+            parser.interpreter = attachedSimulator
+        }
+    }
+
+    @Test
+    fun clearCachesDoesNotInstantiateLexerOrParser() {
+        // Regression: clearCaches() used to create a lexer and a parser just to clear
+        // their DFA, triggering subclass configuration side-effects. It now clears the
+        // recorded DFA arrays directly.
+        val parser = HookedParser()
+        parser.parseFirstStage("set a = 10")
+        assertTrue(parser.createdLexers > 0 && parser.createdParsers > 0)
+        val lexers = parser.createdLexers
+        val parsers = parser.createdParsers
+        parser.clearCaches()
+        assertEquals(lexers, parser.createdLexers, "clearCaches() instantiated a new lexer")
+        assertEquals(parsers, parser.createdParsers, "clearCaches() instantiated a new parser")
+    }
+
+    @Test
+    fun createParserHonorsSubclassConfiguredInterpreter() {
+        // Regression: createParser used to unconditionally overwrite the interpreter
+        // configured by the subclass. It now goes through the attachParserInterpreter
+        // hook, which subclasses can override to keep their own configuration.
+        val parser = HookedParser()
+        parser.parseFirstStage("set a = 10")
+        assertSame(parser.attachedSimulator, parser.lastParser!!.interpreter)
     }
 }
