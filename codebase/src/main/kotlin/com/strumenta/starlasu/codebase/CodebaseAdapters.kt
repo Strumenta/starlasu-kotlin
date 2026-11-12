@@ -59,6 +59,11 @@ fun <R : Node> serialize(
     return lwCodebaseFile
 }
 
+/**
+ * Adapt files in the requested languages which have an AST. Files whose parsing did not
+ * produce an AST remain in the underlying [CodebaseAccess], but cannot be represented
+ * as [CodebaseFile] and are omitted from this view.
+ */
 fun <R : Node> CodebaseAccess.convertToCodebase(
     modelConverter: LionWebModelConverter,
     languagesWeConsider: Set<String>,
@@ -77,7 +82,8 @@ fun <R : Node> CodebaseAccess.convertToCodebase(
                     pbSerialization.deserializeToNodes(serializedFile)[0]
                 }.filter { serializedCodebaseFile ->
                     val languageName = serializedCodebaseFile!!.getPropertyValueByName("language_name") as String
-                    languagesWeConsider.contains(languageName)
+                    languagesWeConsider.contains(languageName) &&
+                        serializedCodebaseFile.getOnlyChildByContainmentName("ast") != null
                 }.map { serializedCodebaseFile ->
                     deserialize(modelConverter, this, serializedCodebaseFile!!)
                 }.collect(Collectors.toList())
