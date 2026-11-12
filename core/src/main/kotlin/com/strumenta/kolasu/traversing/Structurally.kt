@@ -3,7 +3,6 @@
 package com.strumenta.kolasu.traversing
 
 import com.strumenta.kolasu.model.Node
-import java.util.Collections
 import java.util.WeakHashMap
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction1
@@ -142,18 +141,19 @@ fun <T> Node.collectByType(klass: Class<T>, walker: KFunction1<Node, Sequence<No
  * This walker will ignore any change to the nodes.
  */
 class FastWalker(val node: Node) {
-    private val childrenMap: MutableMap<Node, List<Node>> =
-        Collections.synchronizedMap(WeakHashMap<Node, List<Node>>())
+    private val childrenMap: MutableMap<Node, List<Node>> = WeakHashMap()
 
+    /**
+     * Only map access is locked; child discovery runs outside the lock so that walks are
+     * not serialized by reflection work. A duplicated discovery on a concurrent miss is
+     * acceptable as it is a pure read of the node structure.
+     */
     private fun getChildren(child: Node): List<Node> {
         synchronized(childrenMap) {
-            return if (childrenMap.containsKey(child)) {
-                childrenMap[child]!!
-            } else {
-                childrenMap[child] = child.walkChildren().toList()
-                childrenMap[child]!!
-            }
+            childrenMap[child]?.let { return it }
         }
+        val children = child.walkChildren().toList()
+        return synchronized(childrenMap) { childrenMap.putIfAbsent(child, children) ?: children }
     }
 
     fun walk(root: Node = node): Sequence<Node> {

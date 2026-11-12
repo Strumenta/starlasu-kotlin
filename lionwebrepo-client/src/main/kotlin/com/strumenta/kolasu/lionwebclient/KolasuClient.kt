@@ -416,7 +416,7 @@ class KolasuClient(
                 } else {
                     val lionWebClassifier = lionWebLanguage.elements.find { it.key == entry.key.classifierKey }
                     if (lionWebClassifier is Concept) {
-                        val kolasuClass = nodeConverter.getClassifiersToKolasuClassesMapping()[lionWebClassifier]
+                        val kolasuClass = nodeConverter.correspondingKolasuClass(lionWebClassifier)
                         if (kolasuClass == null) {
                             null
                         } else {
@@ -436,6 +436,13 @@ class KolasuClient(
     // Private methods
     //
 
+    /**
+     * The clear-and-export sequence is atomic on [nodeConverter]: concurrent calls are
+     * serialized, so sharing one client is safe but does not parallelize the export phase.
+     * Configuration must be fixed after publication — direct calls to [nodeConverter]
+     * public methods do not participate in this monitor unless the caller synchronizes
+     * on the same instance.
+     */
     private fun toLionWeb(kNode: Node): LWNode {
         require(kNode.javaClass.annotations.any { it is ASTRoot })
         kNode.assignParents()

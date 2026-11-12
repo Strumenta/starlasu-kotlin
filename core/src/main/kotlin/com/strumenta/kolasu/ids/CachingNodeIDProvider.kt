@@ -7,6 +7,11 @@ import java.util.IdentityHashMap
  * The Node ID of most nodes is a Positional Node ID. Positional Node IDs are calculated by considering the Node ID of
  * the parent,so that the Node IDs of all ancestors are calculated again and again.
  * By using a cache we can avoid that.
+ *
+ * Instances are safe to share across threads: cache access is synchronized. On misses the
+ * lock is held across the wrapped provider's ID generation (which may recurse into parent
+ * lookups): if this becomes a bottleneck, prefer one provider instance per independent
+ * unit of work — each still preserves uniqueness and mapping semantics.
  */
 class CachingNodeIDProvider(val wrapped: NodeIdProvider) : BaseNodeIdProvider() {
     private val cache = IdentityHashMap<Node, String>()

@@ -258,6 +258,11 @@ private val NO_CHILD_NODE = ChildNodeFactory<Any, Any, Any>("", { x -> x }, { _,
  * transform and assign children.
  * If no factory is provided for a source node type, a GenericNode is created, and the processing of the subtree stops
  * there.
+ *
+ * Concurrency contract: the internal factory/children registries are thread-safe, so one transformer may be shared
+ * across threads once configured. Registration should be completed before publishing the instance — concurrent
+ * registration and transformation is not an atomic operation. Caller-supplied [issues] collections and user-provided
+ * factory/finalizer callbacks are owned by the caller: they must be thread-safe or confined to one transform call.
  */
 open class ASTTransformer @JvmOverloads constructor(
     /**

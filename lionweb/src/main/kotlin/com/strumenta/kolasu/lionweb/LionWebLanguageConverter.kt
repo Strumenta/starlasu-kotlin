@@ -276,6 +276,18 @@ class LionWebLanguageConverter {
         return classesAndPrimitiveTypes.asToBsMap
     }
 
+    /**
+     * Direct lookups, backed by the synchronized BiMap accessors: prefer these over the
+     * mapping snapshots above for single-key lookups on hot paths, as snapshots copy the
+     * whole registry on each call.
+     */
+    fun correspondingEnumeration(kClass: EnumKClass): Enumeration? = classesAndEnumerations.byA(kClass)
+
+    fun correspondingPrimitiveType(kClass: KClass<*>): PrimitiveType? = classesAndPrimitiveTypes.byA(kClass)
+
+    fun correspondingKolasuClass(enumeration: Enumeration?): EnumKClass? =
+        classesAndEnumerations.findAByB { it.id == enumeration?.id }
+
     fun correspondingInterface(kClass: KClass<*>): Interface {
         return toLWClassifier(kClass) as Interface
     }

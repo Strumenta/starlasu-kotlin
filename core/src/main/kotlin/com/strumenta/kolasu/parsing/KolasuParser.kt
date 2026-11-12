@@ -17,9 +17,7 @@ import org.antlr.v4.runtime.Parser
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.TokenStream
-import org.antlr.v4.runtime.atn.LexerATNSimulator
 import org.antlr.v4.runtime.atn.ParserATNSimulator
-import org.antlr.v4.runtime.atn.PredictionContext
 import org.antlr.v4.runtime.atn.PredictionContextCache
 import org.antlr.v4.runtime.dfa.DFA
 import org.antlr.v4.runtime.misc.Interval
@@ -72,45 +70,22 @@ open class ANTLRTokenFactory : TokenFactory<KolasuANTLRToken> {
     private fun convertToken(terminalNode: TerminalNode): KolasuANTLRToken = convertToken(terminalNode.symbol)
 }
 
-/**
- * The ANTLR [PredictionContextCache] is internally based on a plain [HashMap] and is shared by
- * all the lexers/parsers created by a [KolasuANTLRLexer]/[KolasuParser]. This subclass synchronizes
- * all accesses, as the cache is consulted concurrently when the parser is used on multiple threads.
- */
-private class SynchronizedPredictionContextCache : PredictionContextCache() {
-    @Synchronized
-    override fun add(ctx: PredictionContext): PredictionContext = super.add(ctx)
-
-    @Synchronized
-    override fun get(ctx: PredictionContext): PredictionContext? = super.get(ctx)
-
-    @Synchronized
-    override fun size(): Int = super.size()
-}
-
 abstract class KolasuANTLRLexer<T : KolasuToken>(val tokenFactory: TokenFactory<T>) : KolasuLexer<T> {
+    /**
+     * The [PredictionContextCache] shared by the parsers created by this instance. In ANTLR 4.9.3
+     * all accesses to this cache happen under a lock on the cache itself (see
+     * `ATNSimulator.getCachedContext`), so a plain cache is safe for concurrent use.
+     */
     @Volatile
-    protected var predictionContextCache: PredictionContextCache = SynchronizedPredictionContextCache()
+    protected var predictionContextCache: PredictionContextCache = PredictionContextCache()
 
     /**
-     * The [org.antlr.v4.runtime.dfa.DFA] array most recently used by lexer interpreters created
-     * through [useSharedCache]: kept so that [KolasuParser.clearCaches] can clear it without
+     * The [org.antlr.v4.runtime.dfa.DFA] array most recently used by a lexer interpreter created
+     * by this instance: kept so that [KolasuParser.clearCaches] can clear it without
      * instantiating a new lexer (which could trigger subclass side-effects).
      */
     @Volatile
     protected var lastLexerDecisionToDFA: Array<DFA>? = null
-
-    /**
-     * Generated ANTLR lexers share a static unsynchronized [PredictionContextCache]; we replace the
-     * interpreter with one using our synchronized cache instead.
-     * Subclasses may override to keep a custom interpreter configured in [createANTLRLexer]
-     * (e.g. preserving their own decisionToDFA or shared context cache).
-     */
-    protected open fun useSharedCache(lexer: Lexer) {
-        lastLexerDecisionToDFA = lexer.interpreter.decisionToDFA
-        lexer.interpreter =
-            LexerATNSimulator(lexer, lexer.atn, lexer.interpreter.decisionToDFA, predictionContextCache)
-    }
 
     /**
      * Creates the lexer.
@@ -136,7 +111,7 @@ abstract class KolasuANTLRLexer<T : KolasuToken>(val tokenFactory: TokenFactory<
         var last: Token? = null
         val time = measureTimeMillis {
             val lexer = createANTLRLexer(inputStream, charset)
-            useSharedCache(lexer)
+            lastLexerDecisionToDFA = lexer.interpreter.decisionToDFA
             attachListeners(lexer, issues)
             do {
                 val t = lexer.nextToken()
@@ -173,6 +148,14 @@ abstract class KolasuANTLRLexer<T : KolasuToken>(val tokenFactory: TokenFactory<
  *
  * Note: instances of this class are thread-safe and they're meant to be reused. Do not create a new KolasuParser
  * instance every time you need to parse some source code, or performance may suffer.
+ *
+ * Concurrent [parse]/[parseFirstStage]/[lex] calls on one instance are safe because each execution
+ * gets its own lexer, parser and ATN simulator instances, while the ATN, the DFA and the
+ * [PredictionContextCache] are shared — the concurrency model of the ANTLR runtime itself:
+ * generated parsers share a static `decisionToDFA` across all instances, DFA edge caches use
+ * atomic arrays with internally synchronized additions, and access to the shared context cache
+ * is serialized inside `ATNSimulator.getCachedContext`. This contract does not cover direct use
+ * of the generated ANTLR lexer/parser outside this class.
  */
 abstract class KolasuParser<R : Node, P : Parser, C : ParserRuleContext, T : KolasuToken>(
     tokenFactory: TokenFactory<T>
@@ -214,32 +197,33 @@ abstract class KolasuParser<R : Node, P : Parser, C : ParserRuleContext, T : Kol
      */
     protected open fun createParser(inputStream: CharStream, issues: MutableList<Issue>): P {
         val lexer = createANTLRLexer(inputStream)
-        useSharedCache(lexer)
+        lastLexerDecisionToDFA = lexer.interpreter.decisionToDFA
         attachListeners(lexer, issues)
         val tokenStream = createTokenStream(lexer)
         val parser: P = createANTLRParser(tokenStream)
         // Assign interpreter to avoid caching DFA states indefinitely across executions
         attachParserInterpreter(parser)
+        lastParserDecisionToDFA = parser.interpreter.decisionToDFA
         attachListeners(parser, issues)
         return parser
     }
 
     /**
-     * The [DFA] array most recently used by parser interpreters created through
-     * [attachParserInterpreter]: kept so that [clearCaches] can clear it without
-     * instantiating a new parser (which could trigger subclass side-effects).
+     * The [DFA] array most recently used by a parser interpreter created by this instance: kept so
+     * that [clearCaches] can clear it without instantiating a new parser (which could trigger
+     * subclass side-effects). Recorded after [attachParserInterpreter] so that subclasses
+     * overriding the hook still have their DFA tracked.
      */
     @Volatile
     private var lastParserDecisionToDFA: Array<DFA>? = null
 
     /**
-     * Assigns an interpreter sharing this instance's synchronized [predictionContextCache] and the
-     * configured interpreter's decisionToDFA (by default the generated parser's static one).
+     * Assigns an interpreter sharing this instance's [predictionContextCache] and the configured
+     * interpreter's decisionToDFA (by default the generated parser's static one).
      * Subclasses may override to keep a custom interpreter configured in [createANTLRParser]
      * (e.g. preserving their own decisionToDFA or shared context cache).
      */
     protected open fun attachParserInterpreter(parser: P) {
-        lastParserDecisionToDFA = parser.interpreter.decisionToDFA
         parser.interpreter =
             ParserATNSimulator(parser, parser.atn, parser.interpreter.decisionToDFA, predictionContextCache)
     }
@@ -438,7 +422,7 @@ abstract class KolasuParser<R : Node, P : Parser, C : ParserRuleContext, T : Kol
         // DFA elements are replaced, mirroring ATNSimulator.clearDFA()
         clearDecisionToDFA(lastLexerDecisionToDFA)
         clearDecisionToDFA(lastParserDecisionToDFA)
-        predictionContextCache = SynchronizedPredictionContextCache()
+        predictionContextCache = PredictionContextCache()
     }
 
     private fun clearDecisionToDFA(array: Array<DFA>?) {
