@@ -4,13 +4,9 @@ import com.strumenta.kolasu.ids.NodeIdProvider
 import com.strumenta.kolasu.model.Node
 import com.strumenta.kolasu.semantics.symbol.provider.declarative.DeclarativeSymbolProvider
 import com.strumenta.kolasu.semantics.symbol.provider.declarative.symbolFor
-import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
+import com.strumenta.kolasu.testing.runConcurrently
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /**
  * Regression test for the thread-safety fix in [DeclarativeSymbolProvider]: each rule
@@ -18,39 +14,6 @@ import kotlin.test.assertTrue
  * name/properties state. The evaluation is now synchronized and the state reset.
  */
 class ThreadSafetyTest {
-    private fun runConcurrently(
-        threads: Int = 8,
-        iterations: Int = 300,
-        action: (workerIndex: Int, iteration: Int) -> Unit
-    ) {
-        val errors = ConcurrentLinkedQueue<Throwable>()
-        val startLatch = CountDownLatch(1)
-        val executor = Executors.newFixedThreadPool(threads)
-        try {
-            repeat(threads) { w ->
-                executor.submit {
-                    try {
-                        startLatch.await()
-                        repeat(iterations) { i -> action(w, i) }
-                    } catch (t: Throwable) {
-                        errors.add(t)
-                    }
-                }
-            }
-            startLatch.countDown()
-            executor.shutdown()
-            assertTrue(
-                executor.awaitTermination(120, TimeUnit.SECONDS),
-                "Concurrent test did not terminate (possible deadlock)"
-            )
-        } finally {
-            executor.shutdownNow()
-        }
-        assertTrue(
-            errors.isEmpty(),
-            "Concurrent execution produced errors: ${errors.firstOrNull()?.stackTraceToString()}"
-        )
-    }
 
     @Test
     fun declarativeSymbolProviderIsThreadSafe() {

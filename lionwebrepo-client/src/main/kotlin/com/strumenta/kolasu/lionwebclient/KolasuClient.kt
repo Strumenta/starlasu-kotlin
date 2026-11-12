@@ -437,11 +437,11 @@ class KolasuClient(
     //
 
     /**
-     * The clear-and-export sequence is atomic on [nodeConverter]: concurrent calls are
-     * serialized, so sharing one client is safe but does not parallelize the export phase.
-     * Configuration must be fixed after publication — direct calls to [nodeConverter]
-     * public methods do not participate in this monitor unless the caller synchronizes
-     * on the same instance.
+     * The clear-and-export sequence is atomic on [nodeConverter], via
+     * [LionWebModelConverter.clearNodesMappingAndExportModelToLionWeb]: the same monitor
+     * serializes the converter's other stateful operations, so sharing one client is safe
+     * but does not parallelize the export phase. Configuration must be fixed after
+     * publication.
      */
     private fun toLionWeb(kNode: Node): LWNode {
         require(kNode.javaClass.annotations.any { it is ASTRoot })
@@ -451,10 +451,11 @@ class KolasuClient(
                 descendant.source = kNode.source
             }
         }
-        synchronized(nodeConverter) {
-            nodeConverter.clearNodesMapping()
-            return nodeConverter.exportModelToLionWeb(kNode, idProvider, considerParent = true)
-        }
+        return nodeConverter.clearNodesMappingAndExportModelToLionWeb(
+            kNode,
+            idProvider,
+            considerParent = true
+        )
     }
 
     fun toLionWeb(
@@ -464,13 +465,10 @@ class KolasuClient(
         containmentIndex: Int
     ): LWNode {
         require(kNode.javaClass.annotations.any { it is ASTRoot })
-        synchronized(nodeConverter) {
-            nodeConverter.clearNodesMapping()
-            return nodeConverter.exportModelToLionWeb(
-                kNode,
-                idProvider,
-                considerParent = true
-            )
-        }
+        return nodeConverter.clearNodesMappingAndExportModelToLionWeb(
+            kNode,
+            idProvider,
+            considerParent = true
+        )
     }
 }

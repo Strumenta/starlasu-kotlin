@@ -28,6 +28,7 @@ import java.io.FileInputStream
 import java.io.InputStream
 import java.nio.charset.Charset
 import java.util.LinkedList
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.full.memberFunctions
 import kotlin.system.measureTimeMillis
 
@@ -387,19 +388,30 @@ abstract class KolasuParser<R : Node, P : Parser, C : ParserRuleContext, T : Kol
         ast?.assignParents()
     }
 
-    @Synchronized
     protected fun shouldWeClearCaches(): Boolean {
         return executionsToNextCacheClean <= 0
     }
 
-    protected var executionCounter = 0
+    private val executionCounterAtomic = AtomicInteger()
+
+    protected var executionCounter: Int
+        get() = executionCounterAtomic.get()
+        set(value) = executionCounterAtomic.set(value)
 
     @Volatile
     var cacheCycleSize = 500
 
-    @Volatile
-    var executionsToNextCacheClean = cacheCycleSize
+    private val executionsToNextCacheCleanCounter = AtomicInteger(cacheCycleSize)
 
+    var executionsToNextCacheClean: Int
+        get() = executionsToNextCacheCleanCounter.get()
+        set(value) = executionsToNextCacheCleanCounter.set(value)
+
+    /**
+     * Called under the parser monitor once the countdown crosses zero; several threads may
+     * race here, but only the first one to find the counter still exhausted clears the
+     * caches (the others observe the value reset by [clearCaches] and return).
+     */
     @Synchronized
     protected fun considerClearCaches() {
         if (shouldWeClearCaches()) {
@@ -407,11 +419,15 @@ abstract class KolasuParser<R : Node, P : Parser, C : ParserRuleContext, T : Kol
         }
     }
 
-    @Synchronized
+    /**
+     * Updates the parse counters. The common path is lock-free: the parser monitor is
+     * taken only when the countdown crosses zero, to decide who performs the clearing.
+     */
     protected open fun countExecution(parser: Parser) {
-        executionCounter++
-        executionsToNextCacheClean--
-        considerClearCaches()
+        executionCounterAtomic.incrementAndGet()
+        if (executionsToNextCacheCleanCounter.decrementAndGet() <= 0) {
+            considerClearCaches()
+        }
     }
 
     @Synchronized

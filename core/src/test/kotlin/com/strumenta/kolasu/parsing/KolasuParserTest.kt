@@ -197,5 +197,8 @@ class KolasuParserTest {
             decisionToDFA.indices.all { decisionToDFA[it] !== before[it] },
             "clearCaches() did not replace the recorded DFA elements"
         )
+        // Behavioural check: the parser still works after the DFA was cleared — the
+        // first parse re-warms the DFA from scratch.
+        assertNotNull(parser.parseFirstStage("set a = 10").root)
     }
 }

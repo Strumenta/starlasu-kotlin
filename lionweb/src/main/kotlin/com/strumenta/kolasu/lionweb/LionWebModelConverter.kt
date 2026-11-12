@@ -149,8 +149,32 @@ class LionWebModelConverter(
     @Volatile
     var externalNodeResolver: NodeResolver = DummyNodeResolver()
 
+    /**
+     * Stateful operations on this converter — [exportModelToLionWeb], [importModelFromLionWeb],
+     * [clearNodesMapping] and [clearNodesMappingAndExportModelToLionWeb] — are serialized on the
+     * converter's own monitor, so direct callers are protected exactly like [KolasuClient]'s
+     * combined clear-and-export. Caller-provided callbacks (node ID providers, resolvers,
+     * factories) execute under that monitor and must not block waiting on this converter
+     * from another thread.
+     */
+    @Synchronized
     fun clearNodesMapping() {
         nodesMapping.clear()
+    }
+
+    /**
+     * Clears the node mapping and exports [kolasuTree] as a single atomic operation on this
+     * converter's monitor: the right way for a shared converter to run a fresh export without
+     * racing another thread's export or import.
+     */
+    @Synchronized
+    fun clearNodesMappingAndExportModelToLionWeb(
+        kolasuTree: KNode,
+        nodeIdProvider: NodeIdProvider = this.nodeIdProvider,
+        considerParent: Boolean = true
+    ): LWNode {
+        clearNodesMapping()
+        return exportModelToLionWeb(kolasuTree, nodeIdProvider, considerParent)
     }
 
     fun <E : Any> registerPrimitiveValueSerialization(
@@ -178,6 +202,7 @@ class LionWebModelConverter(
         }
     }
 
+    @Synchronized
     fun exportModelToLionWeb(
         kolasuTree: KNode,
         nodeIdProvider: NodeIdProvider = this.nodeIdProvider,
@@ -618,6 +643,7 @@ class LionWebModelConverter(
         return argsMap
     }
 
+    @Synchronized
     fun importModelFromLionWeb(lwTree: LWNode): Any {
         val referencesPostponer = ReferencesPostponer(ignoreMissingReferences = this.ignoreMissingReferences)
         lionWebTreeWalker.thisAndAllDescendantsLeavesFirst(lwTree).forEach { lwNode ->

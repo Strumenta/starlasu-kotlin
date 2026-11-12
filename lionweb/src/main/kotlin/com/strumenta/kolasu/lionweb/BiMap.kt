@@ -6,39 +6,75 @@ import java.util.IdentityHashMap
 /**
  * This class is thread-safe.
  *
- * The map and set accessors return snapshots: safe to iterate while other threads call
- * [associate], but each call allocates a copy of the registry, so single-key lookups on
- * hot paths should use [byA]/[byB]/[findAByB] instead. When [usingIdentity] is true the
- * snapshots preserve identity semantics: keys that are distinct but equal are kept.
+ * The map and set accessors return immutable snapshots, safe to iterate while other
+ * threads call [associate]. Snapshots are cached and rebuilt only after a mutation, so
+ * repeated reads between two mutations cost O(1) instead of copying the registry each
+ * time; a snapshot may lag behind concurrent mutations, as usual for snapshot semantics.
+ * For single-key lookups on hot paths prefer [byA]/[byB]/[findAByB]. When
+ * [usingIdentity] is true the snapshots preserve identity semantics: keys that are
+ * distinct but equal are kept.
  */
 class BiMap<A, B>(val usingIdentity: Boolean = false) {
-    val `as`: Set<A>
-        get() = synchronized(this) {
-            if (usingIdentity) identitySetOf(_asToBs.keys) else _asToBs.keys.toSet()
-        }
-    val bs: Set<B>
-        get() = synchronized(this) {
-            if (usingIdentity) identitySetOf(_bsToAs.keys) else _bsToAs.keys.toSet()
-        }
-    val asToBsMap: Map<A, B>
-        get() = synchronized(this) {
-            if (usingIdentity) IdentityHashMap(_asToBs) else _asToBs.toMap()
-        }
-    val bsToAsMap: Map<B, A>
-        get() = synchronized(this) {
-            if (usingIdentity) IdentityHashMap(_bsToAs) else _bsToAs.toMap()
-        }
 
     private val _asToBs = if (usingIdentity) IdentityHashMap() else mutableMapOf<A, B>()
     private val _bsToAs = if (usingIdentity) IdentityHashMap() else mutableMapOf<B, A>()
 
+    @Volatile
+    private var asSnapshot: Set<A>? = null
+
+    @Volatile
+    private var bsSnapshot: Set<B>? = null
+
+    @Volatile
+    private var asToBsSnapshot: Map<A, B>? = null
+
+    @Volatile
+    private var bsToAsSnapshot: Map<B, A>? = null
+
+    val `as`: Set<A>
+        get() = asSnapshot ?: synchronized(this) {
+            asSnapshot ?: snapshotAs().also { asSnapshot = it }
+        }
+    val bs: Set<B>
+        get() = bsSnapshot ?: synchronized(this) {
+            bsSnapshot ?: snapshotBs().also { bsSnapshot = it }
+        }
+    val asToBsMap: Map<A, B>
+        get() = asToBsSnapshot ?: synchronized(this) {
+            asToBsSnapshot ?: snapshotAsToBs().also { asToBsSnapshot = it }
+        }
+    val bsToAsMap: Map<B, A>
+        get() = bsToAsSnapshot ?: synchronized(this) {
+            bsToAsSnapshot ?: snapshotBsToAs().also { bsToAsSnapshot = it }
+        }
+
+    private fun snapshotAs(): Set<A> =
+        if (usingIdentity) identitySetOf(_asToBs.keys) else _asToBs.keys.toSet()
+
+    private fun snapshotBs(): Set<B> =
+        if (usingIdentity) identitySetOf(_bsToAs.keys) else _bsToAs.keys.toSet()
+
+    private fun snapshotAsToBs(): Map<A, B> =
+        if (usingIdentity) IdentityHashMap(_asToBs) else _asToBs.toMap()
+
+    private fun snapshotBsToAs(): Map<B, A> =
+        if (usingIdentity) IdentityHashMap(_bsToAs) else _bsToAs.toMap()
+
     private fun <E> identitySetOf(keys: Set<E>): Set<E> =
         Collections.newSetFromMap(IdentityHashMap<E, Boolean>()).also { it.addAll(keys) }
+
+    private fun invalidateSnapshots() {
+        asSnapshot = null
+        bsSnapshot = null
+        asToBsSnapshot = null
+        bsToAsSnapshot = null
+    }
 
     fun associate(a: A, b: B) {
         synchronized(this) {
             _asToBs[a] = b
             _bsToAs[b] = a
+            invalidateSnapshots()
         }
     }
 
@@ -59,6 +95,7 @@ class BiMap<A, B>(val usingIdentity: Boolean = false) {
         synchronized(this) {
             _asToBs.clear()
             _bsToAs.clear()
+            invalidateSnapshots()
         }
     }
 }

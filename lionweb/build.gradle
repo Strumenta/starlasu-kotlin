@@ -21,6 +21,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     cliImplementation "com.github.ajalt.clikt:clikt:$clikt_version"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
+    testImplementation testFixtures(project(":core"))
     testImplementation(libs.gson)
     api(libs.lionweb.core)
     api(libs.lionweb.kotlin) {

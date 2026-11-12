@@ -1,11 +1,9 @@
 package com.strumenta.kolasu.lionweb
 
 import com.strumenta.kolasu.model.Node
+import com.strumenta.kolasu.testing.runConcurrently
 import java.io.File
 import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
@@ -17,39 +15,6 @@ data class ConcurrentTestNode(val v: Int) : Node()
  * Regression tests for the thread-safety fixes in the lionweb module.
  */
 class ThreadSafetyTest {
-    private fun runConcurrently(
-        threads: Int = 8,
-        iterations: Int = 300,
-        action: (workerIndex: Int, iteration: Int) -> Unit
-    ) {
-        val errors = ConcurrentLinkedQueue<Throwable>()
-        val startLatch = CountDownLatch(1)
-        val executor = Executors.newFixedThreadPool(threads)
-        try {
-            repeat(threads) { w ->
-                executor.submit {
-                    try {
-                        startLatch.await()
-                        repeat(iterations) { i -> action(w, i) }
-                    } catch (t: Throwable) {
-                        errors.add(t)
-                    }
-                }
-            }
-            startLatch.countDown()
-            executor.shutdown()
-            assertTrue(
-                executor.awaitTermination(120, TimeUnit.SECONDS),
-                "Concurrent test did not terminate (possible deadlock)"
-            )
-        } finally {
-            executor.shutdownNow()
-        }
-        assertTrue(
-            errors.isEmpty(),
-            "Concurrent execution produced errors: ${errors.firstOrNull()?.stackTraceToString()}"
-        )
-    }
 
     // BiMap: the as/bs/asToBsMap/bsToAsMap getters used to expose live views of the
     // internal maps, so iterating them while another thread called associate() threw

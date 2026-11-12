@@ -1,6 +1,7 @@
 plugins {
     kotlin("jvm")
     kotlin("kapt")
+    `java-test-fixtures`
     alias(libs.plugins.ktlint)
     alias(libs.plugins.vanniktech.publish)
     id("antlr")
@@ -28,6 +29,7 @@ dependencies {
     implementation(kotlin("reflect", libs.versions.kotlin.get()))
     compileOnly(kotlin("test-junit", libs.versions.kotlin.get()))
     testImplementation(kotlin("test-junit", libs.versions.kotlin.get()))
+    testFixturesApi(kotlin("test-junit", libs.versions.kotlin.get()))
     implementation(libs.gson)
     // To be removed in v1.7
     implementation("org.redundent:kotlin-xml-builder:1.7.3")
@@ -75,6 +77,12 @@ tasks.named("sourcesJar") {
 }
 tasks.matching { it.name == "kaptGenerateStubsKotlin" }.configureEach {
     dependsOn("generateGrammarSource")
+}
+tasks.matching { it.name == "kaptGenerateStubsTestFixturesKotlin" }.configureEach {
+    dependsOn("generateTestFixturesGrammarSource")
+}
+tasks.matching { it.name == "compileTestFixturesKotlin" }.configureEach {
+    dependsOn("generateTestFixturesGrammarSource")
 }
 tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin").configure {
     source(sourceSets["main"].allJava, sourceSets["main"].kotlin)

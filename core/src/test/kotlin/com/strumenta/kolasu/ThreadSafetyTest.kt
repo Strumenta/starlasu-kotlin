@@ -11,13 +11,13 @@ import com.strumenta.kolasu.model.assignParents
 import com.strumenta.kolasu.model.codeAtPosition
 import com.strumenta.kolasu.model.pos
 import com.strumenta.kolasu.parsing.SimpleLangKolasuParser
+import com.strumenta.kolasu.testing.runConcurrently
 import com.strumenta.kolasu.transformation.ASTTransformer
 import com.strumenta.kolasu.transformation.CU
 import com.strumenta.kolasu.traversing.FastWalker
 import com.strumenta.kolasu.utils.memoize
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -29,43 +29,6 @@ import kotlin.test.assertTrue
  * was previously unsynchronized (caches, interners, rule maps, memoizers).
  */
 class ThreadSafetyTest {
-    /**
-     * Runs [action] on [threads] workers started simultaneously, [iterations] times each.
-     * Fails if any worker throws or if the run does not terminate (possible deadlock).
-     */
-    private fun runConcurrently(
-        threads: Int = 8,
-        iterations: Int = 300,
-        action: (workerIndex: Int, iteration: Int) -> Unit
-    ) {
-        val errors = ConcurrentLinkedQueue<Throwable>()
-        val startLatch = CountDownLatch(1)
-        val executor = Executors.newFixedThreadPool(threads)
-        try {
-            repeat(threads) { w ->
-                executor.submit {
-                    try {
-                        startLatch.await()
-                        repeat(iterations) { i -> action(w, i) }
-                    } catch (t: Throwable) {
-                        errors.add(t)
-                    }
-                }
-            }
-            startLatch.countDown()
-            executor.shutdown()
-            assertTrue(
-                executor.awaitTermination(120, TimeUnit.SECONDS),
-                "Concurrent test did not terminate (possible deadlock)"
-            )
-        } finally {
-            executor.shutdownNow()
-        }
-        assertTrue(
-            errors.isEmpty(),
-            "Concurrent execution produced errors: ${errors.firstOrNull()?.stackTraceToString()}"
-        )
-    }
 
     // LinesSplitter (Position.kt): shared access-order LinkedHashMap. Even reads mutate it.
     @Test
