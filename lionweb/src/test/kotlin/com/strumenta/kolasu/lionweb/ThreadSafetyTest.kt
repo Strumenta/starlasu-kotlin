@@ -8,6 +8,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 data class ConcurrentTestNode(val v: Int) : Node()
@@ -66,6 +67,27 @@ class ThreadSafetyTest {
             map.bs.forEach { it.hashCode() }
         }
         assertEquals(2401, map.asToBsMap.size)
+    }
+
+    // BiMap: with usingIdentity = true, snapshots must preserve identity semantics —
+    // two distinct keys that compare equal must not collapse into one entry.
+    @Test
+    fun biMapSnapshotsPreserveIdentitySemantics() {
+        data class Key(val value: Int)
+
+        val a = Key(1)
+        val b = Key(1)
+        val map = BiMap<Key, String>(usingIdentity = true)
+        map.associate(a, "first")
+        map.associate(b, "second")
+
+        assertEquals("first", map.byA(a))
+        assertEquals("second", map.byA(b))
+        assertEquals(2, map.asToBsMap.size)
+        assertEquals(2, map.bsToAsMap.size)
+        assertEquals(2, map.`as`.size)
+        assertEquals(2, map.bs.size)
+        assertSame(a, map.findAByB { it == "first" })
     }
 
     // SequentialNodeIdProvider: IdentityHashMap + non-atomic counter before.

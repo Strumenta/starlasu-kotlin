@@ -167,4 +167,35 @@ class KolasuParserTest {
         parser.parseFirstStage("set a = 10")
         assertSame(parser.attachedSimulator, parser.lastParser!!.interpreter)
     }
+
+    @Test
+    fun configuredLexerInterpreterStateIsPreserved() {
+        // Regression: replacing the lexer interpreter discarded state configured by
+        // subclasses in createANTLRLexer — in ANTLR the position lives in the simulator,
+        // so a fresh LexerATNSimulator reset it. The interpreter is no longer replaced.
+        val parser = object : SimpleLangKolasuParser() {
+            override fun createANTLRLexer(charStream: CharStream): Lexer {
+                return super.createANTLRLexer(charStream).apply { line = 100 }
+            }
+        }
+        assertEquals(100, parser.parseFirstStage("set a = 10").root!!.start.line)
+    }
+
+    @Test
+    fun clearCachesClearsDFAWhenInterpreterHookIsOverridden() {
+        // Regression: the DFA arrays to clear were recorded inside the overridable
+        // attachParserInterpreter hook, so a subclass overriding it (like HookedParser,
+        // which does not call super) left them null and clearCaches() silently stopped
+        // clearing the DFA. They are now recorded after the hook, so the effective
+        // interpreter's DFA is always tracked.
+        val parser = HookedParser()
+        parser.parseFirstStage("set a = 10")
+        val decisionToDFA = parser.lastParser!!.interpreter.decisionToDFA
+        val before = decisionToDFA.toList()
+        parser.clearCaches()
+        assertTrue(
+            decisionToDFA.indices.all { decisionToDFA[it] !== before[it] },
+            "clearCaches() did not replace the recorded DFA elements"
+        )
+    }
 }

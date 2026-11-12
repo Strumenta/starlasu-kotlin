@@ -77,7 +77,9 @@ class DeclarativeSymbolProviderRule<NodeTy : Node>(
 
         fun getName(node: NodeTy): String {
             return this.name(node)
-                ?: throw RuntimeException("Symbol description name property not set for node: ${node::class.qualifiedName}")
+                ?: throw RuntimeException(
+                    "Symbol description name property not set for node: ${node::class.qualifiedName}"
+                )
         }
 
         fun getTypes(node: NodeTy): List<String> {

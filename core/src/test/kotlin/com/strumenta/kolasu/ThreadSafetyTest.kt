@@ -85,9 +85,10 @@ class ThreadSafetyTest {
         }
     }
 
-    // KolasuParser: the shared PredictionContextCache was an unsynchronized HashMap.
-    // Note: `display` takes a literal-only expression in SimpleLang, so we use a valid
-    // (and prediction-heavy) input — `display c` would legitimately produce issues.
+    // KolasuParser: each parse shares the generated static ATN/DFA across threads, per
+    // the ANTLR concurrency model (atomic DFA edge arrays, internally serialized context
+    // cache). Note: `display` takes a literal-only expression in SimpleLang, so we use a
+    // valid (and prediction-heavy) input — `display c` would legitimately produce issues.
     @Test
     fun sharedParserIsThreadSafe() {
         val parser = SimpleLangKolasuParser()
@@ -96,6 +97,22 @@ class ThreadSafetyTest {
             |set b = ""
             |display 10 + 20 * 30
             """.trimMargin()
+        val referenceRoot = parser.parseFirstStage(code).root!!.toStringTree()
+        runConcurrently(threads = 8, iterations = 40) { _, _ ->
+            val result = parser.parseFirstStage(code)
+            assertTrue(result.issues.isEmpty(), "Unexpected parsing issues: ${result.issues}")
+            assertEquals(referenceRoot, result.root!!.toStringTree())
+        }
+    }
+
+    // KolasuParser: with the default cacheCycleSize (500) the shared-parser test never
+    // crosses a cache-clearing boundary. A small cycle exercises clearCaches() — which
+    // replaces the shared DFA elements — while other parses are running.
+    @Test
+    fun sharedParserConcurrentCacheClearing() {
+        val parser = SimpleLangKolasuParser()
+        parser.cacheCycleSize = 20
+        val code = "display 10 + 20 * 30"
         val referenceRoot = parser.parseFirstStage(code).root!!.toStringTree()
         runConcurrently(threads = 8, iterations = 40) { _, _ ->
             val result = parser.parseFirstStage(code)
@@ -136,6 +153,27 @@ class ThreadSafetyTest {
         }
     }
 
+    // CachingNodeIDProvider: cold misses — IDs are computed concurrently rather than
+    // precomputed, exercising the miss path (structural ID generation + recursive
+    // parent-ID lookup) under the provider's lock.
+    @Test
+    fun cachingNodeIdProviderColdMissesAreThreadSafe() {
+        val children = (1..20).map { MyNonRoot(it) }
+        val ast = MyRoot(foos = children.toMutableList())
+        ast.assignParents()
+        ast.setSourceForTree(SyntheticSource("S1"))
+        val provider: CachingNodeIDProvider = StructuralNodeIdProvider().caching()
+
+        val observed = ConcurrentLinkedQueue<Pair<MyNonRoot, String>>()
+        runConcurrently(threads = 8, iterations = 100) { w, i ->
+            val node = children[(w + i) % children.size]
+            observed.add(node to provider.id(node))
+        }
+        observed.groupBy({ it.first }, { it.second }).forEach { (_, ids) ->
+            assertEquals(1, ids.toSet().size, "A node got inconsistent IDs: $ids")
+        }
+    }
+
     // Memoize1: plain HashMap before.
     @Test
     fun memoizeIsThreadSafe() {
@@ -143,6 +181,42 @@ class ThreadSafetyTest {
         runConcurrently(threads = 8, iterations = 500) { w, i ->
             val input = (w * 31 + i) % 64
             assertEquals(input * 2, memoized(input))
+        }
+    }
+
+    // Memoize1: user computations run outside the cache lock, so memoizers that call
+    // into each other cannot deadlock on opposing monitor acquisition. The gate latch
+    // forces both computations to be in flight simultaneously.
+    @Test
+    fun mutuallyCallingMemoizersDoNotDeadlock() {
+        val gate = CountDownLatch(2)
+        lateinit var first: (Int) -> Int
+        lateinit var second: (Int) -> Int
+        first = { n: Int ->
+            if (n == 0) {
+                0
+            } else {
+                gate.countDown()
+                gate.await(10, TimeUnit.SECONDS)
+                second(0)
+            }
+        }.memoize()
+        second = { n: Int ->
+            if (n == 0) {
+                0
+            } else {
+                gate.countDown()
+                gate.await(10, TimeUnit.SECONDS)
+                first(0)
+            }
+        }.memoize()
+
+        runConcurrently(threads = 2, iterations = 1) { w, _ ->
+            if (w == 0) {
+                assertEquals(0, first(1))
+            } else {
+                assertEquals(0, second(1))
+            }
         }
     }
 
