@@ -22,26 +22,51 @@ import kotlin.reflect.full.superclasses
  * We create this Class to represent that collection of AST classes.
  */
 class KolasuLanguage(val qualifiedName: String) {
+    /**
+     * Immutable snapshots published when registration changes: reads are wait-free and do
+     * not pay a copy per call. Registration is expected to happen at setup time and be
+     * infrequent compared to reads.
+     */
     val astClasses: List<KClass<*>>
-        get() = _astClasses
+        get() = _astClassesSnapshot
     val enumClasses: List<KClass<out Enum<*>>>
-        get() = _enumClasses
+        get() = _enumClassesSnapshot
     val primitiveClasses: List<KClass<*>>
-        get() = _primitiveClasses
+        get() = _primitiveClassesSnapshot
+
+    @Volatile
+    private var _astClassesSnapshot: List<KClass<*>> = emptyList()
+
+    @Volatile
+    private var _enumClassesSnapshot: List<KClass<out Enum<*>>> = emptyList()
+
+    @Volatile
+    private var _primitiveClassesSnapshot: List<KClass<*>> = emptyList()
+
     private val _astClasses: MutableList<KClass<*>> = mutableListOf()
     private val _enumClasses: MutableList<KClass<out Enum<*>>> = mutableListOf()
     private val _primitiveClasses: MutableList<KClass<*>> = mutableListOf()
 
+    /** Called while holding this instance's monitor, at the end of each mutating method. */
+    private fun publishSnapshots() {
+        _astClassesSnapshot = _astClasses.toList()
+        _enumClassesSnapshot = _enumClasses.toList()
+        _primitiveClassesSnapshot = _primitiveClasses.toList()
+    }
+
     val simpleName: String
         get() = qualifiedName.split(".").last()
 
+    @Synchronized
     fun addEnumClass(kClass: KClass<out Enum<*>>) {
         if (_enumClasses.contains(kClass)) {
             return
         }
         _enumClasses.add(kClass)
+        publishSnapshots()
     }
 
+    @Synchronized
     fun addPrimitiveClass(kClass: KClass<*>) {
         if (kClass in setOf(Int::class, String::class, Boolean::class, Char::class)) {
             return
@@ -50,8 +75,10 @@ class KolasuLanguage(val qualifiedName: String) {
             return
         }
         _primitiveClasses.add(kClass)
+        publishSnapshots()
     }
 
+    @Synchronized
     fun addInterfaceClass(kClass: KClass<*>): Boolean {
         val attempt = tentativeAddInterfaceClass(kClass)
         if (attempt.issues.isEmpty()) {
@@ -66,16 +93,19 @@ class KolasuLanguage(val qualifiedName: String) {
         }
     }
 
+    @Synchronized
     fun tentativeAddInterfaceClass(
         kClass: KClass<*>,
         exceptions: MutableList<Exception> = mutableListOf()
     ): Attempt<Boolean, Exception> {
-        if (!_astClasses.contains(kClass) && _astClasses.add(kClass)) {
+        val result = if (!_astClasses.contains(kClass) && _astClasses.add(kClass)) {
             kClass.supertypes.forEach { superType -> processSuperType(superType, exceptions) }
-            return Attempt(true, exceptions)
+            Attempt(true, exceptions)
         } else {
-            return Attempt(false, exceptions)
+            Attempt(false, exceptions)
         }
+        publishSnapshots()
+        return result
     }
 
     private fun processSuperType(superType: KType, exceptions: MutableList<Exception> = mutableListOf()) {
@@ -103,6 +133,7 @@ class KolasuLanguage(val qualifiedName: String) {
         }
     }
 
+    @Synchronized
     fun <N : Node> addClass(kClass: KClass<N>): Boolean {
         val attempt = tentativeAddClass(kClass)
         if (attempt.issues.isEmpty()) {
@@ -117,6 +148,7 @@ class KolasuLanguage(val qualifiedName: String) {
         }
     }
 
+    @Synchronized
     fun <N : Node> tentativeAddClass(
         kClass: KClass<N>,
         exceptions: MutableList<Exception> = mutableListOf()
@@ -128,7 +160,7 @@ class KolasuLanguage(val qualifiedName: String) {
         ) {
             return Attempt(false, exceptions)
         }
-        if (!_astClasses.contains(kClass) && _astClasses.add(kClass)) {
+        val result = if (!_astClasses.contains(kClass) && _astClasses.add(kClass)) {
             kClass.supertypes.forEach { superType ->
                 processSuperType(superType, exceptions)
             }
@@ -162,10 +194,12 @@ class KolasuLanguage(val qualifiedName: String) {
                     }
                 }
             }
-            return Attempt(true, exceptions)
+            Attempt(true, exceptions)
         } else {
-            return Attempt(false, exceptions)
+            Attempt(false, exceptions)
         }
+        publishSnapshots()
+        return result
     }
 
     fun findASTClass(name: String): KClass<*>? = astClasses.find { it.simpleName == name }

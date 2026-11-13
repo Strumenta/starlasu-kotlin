@@ -92,7 +92,13 @@ private val PlaceholderNodeType = ASTLanguage.getLanguage().getEnumerationByName
 /**
  * This class is able to convert between Kolasu and LionWeb models, tracking the mapping.
  *
- * This class is thread-safe.
+ * This class is thread-safe: concurrent calls to the conversion methods are serialized on
+ * the internal state where needed. Note that this makes a shared converter a throughput
+ * tradeoff, not a parallelization tool — for independent concurrent conversions prefer one
+ * instance per thread. Configuration properties ([nodeIdProvider], [ignoreMissingReferences],
+ * [lionWebTreeWalker], [externalNodeResolver]) are visible across threads once set, but
+ * must not be reconfigured while conversions are in progress: establish the configuration
+ * before publishing the instance.
  *
  * @param nodeIdProvider logic to be used to associate IDs to Kolasu nodes when exporting them to LionWeb
  *                       it will be used to assign an ID to those elements which already do not have one
@@ -102,9 +108,11 @@ class LionWebModelConverter(
     // CachingNodeIDProvider wraps the structural provider so that recursive parent-ID lookups
     // inside StructuralNodeIdProvider.id() are served from a cache instead of recomputing
     // containingProperty() + indexInContainingProperty() up the entire ancestor chain every time
+    @Volatile
     var nodeIdProvider: NodeIdProvider = StructuralLionWebNodeIdProvider().caching(),
     initialLanguageConverter: LionWebLanguageConverter = LionWebLanguageConverter(),
     val metamodelRegistry: MetamodelRegistry = DefaultMetamodelRegistry,
+    @Volatile
     var ignoreMissingReferences: Boolean = false
 ) {
     companion object {
@@ -134,12 +142,39 @@ class LionWebModelConverter(
     private val lwNodeById = ConcurrentHashMap<String, LWNode>()
     private val primitiveValueSerializations = ConcurrentHashMap<KClass<*>, PrimitiveValueSerialization<*>>()
     private val starlasuTreeWalker = CommonStarlasuTreeWalker()
+
+    @Volatile
     var lionWebTreeWalker = LionWebTreeWalker()
 
+    @Volatile
     var externalNodeResolver: NodeResolver = DummyNodeResolver()
 
+    /**
+     * Stateful operations on this converter — [exportModelToLionWeb], [importModelFromLionWeb],
+     * [clearNodesMapping] and [clearNodesMappingAndExportModelToLionWeb] — are serialized on the
+     * converter's own monitor, so direct callers are protected exactly like [KolasuClient]'s
+     * combined clear-and-export. Caller-provided callbacks (node ID providers, resolvers,
+     * factories) execute under that monitor and must not block waiting on this converter
+     * from another thread.
+     */
+    @Synchronized
     fun clearNodesMapping() {
         nodesMapping.clear()
+    }
+
+    /**
+     * Clears the node mapping and exports [kolasuTree] as a single atomic operation on this
+     * converter's monitor: the right way for a shared converter to run a fresh export without
+     * racing another thread's export or import.
+     */
+    @Synchronized
+    fun clearNodesMappingAndExportModelToLionWeb(
+        kolasuTree: KNode,
+        nodeIdProvider: NodeIdProvider = this.nodeIdProvider,
+        considerParent: Boolean = true
+    ): LWNode {
+        clearNodesMapping()
+        return exportModelToLionWeb(kolasuTree, nodeIdProvider, considerParent)
     }
 
     fun <E : Any> registerPrimitiveValueSerialization(
@@ -167,6 +202,7 @@ class LionWebModelConverter(
         }
     }
 
+    @Synchronized
     fun exportModelToLionWeb(
         kolasuTree: KNode,
         nodeIdProvider: NodeIdProvider = this.nodeIdProvider,
@@ -401,7 +437,7 @@ class LionWebModelConverter(
 
     private fun setEnumProperty(lwNode: LWNode, feature: Property, kValue: Enum<*>) {
         val kClass: EnumKClass = kValue::class
-        val enumeration = languageConverter.getKolasuClassesToEnumerationsMapping()[kClass]
+        val enumeration = languageConverter.correspondingEnumeration(kClass)
             ?: throw IllegalStateException("No enumeration for enum class $kClass")
         val enumerationLiteral = enumeration.literals.find { it.name == kValue.name }
             ?: throw IllegalStateException(
@@ -607,6 +643,7 @@ class LionWebModelConverter(
         return argsMap
     }
 
+    @Synchronized
     fun importModelFromLionWeb(lwTree: LWNode): Any {
         val referencesPostponer = ReferencesPostponer(ignoreMissingReferences = this.ignoreMissingReferences)
         lionWebTreeWalker.thisAndAllDescendantsLeavesFirst(lwTree).forEach { lwNode ->
@@ -722,7 +759,7 @@ class LionWebModelConverter(
                 kolasuLanguage.primitiveClasses.forEach { primitiveClass ->
                     if (primitiveValueSerializations.containsKey(primitiveClass)) {
                         val lwPrimitiveType: PrimitiveType = languageConverter
-                            .getKolasuClassesToPrimitiveTypesMapping()[primitiveClass]
+                            .correspondingPrimitiveType(primitiveClass)
                             ?: throw IllegalStateException(
                                 "No Primitive Type found associated to primitive value class " +
                                     "${primitiveClass.qualifiedName}"
@@ -777,6 +814,13 @@ class LionWebModelConverter(
             return languageConverter.getClassifiersToKolasuClassesMapping()
         }
     }
+
+    /**
+     * Direct single-key lookup: prefer this over [getClassifiersToKolasuClassesMapping]
+     * on hot paths, as the mapping getter copies the whole registry on each call.
+     */
+    fun correspondingKolasuClass(classifier: Classifier<*>): KClass<*>? =
+        languageConverter.correspondingKolasuClass(classifier)
 
     /**
      * Track reference values, so that we can populate them once the nodes are instantiated.
@@ -865,16 +909,12 @@ class LionWebModelConverter(
 
     private fun importEnumValue(propValue: EnumerationValue): Any {
         val enumerationLiteral = propValue.enumerationLiteral
-        val enumKClass = synchronized(languageConverter) {
-            languageConverter
-                .getEnumerationsToKolasuClassesMapping().entries.find {
-                    it.key.id == enumerationLiteral.enumeration?.id
-                }?.value
-                ?: throw java.lang.IllegalStateException(
-                    "Cannot find enum class for enumeration " +
-                        "${enumerationLiteral.enumeration?.name}"
-                )
-        }
+        val enumKClass = languageConverter
+            .correspondingKolasuClass(enumerationLiteral.enumeration)
+            ?: throw java.lang.IllegalStateException(
+                "Cannot find enum class for enumeration " +
+                    "${enumerationLiteral.enumeration?.name}"
+            )
         val entries = enumKClass.java.enumConstants
         return entries.find { it.name == enumerationLiteral.name }
             ?: throw IllegalStateException(

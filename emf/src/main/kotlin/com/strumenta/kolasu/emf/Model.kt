@@ -293,10 +293,12 @@ fun EClass.instantiate(): EObject {
 class KolasuToEMFMapping {
     private val nodeToEObjects = IdentityHashMap<Node, EObject>()
 
+    @Synchronized
     fun associate(node: Node, eo: EObject) {
         nodeToEObjects[node] = eo
     }
 
+    @Synchronized
     fun getAssociatedEObject(node: Node): EObject? {
         return nodeToEObjects[node]
     }

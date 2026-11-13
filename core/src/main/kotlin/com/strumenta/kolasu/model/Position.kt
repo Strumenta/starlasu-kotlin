@@ -377,10 +377,17 @@ private fun <K, V> createLeastRecentlyUsedMap(maxEntries: Int = 100): Map<K, V> 
 private object LinesSplitter {
     val cache = createLeastRecentlyUsedMap<String, List<String>>() as MutableMap<String, List<String>>
 
+    /**
+     * The LRU lookup is locked, but the (potentially expensive) split of a missing source
+     * runs outside the lock so that warm hits are not blocked by large misses. A duplicated
+     * split on a concurrent miss is acceptable as the operation is pure.
+     */
     fun getLines(code: String): List<String> {
-        return cache.getOrPut(code) {
-            code.split("(?<=\n)".toRegex())
+        synchronized(cache) {
+            cache[code]?.let { return it }
         }
+        val lines = code.split("(?<=\n)".toRegex())
+        return synchronized(cache) { cache.putIfAbsent(code, lines) ?: lines }
     }
 }
 

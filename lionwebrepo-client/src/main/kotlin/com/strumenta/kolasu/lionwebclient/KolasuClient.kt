@@ -194,6 +194,7 @@ class KolasuClient(
         return lwTreeToAppend.id!!
     }
 
+    @Volatile
     var performanceLogging: Boolean = false
 
     fun attachAST(
@@ -415,7 +416,7 @@ class KolasuClient(
                 } else {
                     val lionWebClassifier = lionWebLanguage.elements.find { it.key == entry.key.classifierKey }
                     if (lionWebClassifier is Concept) {
-                        val kolasuClass = nodeConverter.getClassifiersToKolasuClassesMapping()[lionWebClassifier]
+                        val kolasuClass = nodeConverter.correspondingKolasuClass(lionWebClassifier)
                         if (kolasuClass == null) {
                             null
                         } else {
@@ -435,6 +436,13 @@ class KolasuClient(
     // Private methods
     //
 
+    /**
+     * The clear-and-export sequence is atomic on [nodeConverter], via
+     * [LionWebModelConverter.clearNodesMappingAndExportModelToLionWeb]: the same monitor
+     * serializes the converter's other stateful operations, so sharing one client is safe
+     * but does not parallelize the export phase. Configuration must be fixed after
+     * publication.
+     */
     private fun toLionWeb(kNode: Node): LWNode {
         require(kNode.javaClass.annotations.any { it is ASTRoot })
         kNode.assignParents()
@@ -443,8 +451,11 @@ class KolasuClient(
                 descendant.source = kNode.source
             }
         }
-        nodeConverter.clearNodesMapping()
-        return nodeConverter.exportModelToLionWeb(kNode, idProvider, considerParent = true)
+        return nodeConverter.clearNodesMappingAndExportModelToLionWeb(
+            kNode,
+            idProvider,
+            considerParent = true
+        )
     }
 
     fun toLionWeb(
@@ -454,8 +465,7 @@ class KolasuClient(
         containmentIndex: Int
     ): LWNode {
         require(kNode.javaClass.annotations.any { it is ASTRoot })
-        nodeConverter.clearNodesMapping()
-        return nodeConverter.exportModelToLionWeb(
+        return nodeConverter.clearNodesMappingAndExportModelToLionWeb(
             kNode,
             idProvider,
             considerParent = true

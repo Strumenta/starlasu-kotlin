@@ -19,6 +19,7 @@ import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.TokenStream
 import org.antlr.v4.runtime.atn.ParserATNSimulator
 import org.antlr.v4.runtime.atn.PredictionContextCache
+import org.antlr.v4.runtime.dfa.DFA
 import org.antlr.v4.runtime.misc.Interval
 import org.antlr.v4.runtime.tree.ParseTree
 import org.antlr.v4.runtime.tree.TerminalNode
@@ -27,6 +28,7 @@ import java.io.FileInputStream
 import java.io.InputStream
 import java.nio.charset.Charset
 import java.util.LinkedList
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.reflect.full.memberFunctions
 import kotlin.system.measureTimeMillis
 
@@ -71,6 +73,22 @@ open class ANTLRTokenFactory : TokenFactory<KolasuANTLRToken> {
 
 abstract class KolasuANTLRLexer<T : KolasuToken>(val tokenFactory: TokenFactory<T>) : KolasuLexer<T> {
     /**
+     * The [PredictionContextCache] shared by the parsers created by this instance. In ANTLR 4.9.3
+     * all accesses to this cache happen under a lock on the cache itself (see
+     * `ATNSimulator.getCachedContext`), so a plain cache is safe for concurrent use.
+     */
+    @Volatile
+    protected var predictionContextCache: PredictionContextCache = PredictionContextCache()
+
+    /**
+     * The [org.antlr.v4.runtime.dfa.DFA] array most recently used by a lexer interpreter created
+     * by this instance: kept so that [KolasuParser.clearCaches] can clear it without
+     * instantiating a new lexer (which could trigger subclass side-effects).
+     */
+    @Volatile
+    protected var lastLexerDecisionToDFA: Array<DFA>? = null
+
+    /**
      * Creates the lexer.
      */
     @JvmOverloads
@@ -94,6 +112,7 @@ abstract class KolasuANTLRLexer<T : KolasuToken>(val tokenFactory: TokenFactory<
         var last: Token? = null
         val time = measureTimeMillis {
             val lexer = createANTLRLexer(inputStream, charset)
+            lastLexerDecisionToDFA = lexer.interpreter.decisionToDFA
             attachListeners(lexer, issues)
             do {
                 val t = lexer.nextToken()
@@ -130,12 +149,18 @@ abstract class KolasuANTLRLexer<T : KolasuToken>(val tokenFactory: TokenFactory<
  *
  * Note: instances of this class are thread-safe and they're meant to be reused. Do not create a new KolasuParser
  * instance every time you need to parse some source code, or performance may suffer.
+ *
+ * Concurrent [parse]/[parseFirstStage]/[lex] calls on one instance are safe because each execution
+ * gets its own lexer, parser and ATN simulator instances, while the ATN, the DFA and the
+ * [PredictionContextCache] are shared — the concurrency model of the ANTLR runtime itself:
+ * generated parsers share a static `decisionToDFA` across all instances, DFA edge caches use
+ * atomic arrays with internally synchronized additions, and access to the shared context cache
+ * is serialized inside `ATNSimulator.getCachedContext`. This contract does not cover direct use
+ * of the generated ANTLR lexer/parser outside this class.
  */
 abstract class KolasuParser<R : Node, P : Parser, C : ParserRuleContext, T : KolasuToken>(
     tokenFactory: TokenFactory<T>
 ) : KolasuANTLRLexer<T>(tokenFactory), ASTParser<R> {
-
-    protected var predictionContextCache = PredictionContextCache()
 
     /**
      * Creates the first-stage parser.
@@ -173,14 +198,35 @@ abstract class KolasuParser<R : Node, P : Parser, C : ParserRuleContext, T : Kol
      */
     protected open fun createParser(inputStream: CharStream, issues: MutableList<Issue>): P {
         val lexer = createANTLRLexer(inputStream)
+        lastLexerDecisionToDFA = lexer.interpreter.decisionToDFA
         attachListeners(lexer, issues)
         val tokenStream = createTokenStream(lexer)
         val parser: P = createANTLRParser(tokenStream)
         // Assign interpreter to avoid caching DFA states indefinitely across executions
-        parser.interpreter =
-            ParserATNSimulator(parser, parser.atn, parser.interpreter.decisionToDFA, predictionContextCache)
+        attachParserInterpreter(parser)
+        lastParserDecisionToDFA = parser.interpreter.decisionToDFA
         attachListeners(parser, issues)
         return parser
+    }
+
+    /**
+     * The [DFA] array most recently used by a parser interpreter created by this instance: kept so
+     * that [clearCaches] can clear it without instantiating a new parser (which could trigger
+     * subclass side-effects). Recorded after [attachParserInterpreter] so that subclasses
+     * overriding the hook still have their DFA tracked.
+     */
+    @Volatile
+    private var lastParserDecisionToDFA: Array<DFA>? = null
+
+    /**
+     * Assigns an interpreter sharing this instance's [predictionContextCache] and the configured
+     * interpreter's decisionToDFA (by default the generated parser's static one).
+     * Subclasses may override to keep a custom interpreter configured in [createANTLRParser]
+     * (e.g. preserving their own decisionToDFA or shared context cache).
+     */
+    protected open fun attachParserInterpreter(parser: P) {
+        parser.interpreter =
+            ParserATNSimulator(parser, parser.atn, parser.interpreter.decisionToDFA, predictionContextCache)
     }
 
     protected open fun createTokenStream(lexer: Lexer) = CommonTokenStream(lexer)
@@ -346,28 +392,59 @@ abstract class KolasuParser<R : Node, P : Parser, C : ParserRuleContext, T : Kol
         return executionsToNextCacheClean <= 0
     }
 
-    protected var executionCounter = 0
-    var cacheCycleSize = 500
-    var executionsToNextCacheClean = cacheCycleSize
+    private val executionCounterAtomic = AtomicInteger()
 
+    protected var executionCounter: Int
+        get() = executionCounterAtomic.get()
+        set(value) = executionCounterAtomic.set(value)
+
+    @Volatile
+    var cacheCycleSize = 500
+
+    private val executionsToNextCacheCleanCounter = AtomicInteger(cacheCycleSize)
+
+    var executionsToNextCacheClean: Int
+        get() = executionsToNextCacheCleanCounter.get()
+        set(value) = executionsToNextCacheCleanCounter.set(value)
+
+    /**
+     * Called under the parser monitor once the countdown crosses zero; several threads may
+     * race here, but only the first one to find the counter still exhausted clears the
+     * caches (the others observe the value reset by [clearCaches] and return).
+     */
+    @Synchronized
     protected fun considerClearCaches() {
         if (shouldWeClearCaches()) {
             clearCaches()
         }
     }
 
+    /**
+     * Updates the parse counters. The common path is lock-free: the parser monitor is
+     * taken only when the countdown crosses zero, to decide who performs the clearing.
+     */
     protected open fun countExecution(parser: Parser) {
-        executionCounter++
-        executionsToNextCacheClean--
-        considerClearCaches()
+        executionCounterAtomic.incrementAndGet()
+        if (executionsToNextCacheCleanCounter.decrementAndGet() <= 0) {
+            considerClearCaches()
+        }
     }
 
+    @Synchronized
     open fun clearCaches() {
         executionsToNextCacheClean = cacheCycleSize
-        val lexer = createANTLRLexer(CharStreams.fromString(""))
-        lexer.interpreter.clearDFA()
-        val parser = createANTLRParser(createTokenStream(lexer))
-        parser.interpreter.clearDFA()
+        // Clear the DFA arrays used by the created interpreters without instantiating a new
+        // lexer/parser: instantiating could trigger subclass configuration side-effects.
+        // DFA elements are replaced, mirroring ATNSimulator.clearDFA()
+        clearDecisionToDFA(lastLexerDecisionToDFA)
+        clearDecisionToDFA(lastParserDecisionToDFA)
         predictionContextCache = PredictionContextCache()
+    }
+
+    private fun clearDecisionToDFA(array: Array<DFA>?) {
+        if (array == null) return
+        for (i in array.indices) {
+            array[i] = DFA(array[i].atnStartState, array[i].decision)
+        }
     }
 }

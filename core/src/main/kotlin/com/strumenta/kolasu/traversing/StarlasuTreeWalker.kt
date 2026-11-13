@@ -68,11 +68,14 @@ class CommonStarlasuTreeWalker : StarlasuTreeWalker {
 
                     // Precompute a raw accessor for each property.
                     // KProperty1.javaField returns the backing field for simple `val` properties.
-                    // Fall back to KProperty1.get() only for computed / delegated properties.
+                    // Fall back to KProperty1.get() for computed / delegated properties: for a
+                    // delegated property (e.g. `val body by lazy { ... }`) javaField returns the
+                    // generated `<name>$delegate` field — the delegate object (e.g. a Lazy), not
+                    // the declared value — so it must be read through the getter.
                     @Suppress("UNCHECKED_CAST")
                     val accessors: Array<(Node) -> Any?> = props.map { prop ->
                         val field = (prop as KProperty1<Node, *>).javaField
-                        if (field != null) {
+                        if (field != null && !field.name.endsWith("\$delegate")) {
                             field.isAccessible = true
                             // Field.get(instance) — no vararg Object[] allocation
                             { n: Node -> field.get(n) }

@@ -45,26 +45,95 @@ class DeclarativeSymbolProviderRule<NodeTy : Node>(
     private val specification: DeclarativeSymbolProvideRuleApi<NodeTy>.(
         DeclarativeSymbolProviderRuleContext<NodeTy>
     ) -> Unit
-) : DeclarativeSymbolProvideRuleApi<NodeTy>,
-    (NodeIdProvider, SymbolProvider, Node) -> SymbolDescription,
+) : (NodeIdProvider, SymbolProvider, Node) -> SymbolDescription,
     Comparable<DeclarativeSymbolProviderRule<out Node>> {
-    private var name: (Node) -> String? = { null }
-    private val properties: MutableMap<String, (NodeIdProvider, Node) -> ValueDescription> = mutableMapOf()
+    /**
+     * Collects the name/properties produced by running the specification. A fresh
+     * instance is created per [invoke]: the specification re-executes on each
+     * invocation, so keeping this state on the rule itself would both race across
+     * threads and require a lock held across user callbacks (specification code may
+     * in turn resolve symbols through other rules).
+     */
+    private class Api<NodeTy : Node> : DeclarativeSymbolProvideRuleApi<NodeTy> {
+        var name: (Node) -> String? = { null }
+        val properties: MutableMap<String, (NodeIdProvider, Node) -> ValueDescription> = mutableMapOf()
 
-    override fun name(name: String) {
-        this.name = { name }
-    }
+        override fun name(name: String) {
+            this.name = { name }
+        }
 
-    override fun include(property: KProperty1<in NodeTy, Any?>) {
-        if (property.name == "name") {
-            this.name = { node ->
+        override fun include(property: KProperty1<in NodeTy, Any?>) {
+            if (property.name == "name") {
+                this.name = { node ->
+                    @Suppress("UNCHECKED_CAST")
+                    String::class.safeCast(property.get(node as NodeTy))
+                }
+            }
+            this.properties[property.name] = { nodeIdProvider, node ->
                 @Suppress("UNCHECKED_CAST")
-                String::class.safeCast(property.get(node as NodeTy))
+                this.toValueDescription(nodeIdProvider, property.get(node as NodeTy))
             }
         }
-        this.properties[property.name] = { nodeIdProvider, node ->
-            @Suppress("UNCHECKED_CAST")
-            this.toValueDescription(nodeIdProvider, property.get(node as NodeTy))
+
+        fun getName(node: NodeTy): String {
+            return this.name(node)
+                ?: throw RuntimeException(
+                    "Symbol description name property not set for node: ${node::class.qualifiedName}"
+                )
+        }
+
+        fun getTypes(node: NodeTy): List<String> {
+            return listOfNotNull(
+                node::class.qualifiedName
+            ) + node::class.allSuperclasses.mapNotNull(KClass<*>::qualifiedName)
+        }
+
+        fun getProperties(
+            nodeIdProvider: NodeIdProvider,
+            node: NodeTy
+        ): Map<String, ValueDescription> {
+            return this.properties.mapValues { (_, valueDescriptionProvider) ->
+                valueDescriptionProvider(nodeIdProvider, node)
+            }
+        }
+
+        private fun toValueDescription(
+            nodeIdProvider: NodeIdProvider,
+            source: Any?
+        ): ValueDescription {
+            return when (source) {
+                is Boolean -> BooleanValueDescription(source)
+                is Int -> IntegerValueDescription(source)
+                is String -> StringValueDescription(source)
+                is Node -> toContainmentValueDescription(nodeIdProvider, source)
+                is ReferenceByName<*> -> toReferenceValueDescription(nodeIdProvider, source)
+                is List<*> -> toListValueDescription(nodeIdProvider, source)
+                null -> NullValueDescription
+                else -> throw RuntimeException("Unsupported value description for ${source::class.qualifiedName}")
+            }
+        }
+
+        private fun toReferenceValueDescription(
+            nodeIdProvider: NodeIdProvider,
+            source: ReferenceByName<*>
+        ): ReferenceValueDescription {
+            return ReferenceValueDescription(
+                source.referred?.let { it as? Node }?.let { nodeIdProvider.id(it) }
+            )
+        }
+
+        private fun toContainmentValueDescription(
+            nodeIdProvider: NodeIdProvider,
+            source: Node
+        ): ContainmentValueDescription {
+            return ContainmentValueDescription(nodeIdProvider.id(source))
+        }
+
+        private fun toListValueDescription(
+            nodeIdProvider: NodeIdProvider,
+            source: List<*>
+        ): ListValueDescription {
+            return ListValueDescription(source.map { this.toValueDescription(nodeIdProvider, it) }.toList())
         }
     }
 
@@ -75,12 +144,13 @@ class DeclarativeSymbolProviderRule<NodeTy : Node>(
     ): SymbolDescription {
         @Suppress("UNCHECKED_CAST")
         return (node as NodeTy).let {
-            this.specification(DeclarativeSymbolProviderRuleContext(node, symbolProvider))
+            val api = Api<NodeTy>()
+            this.specification(api, DeclarativeSymbolProviderRuleContext(node, symbolProvider))
             SymbolDescription(
-                getName(node),
+                api.getName(node),
                 nodeIdProvider.id(node),
-                getTypes(node),
-                getProperties(nodeIdProvider, node)
+                api.getTypes(node),
+                api.getProperties(nodeIdProvider, node)
             )
         }
     }
@@ -95,65 +165,6 @@ class DeclarativeSymbolProviderRule<NodeTy : Node>(
             other.nodeType.isSuperclassOf(this.nodeType) -> -1
             else -> (this.nodeType.qualifiedName ?: "") compareTo (other.nodeType.qualifiedName ?: "")
         }
-    }
-
-    private fun getName(node: NodeTy): String {
-        return this.name(node)
-            ?: throw RuntimeException("Symbol description name property not set for node: ${node::class.qualifiedName}")
-    }
-
-    private fun getTypes(node: NodeTy): List<String> {
-        return listOfNotNull(
-            node::class.qualifiedName
-        ) + node::class.allSuperclasses.mapNotNull(KClass<*>::qualifiedName)
-    }
-
-    private fun getProperties(
-        nodeIdProvider: NodeIdProvider,
-        node: NodeTy
-    ): Map<String, ValueDescription> {
-        return this.properties.mapValues { (_, valueDescriptionProvider) ->
-            valueDescriptionProvider(nodeIdProvider, node)
-        }
-    }
-
-    private fun toValueDescription(
-        nodeIdProvider: NodeIdProvider,
-        source: Any?
-    ): ValueDescription {
-        return when (source) {
-            is Boolean -> BooleanValueDescription(source)
-            is Int -> IntegerValueDescription(source)
-            is String -> StringValueDescription(source)
-            is Node -> toContainmentValueDescription(nodeIdProvider, source)
-            is ReferenceByName<*> -> toReferenceValueDescription(nodeIdProvider, source)
-            is List<*> -> toListValueDescription(nodeIdProvider, source)
-            null -> NullValueDescription
-            else -> throw RuntimeException("Unsupported value description for ${source::class.qualifiedName}")
-        }
-    }
-
-    private fun toReferenceValueDescription(
-        nodeIdProvider: NodeIdProvider,
-        source: ReferenceByName<*>
-    ): ReferenceValueDescription {
-        return ReferenceValueDescription(
-            source.referred?.let { it as? Node }?.let { nodeIdProvider.id(it) }
-        )
-    }
-
-    private fun toContainmentValueDescription(
-        nodeIdProvider: NodeIdProvider,
-        source: Node
-    ): ContainmentValueDescription {
-        return ContainmentValueDescription(nodeIdProvider.id(source))
-    }
-
-    private fun toListValueDescription(
-        nodeIdProvider: NodeIdProvider,
-        source: List<*>
-    ): ListValueDescription {
-        return ListValueDescription(source.map { this.toValueDescription(nodeIdProvider, it) }.toList())
     }
 }
 

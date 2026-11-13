@@ -9,6 +9,7 @@ class SequentialNodeIdProvider(startId: Long = 1L) : NodeIdProvider {
     private val cache = IdentityHashMap<KNode, String>()
     private var next = startId
 
+    @Synchronized
     override fun id(kNode: Node): String {
         return cache.getOrPut(kNode) {
             (next++).toString()
@@ -21,6 +22,7 @@ class SequentialNodeIdProvider(startId: Long = 1L) : NodeIdProvider {
             throw UnsupportedOperationException()
         }
 
+    @Synchronized
     override fun registerMapping(kNode: Node, nodeId: String) {
         if (cache.containsKey(kNode)) {
             require(cache[kNode] == nodeId)

@@ -3,13 +3,16 @@ package com.strumenta.kolasu.lionweb
 import java.io.File
 
 object PerformanceLogger {
+    @Volatile
     var file = File("performance-log.csv")
     val sumByStep = mutableMapOf<String, Long>()
 
+    @Synchronized
     fun sumByStep(description: String): Long {
         return sumByStep.getOrDefault(description, 0)
     }
 
+    @Synchronized
     fun printAllSums() {
         println("== Performance logger sums ===")
         sumByStep.forEach {
@@ -23,6 +26,7 @@ object PerformanceLogger {
         }
     }
 
+    @Synchronized
     fun log(description: String, baseTime: Long? = null): Long {
         ensureFileIsReady()
         val t = System.currentTimeMillis()
