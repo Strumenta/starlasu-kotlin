@@ -72,6 +72,12 @@ tasks.named("runKtlintCheckOverTestSourceSet") {
 tasks.named("runKtlintFormatOverTestSourceSet") {
     dependsOn("generateTestGrammarSource")
 }
+tasks.matching {
+    it.name == "runKtlintCheckOverTestFixturesSourceSet" ||
+        it.name == "runKtlintFormatOverTestFixturesSourceSet"
+}.configureEach {
+    dependsOn("generateTestFixturesGrammarSource")
+}
 tasks.named("sourcesJar") {
     dependsOn("generateGrammarSource")
 }
