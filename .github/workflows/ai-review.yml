@@ -1,0 +1,111 @@
+# AI review of pull requests with Open Code Review and Mistral.
+# Setup: secret MISTRAL_API_KEY (a dedicated key, with a spending limit on the Mistral console).
+# Optional repository variable AI_REVIEW_GATE=true makes the check fail on HUMAN and INCOMPLETE.
+#
+# When it runs:
+#  - when a pull request from a branch of this repository, opened by one of the users listed in
+#    the repository variable AI_REVIEW_USERS (comma separated; default in the condition below),
+#    is opened or marked ready for review. A job-level "if" cannot read env, hence the variable;
+#  - when someone with write access adds the label "ai-review" (this is how to review a pull request
+#    from a fork, or to review again after new pushes: remove the label and add it again).
+# It does not run on every push, to keep cost and noise down.
+#
+# Security: it uses pull_request_target so that the secret is available for forks too, but the
+# pull request code is only checked out and read by OCR, never built or executed; the scripts
+# always come from the base branch. Forks run only when a maintainer adds the label.
+name: AI review
+
+on:
+  pull_request_target:
+    types: [opened, ready_for_review, labeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: >-
+      !github.event.pull_request.draft && (
+        (github.event.action != 'labeled' &&
+         github.event.pull_request.head.repo.full_name == github.repository &&
+         contains(format(',{0},', vars.AI_REVIEW_USERS || 'ftomassetti,alessiostalla'), format(',{0},', github.event.pull_request.user.login))) ||
+        (github.event.action == 'labeled' && github.event.label.name == 'ai-review'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      OCR_VERSION: v1.14.3
+      OCR_SHA256: 17ee32cdf0af6c006a199d758defb6c2abe05ec5b4d164df3a703c0208d5155e
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - name: Check out the review scripts (base branch, trusted)
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: .ai-review
+          path: kit
+          persist-credentials: false
+
+      - name: Check out the pull request (read only, never executed)
+        uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/head
+          fetch-depth: 0
+          path: pr
+          persist-credentials: false
+
+      - name: Install Open Code Review
+        run: |
+          curl -fsSL -o ocr "https://github.com/alibaba/open-code-review/releases/download/${OCR_VERSION}/opencodereview-linux-amd64"
+          echo "${OCR_SHA256}  ocr" | sha256sum -c -
+          sudo install -m 755 ocr /usr/local/bin/ocr && rm ocr
+          ocr --version
+
+      - name: Configure Mistral
+        run: |
+          mkdir -p ~/.opencodereview
+          cat > ~/.opencodereview/config.json <<'JSON'
+          {
+            "provider": "mistral",
+            "providers": {
+              "mistral": {
+                "api_key_cmd": "printenv MISTRAL_API_KEY",
+                "model": "mistral-large-4-0",
+                "timeout_sec": 900,
+                "extra_body": {"stream": true}
+              }
+            }
+          }
+          JSON
+
+      - name: Review
+        env:
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        run: kit/.ai-review/run.sh "$PWD/pr" "$BASE_SHA" "$HEAD_SHA" "$PWD/out"
+
+      - name: Post the review on the pull request
+        if: always() && hashFiles('out/verdict.txt') != ''
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 kit/.ai-review/post_review.py out --repo pr --base "$BASE_SHA" --head "$HEAD_SHA" \
+            --pr "${{ github.repository }}#${{ github.event.pull_request.number }}"
+
+      - name: Keep the raw review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-review-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          path: out/
+          retention-days: 30
+
+      - name: Gate on the verdict
+        if: vars.AI_REVIEW_GATE == 'true'
+        run: |
+          v=$(cut -f1 out/verdict.txt)
+          echo "verdict: $v"
+          [ "$v" = "READY" ]
