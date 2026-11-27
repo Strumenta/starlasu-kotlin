@@ -8,13 +8,15 @@
 #   variables AI_REVIEW_USERS      authors reviewed automatically, comma separated
 #             AI_REVIEW_GATE       optional, "true" makes the check fail unless the verdict is READY
 #
-# It reviews when a pull request from a branch of this repository by one of AI_REVIEW_USERS is
-# opened or marked ready, and when someone with write access adds the label "ai-review" (also for
-# forks; remove the label and add it again to review after new pushes). The pull request code is
-# only checked out and read, never built or executed.
+# It reviews pull requests from branches of this repository: automatically when one by an author in
+# AI_REVIEW_USERS is opened or marked ready, and for any author when someone adds the label
+# "ai-review" (remove the label and add it again to review after new pushes). Pull requests from
+# forks are not reviewed: with the pull_request trigger GitHub does not give them the secrets, and
+# GitHub blocks pull_request_target on public repositories by default from December 2026.
+# The pull request code is only checked out and read, never built or executed.
 name: AI review
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, ready_for_review, labeled]
 permissions:
   contents: read
@@ -25,9 +27,9 @@ concurrency:
 jobs:
   review:
     if: >-
-      !github.event.pull_request.draft && (
+      !github.event.pull_request.draft &&
+      github.event.pull_request.head.repo.full_name == github.repository && (
         (github.event.action != 'labeled' &&
-         github.event.pull_request.head.repo.full_name == github.repository &&
          contains(format(',{0},', vars.AI_REVIEW_USERS), format(',{0},', github.event.pull_request.user.login))) ||
         (github.event.action == 'labeled' && github.event.label.name == 'ai-review'))
     runs-on: ubuntu-latest
